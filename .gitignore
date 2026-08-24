@@ -1,0 +1,39 @@
+# Carpeta de secretos y tokens
+.secrets/
+looker/
+*.json
+
+
+# Archivos de entorno
+.env
+*.env
+
+# Archivos CSV, Excel, y otros datos brutos o generados
+*.csv
+*.sav
+*.dta
+*.do
+# Resultados o salidas temporales
+*.html
+*.pdf
+*.docx
+*.log
+*.out
+*.m4a
+
+# Cache de paquetes
+.Rcheck/
+__pycache__/
+*.pyc
+
+# Archivos de sistema (Windows/macOS)
+.DS_Store
+Thumbs.db
+
+# Node / web (por si usas Quarto, R Shiny, etc.)
+node_modules/
+dist/
+build/
+
+# NO ignorar el archivo .Rproj
+!*.Rproj
