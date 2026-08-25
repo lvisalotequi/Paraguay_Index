@@ -1,69 +1,33 @@
-name: Run Survey Pipeline
+name: Run Pipeline
 
-#on:
-#  schedule:
-#    - cron: "0 */2 * * *"  # Cada 2 horas (UTC)
-#  workflow_dispatch:
+on:
+  workflow_dispatch:
 
 jobs:
-  run-scripts:
+  run-pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          persist-credentials: false
+          python-version: "3.11"
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: "4.3.1"
-          use-public-rspm: true
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Install system dependencies
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libxml2-dev \
-            libgit2-dev \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            libudunits2-dev \
-            libgdal-dev \
-            libgeos-dev \
-            libproj-dev
-
-      # (Opcional) guardar el JSON en archivo; tu master igual usa el secreto como string
-      - name: Write Google credentials file
+      - name: Write Google service account credentials
         env:
           GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
         run: |
           set -euo pipefail
-          if [ -n "${GOOGLE_SHEETS_CREDENTIALS:-}" ]; then
-            printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$GITHUB_WORKSPACE/service-account.json"
-            chmod 600 "$GITHUB_WORKSPACE/service-account.json"
-          fi
-          mkdir -p .secrets  # por si usas cache=".secrets" en drive_auth
+          printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$GITHUB_WORKSPACE/service-account.json"
+          chmod 600 "$GITHUB_WORKSPACE/service-account.json"
 
-      - name: Install R dependencies and run the pipeline
+      - name: Run pipeline
         env:
-          SERVIDOR: ${{ secrets.SERVIDOR }}
-          USERNAME: ${{ secrets.USERNAME }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          EMAIL: ${{ secrets.EMAIL }}
-          FORMID: ${{ secrets.FORMID }}
-          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
-          # nuevos secrets usados en el master:
-          ID24: ${{ secrets.ID24 }}
-          IDALERTAS: ${{ secrets.IDALERTAS }}
-          IDKEYS: ${{ secrets.IDKEYS }}
-          # opcional: ruta al JSON por si algún script la usa
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
-        run: |
-          set -euo pipefail
-          Rscript -e "if (!require('pacman')) install.packages('pacman', repos='https://cloud.r-project.org')"
-          Rscript -e "pacman::p_load(dplyr, tidyr, httr, jsonlite, googledrive, googlesheets4, writexl, haven, stringr, labelled, lubridate, gtsummary, dotenv, readxl, tibble, sf, purrr)"
-          Rscript NIUBIZ_master_script.R
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+        run: python run_pipeline.py
