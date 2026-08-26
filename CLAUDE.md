@@ -69,7 +69,8 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 - **Salida a Sheets**: solo la pestaña `pipeline_log` (auditoría de que corrió).
   Ninguna fuente escribe datos a Sheets todavía.
 - **Ejecución**: GitHub Actions, disparo manual (`workflow_dispatch`) desde la
-  pestaña Actions del repo. No hay cron/scheduler todavía.
+  pestaña Actions del repo, y programado cada 12 horas (`schedule` cron
+  `0 */12 * * *`, UTC).
 
 ## 4. Convenciones de código
 
@@ -156,13 +157,13 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
    fuera de la organización" en esa unidad, o agregar la cuenta de servicio
    como miembro directo. Una vez resuelto, actualizar el secret `SHEET_ID`
    en GitHub.
-3. **Probar `bcp_comercio_exterior.py` corriendo en GitHub Actions** (ya
-   debería andar sin cambios, dado que la subida es 100% por API — falta la
-   corrida real que lo confirme).
-4. Ir agregando un módulo en `src/ingestion/` por cada variable, siguiendo la
+3. Ir agregando un módulo en `src/ingestion/` por cada variable, siguiendo la
    convención de la sección 4.
-5. Diseñar la etapa que lee los datos crudos de Drive y arma lo que
+4. Diseñar la etapa que lee los datos crudos de Drive y arma lo que
    finalmente va al Sheet (limpieza, homologación entre fuentes, qué campos
    importan) — todavía no existe.
-6. Decidir si hace falta cron (`schedule` en el workflow) una vez que haya
-   fuentes reales corriendo, o si el disparo manual alcanza por ahora.
+
+*(Resuelto 2026-08-26: `bcp_comercio_exterior.py` corrió en GitHub Actions y
+subió/verificó los archivos en Drive sin depender de nada montado en local —
+confirmado leyendo `pipeline_log`. También se agregó el cron de 12hs y se
+auditó todo el historial de git antes de volver público el repo — sección 3.)*
