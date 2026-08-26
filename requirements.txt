@@ -7,3 +7,4 @@ python-dotenv>=1.0
 # src/ingestion
 beautifulsoup4>=4.12
 curl_cffi>=0.7      # bypass de Cloudflare (ej. bcp_comercio_exterior.py)
+requests>=2.31       # fuentes que exponen una API normal (ej. bea_inversion_directa.py)

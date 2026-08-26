@@ -113,10 +113,10 @@ futura (`clean` / integración / export) que todavía no existe en este repo
   cada módulo pide el scope de OAuth que necesita al construir sus propias
   `Credentials`.
 - Local: variables de entorno en `.env` (no versionado) —
-  `GOOGLE_APPLICATION_CREDENTIALS` y `SHEET_ID`.
+  `GOOGLE_APPLICATION_CREDENTIALS`, `SHEET_ID`, `BEA_API_KEY`.
 - GitHub Actions: secrets `GOOGLE_SHEETS_CREDENTIALS` (JSON completo de la
-  cuenta de servicio) y `SHEET_ID`, en Settings > Secrets and variables >
-  Actions.
+  cuenta de servicio), `SHEET_ID` y `BEA_API_KEY`, en Settings > Secrets and
+  variables > Actions.
 - El Sheet de destino debe estar compartido como **Editor** con el
   `client_email` de la cuenta de servicio. Si el Sheet vive dentro de una
   Unidad compartida de Google Workspace, puede bloquear compartir con cuentas
@@ -133,6 +133,7 @@ pandas                     # queda declarado para cuando exista una etapa de lim
 python-dotenv               # cargar .env en local
 beautifulsoup4              # parseo de HTML en ingestion
 curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo necesiten)
+requests                    # fuentes que exponen una API normal (ej. bea_inversion_directa.py)
 ```
 
 ## 6. Estado actual
@@ -140,8 +141,8 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
 - Pipeline maestro (`run_pipeline.py`), helper de Sheets (`src/sheets.py`) y
   helper de Drive (`src/drive.py`): probados de punta a punta, en local y en
   GitHub Actions.
-- Tres scripts de ingestion reales, todos de bcp.gov.py (dimensión
-  `3.Compromiso_economico_privado`), compartiendo `_bcp_common.py`:
+- Cuatro scripts de ingestion reales, todos de la dimensión
+  `3.Compromiso_economico_privado`:
   - `bcp_comercio_exterior.py` — Importación/Exportación por año, desde 2010
     en adelante (34 archivos hoy).
   - `bcp_inversion_directa.py` — anexo estadístico único de Inversión
@@ -149,9 +150,18 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
     país del inversionista, incluida una fila "ESTADOS UNIDOS".
   - `bcp_remesas_familiares.py` — Excel único de remesas familiares, con
     columna "EE.UU." y desglose mensual.
-  - Los tres probados con datos reales: suben bien y una segunda corrida
-    saltea lo que ya está (idempotente). bcp.gov.py está detrás de
-    Cloudflare — requiere `curl_cffi` (ver sección 4).
+  - Estos tres comparten `_bcp_common.py` (bcp.gov.py está detrás de
+    Cloudflare, requiere `curl_cffi`, ver sección 4).
+  - `bea_inversion_directa.py` — API pública de BEA (dataset `MNE`,
+    `DirectionOfInvestment=outward`, país Paraguay = código `216`), fuente
+    complementaria a `bcp_inversion_directa.py` desde el lado de EE.UU. Sube
+    la respuesta JSON cruda tal cual, con la fecha de la corrida en el
+    nombre del archivo (idempotente por día). **A diferencia de la fuente
+    del BCP, esta viene ANUAL, no trimestral** — es el corte más fino que
+    expone la API para datos por país. Requiere `BEA_API_KEY` (gratuita,
+    el usuario la generó en `apps.bea.gov/API/signup`).
+  - Los cuatro probados con datos reales: suben bien y una segunda corrida
+    saltea lo que ya está (idempotente).
 - Repo limpiado de artefactos que ya no aplican: el pipeline en R, el
   workflow de otro proyecto, todo lo de RStudio, y `.env.example` — el
   proyecto es 100% Python.
@@ -184,18 +194,17 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
    fuera de la organización" en esa unidad, o agregar la cuenta de servicio
    como miembro directo. Una vez resuelto, actualizar el secret `SHEET_ID`
    en GitHub.
-3. **Inversión Directa BEA** (`https://www.bea.gov/data/intl-trade-investment/direct-investment-country-and-industry`,
-   fuente complementaria a `bcp_inversion_directa.py`): requiere una API key
-   gratuita de BEA (`apps.bea.gov/API/signup`) que el usuario tiene que
-   generar — no se puede automatizar la creación de esa cuenta. Falta la key
-   para escribir `bea_inversion_directa.py`.
-4. **Anuncios de proyectos de inversión de EE.UU. hacia Paraguay** (REDIEX):
+3. **Anuncios de proyectos de inversión de EE.UU. hacia Paraguay** (REDIEX):
    el link dado (`rediex.gov.py/inversiones/`) es solo una página de menú,
    sin ningún dataset ni archivo descargable — se revisaron las subpáginas
    relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
    Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
    específico o confirmar si esta variable existe como dataset en otro lado.
-5. Diseñar las etapas `02_limpias` y `03_final` que lean los datos crudos de
+4. Diseñar las etapas `02_limpias` y `03_final` que lean los datos crudos de
    `01_crudas` y armen lo que finalmente va al Sheet (limpieza, homologación
    entre fuentes, qué campos importan) — todavía no existen, ni en Drive ni
    en el repo.
+
+*(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
+con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret
+`BEA_API_KEY` ya esté cargado en GitHub para que corra igual en Actions.)*

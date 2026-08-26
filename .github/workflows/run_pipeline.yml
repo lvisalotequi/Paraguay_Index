@@ -32,4 +32,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
           SHEET_ID: ${{ secrets.SHEET_ID }}
+          BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
         run: python run_pipeline.py
