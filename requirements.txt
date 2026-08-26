@@ -1,5 +1,6 @@
 gspread>=6.0
 google-auth>=2.28
+google-api-python-client>=2.100   # src/drive.py (subida de archivos crudos)
 pandas>=2.2
 python-dotenv>=1.0
 

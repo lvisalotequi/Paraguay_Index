@@ -6,11 +6,12 @@ Fuente: https://www.bcp.gov.py/web/institucional/importaciones-partidas-p
 
 Que hace:
     1. Descarga el HTML del listado y extrae todos los archivos disponibles
-       (Importacion y Exportacion, todos los anios: 1991 - actualidad). No
-       hace falta paginar: la pagina carga todos los enlaces de una sola vez.
-    2. Descarga cada archivo (.xls / .xlsx / .xlsb) a data/raw/bcp_comercio_exterior/.
-       Es idempotente: si el archivo ya fue descargado en una corrida
-       anterior, lo saltea.
+       (Importacion y Exportacion, desde ANIO_MINIMO en adelante). No hace
+       falta paginar: la pagina carga todos los enlaces de una sola vez.
+    2. Descarga cada archivo (.xls / .xlsx / .xlsb) EN MEMORIA y lo sube
+       directo a la carpeta de Drive de la dimension correspondiente (ver
+       src/drive.py) - no se escribe nada a disco local. Es idempotente: si
+       el archivo ya existe en esa carpeta de Drive, lo saltea.
 
 Este modulo SOLO extrae y guarda los archivos crudos tal como los publica el
 BCP. No los lee, no los transforma ni los consolida en un solo dataset -
@@ -22,7 +23,6 @@ Nota tecnica: el sitio del BCP esta detras de Cloudflare y devuelve 403 con
 `curl_cffi` con impersonate="chrome" para pasar el challenge, igual que en
 otras fuentes del equipo que estan detras de Cloudflare.
 """
-import os
 import re
 import time
 import unicodedata
@@ -31,13 +31,13 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 
-from src.paths import DATA_ROOT, ruta_larga
+from src.drive import existe_archivo, resolve_folder, subir_archivo
 
 URL_BASE = "https://www.bcp.gov.py"
 URL_LISTADO = "https://www.bcp.gov.py/web/institucional/importaciones-partidas-p"
-CARPETA_DESCARGAS = os.path.join(
-    DATA_ROOT, "3.Compromiso_economico_privado", "bcp_comercio_exterior"
-)
+
+# Carpeta de Drive donde se sube esto: DRIVE_ROOT_ID / 3.Compromiso_economico_privado / bcp_comercio_exterior
+CARPETA_DRIVE = ("3.Compromiso_economico_privado", "bcp_comercio_exterior")
 
 # Filtrar por tipo: ["Importación"], ["Exportación"] o None para traer ambos
 TIPOS_A_INCLUIR = None
@@ -50,6 +50,13 @@ ANIOS_A_INCLUIR = None
 ANIO_MINIMO = 2010
 
 IMPERSONATE = "chrome"
+
+MIME_POR_EXTENSION = {
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xlsb": "application/vnd.ms-excel.sheet.binary.macroenabled.12",
+    "csv": "text/csv",
+}
 
 
 def _limpiar_nombre_archivo(texto):
@@ -111,47 +118,48 @@ def _filtrar_archivos(archivos):
     return resultado
 
 
-def _descargar_archivo(archivo):
-    """Descarga un archivo si todavia no esta en la carpeta. Devuelve (ruta, es_nuevo)."""
-    os.makedirs(ruta_larga(CARPETA_DESCARGAS), exist_ok=True)
+def _procesar_archivo(archivo, carpeta_id):
+    """Descarga un archivo en memoria y lo sube a Drive si todavia no esta. Devuelve es_nuevo."""
     nombre = f"{_limpiar_nombre_archivo(archivo['titulo'])}.{archivo['extension']}"
-    ruta = os.path.join(CARPETA_DESCARGAS, nombre)
 
-    if os.path.exists(ruta_larga(ruta)):
-        return ruta, False  # ya estaba descargado de una corrida anterior
+    if existe_archivo(nombre, carpeta_id):
+        return False  # ya estaba subido de una corrida anterior
 
     r = requests.get(archivo["url"], impersonate=IMPERSONATE, timeout=60)
     r.raise_for_status()
-    with open(ruta_larga(ruta), "wb") as f:
-        f.write(r.content)
-    return ruta, True
+
+    mime_type = MIME_POR_EXTENSION.get(archivo["extension"], "application/octet-stream")
+    subir_archivo(r.content, nombre, carpeta_id, mime_type=mime_type)
+    return True
 
 
 def run():
-    """Descarga a data/raw/bcp_comercio_exterior/ los archivos que todavia no esten ahi."""
+    """Sube a Drive (CARPETA_DRIVE) los archivos que todavia no esten ahi."""
+    carpeta_id = resolve_folder(*CARPETA_DRIVE)
     archivos = _filtrar_archivos(_obtener_listado_archivos())
     nuevos, existentes, errores = [], [], []
 
     for archivo in archivos:
+        nombre = f"{_limpiar_nombre_archivo(archivo['titulo'])}.{archivo['extension']}"
         try:
-            ruta, es_nuevo = _descargar_archivo(archivo)
+            es_nuevo = _procesar_archivo(archivo, carpeta_id)
         except Exception as exc:  # noqa: BLE001
             errores.append((archivo["titulo"], repr(exc)))
             continue
 
-        (nuevos if es_nuevo else existentes).append(ruta)
+        (nuevos if es_nuevo else existentes).append(nombre)
         if es_nuevo:
-            time.sleep(0.3)  # pausa breve para no saturar el servidor
+            time.sleep(0.3)  # pausa breve para no saturar el servidor del BCP
 
     print(
         f"[bcp_comercio_exterior] {len(nuevos)} nuevos, {len(existentes)} ya "
-        f"existian, {len(errores)} errores (carpeta: {CARPETA_DESCARGAS})"
+        f"existian, {len(errores)} errores (Drive: {'/'.join(CARPETA_DRIVE)})"
     )
     for titulo, err in errores:
         print(f"    [!] {titulo}: {err}")
 
     if errores and not nuevos and not existentes:
-        raise RuntimeError(f"No se pudo descargar ningun archivo: {errores}")
+        raise RuntimeError(f"No se pudo subir ningun archivo: {errores}")
 
 
 if __name__ == "__main__":
