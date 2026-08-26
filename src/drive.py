@@ -20,6 +20,7 @@ from googleapiclient.http import MediaIoBaseUpload
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 DRIVE_ROOT_ID = "1iFJsRRCMSa7u4-GpYNbl7BE2HnvDGxrL"  # carpeta "2.Datos_recolectados"
+CARPETA_CRUDAS = "01_crudas"  # subcarpeta donde va todo lo que sube ingestion
 
 
 def _client():
@@ -69,6 +70,12 @@ def resolve_folder(*segmentos):
             )
             carpeta_id = nueva["id"]
     return carpeta_id
+
+
+def resolve_ingestion_folder(dimension, fuente):
+    """Atajo para CARPETA_CRUDAS/{dimension}/{fuente} - lo que usan todos los
+    modulos de src/ingestion/ para saber donde subir sus archivos."""
+    return resolve_folder(CARPETA_CRUDAS, dimension, fuente)
 
 
 def existe_archivo(nombre, carpeta_id):

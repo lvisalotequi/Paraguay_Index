@@ -11,21 +11,29 @@ Engagement Index"), construido a partir de **cuatro dimensiones**. Cada dimensi�
 se mide con varias variables, y cada variable se extrae con un script de
 ingestion independiente. El resultado se centraliza en un Google Sheet.
 
-Las cuatro dimensiones y sus variables todavía no están definidas del todo.
-En la Unidad compartida del proyecto (carpeta de Drive `2.Datos_recolectados`,
-fuera de este repo) ya existen carpetas por dimensión — hoy: `1.Dimensión_1`,
-`2.Dimensión_2` y `3.Compromiso_economico_privado` (nombrada; las otras dos
-todavía no). Cada fuente que se agregue a `src/ingestion/` va a subir sus
-datos crudos a la carpeta de Drive de la dimensión a la que pertenece (ver
-sección 3).
+Las cuatro dimensiones, ya nombradas en la carpeta de Drive del proyecto:
+
+1. `1.Compromiso_financiero_oficial`
+2. `2.Actividad_gubernamental_y_diplomática`
+3. `3.Compromiso_economico_privado`
+4. `4.Visibilidad_mediática_y_relevancia_publica`
+
+Las variables de cada dimensión todavía se van definiendo sobre la marcha
+(el usuario pasa una fuente + qué extraer, sección 8 tiene el detalle de las
+que ya existen). Repo público desde 2026-08-26 (ver sección 7, auditoría de
+seguridad previa).
 
 ## 2. Arquitectura del pipeline
 
 ```
-src/ingestion/{fuente}.py  →  Drive: 2.Datos_recolectados/{dimensión}/{fuente}/  (archivos crudos)
+src/ingestion/{fuente}.py  →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/  (archivos crudos)
                     │
                     └──  run_pipeline.py  →  pestaña pipeline_log del Sheet (solo auditoria)
 ```
+
+La carpeta de Drive tiene 3 etapas (`01_crudas`, `02_limpias`, `03_final`);
+por ahora **solo existe `01_crudas`** — las otras dos etapas todavía no
+tienen ningún script que las llene (ver sección 7, pendiente #4).
 
 **Regla central: los scripts de `src/ingestion/` SOLO extraen datos y los
 suben a Drive.** No escriben nada a disco local, no limpian, no transforman,
@@ -50,17 +58,21 @@ futura (`clean` / integración / export) que todavía no existe en este repo
   hace el pipeline hoy, y sirve para confirmar que una corrida ejecutó de
   punta a punta sin depender de leer logs de GitHub.
 - Archivos que empiezan con `_` en `src/ingestion/` se ignoran como módulos
-  (convención para helpers/funciones internas dentro del propio módulo, no
-  para compartir entre módulos).
+  (convención para helpers compartidos entre módulos de una misma fuente/
+  sitio — ej. `_bcp_common.py`, que usan los tres módulos de bcp.gov.py para
+  no repetir el bypass de Cloudflare y el manejo de nombres de archivo).
 
 ## 3. Persistencia y ejecución
 
 - **Datos crudos**: viven en Google Drive, no en git y no en disco local.
   `src/drive.py` tiene `DRIVE_ROOT_ID`, el id de la carpeta de Drive
-  `2.Datos_recolectados` (Unidad compartida del proyecto). Cada fuente sube
-  a `DRIVE_ROOT_ID/{dimensión}/{fuente}/` — ej. Comercio Exterior del BCP va
-  en `2.Datos_recolectados/3.Compromiso_economico_privado/bcp_comercio_exterior/`.
-  `resolve_folder()` crea las subcarpetas que falten.
+  `2.Datos_recolectados` (Unidad compartida del proyecto), y `CARPETA_CRUDAS`
+  (`"01_crudas"`). Cada fuente sube a
+  `DRIVE_ROOT_ID/01_crudas/{dimensión}/{fuente}/` — ej. Comercio Exterior del
+  BCP va en `2.Datos_recolectados/01_crudas/3.Compromiso_economico_privado/bcp_comercio_exterior/`.
+  `resolve_ingestion_folder(dimension, fuente)` arma esa ruta y crea las
+  subcarpetas que falten (atajo sobre `resolve_folder()`, que acepta
+  cualquier lista de segmentos si hiciera falta apuntar a otro lado).
 - La cuenta de servicio tiene rol **Writer** en esa Unidad compartida (puede
   crear/editar archivos, no puede borrarlos — no hace falta para ingestion).
 - Como la subida es por API (no por disco montado), **esto ya corre igual en
@@ -76,13 +88,18 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 
 - Cada script de ingestion: `src/ingestion/{nombre_fuente}.py` con una función
   `def run()`. No hace falta tocar `run_pipeline.py` al agregar uno nuevo.
-- Carpeta de Drive: `carpeta_id = resolve_folder("{dimensión}", "{nombre_fuente}")`
+- Carpeta de Drive: `carpeta_id = resolve_ingestion_folder("{dimensión}", "{nombre_fuente}")`
   desde `src/drive.py`, una sola vez al principio de `run()`. Por archivo:
   `existe_archivo(nombre, carpeta_id)` para chequear, `subir_archivo(bytes,
   nombre, carpeta_id, mime_type=...)` para subir.
 - Si la fuente está detrás de Cloudflare y `requests` normal da `403`, usar
-  `curl_cffi` con `impersonate="chrome"` en vez de `requests` (bypasea el
-  bloqueo por huella TLS). Ejemplo: `bcp_comercio_exterior.py`.
+  `curl_cffi` con `impersonate="chrome"` en vez de `requests`. Si ya hay un
+  helper `_{sitio}_common.py` para ese dominio (ej. `_bcp_common.py` para
+  cualquier fuente de bcp.gov.py), reusarlo en vez de repetir el bypass y el
+  manejo de nombres de archivo.
+- Los archivos que un sitio publica como serie completa en un solo Excel (no
+  uno por año) se suben tal cual, con su nombre original saneado — no hace
+  falta iterar años. Ejemplo: `bcp_inversion_directa.py`, `bcp_remesas_familiares.py`.
 - Credenciales: nunca hardcodear rutas ni secrets en el código. Usar
   `os.environ["GOOGLE_APPLICATION_CREDENTIALS"]` (ver `src/sheets.py` y
   `src/drive.py`) y `os.environ["SHEET_ID"]` (solo `src/sheets.py`).
@@ -121,35 +138,45 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
 ## 6. Estado actual
 
 - Pipeline maestro (`run_pipeline.py`), helper de Sheets (`src/sheets.py`) y
-  helper de Drive (`src/drive.py`): probados de punta a punta en local.
-- Primer script de ingestion real: `src/ingestion/bcp_comercio_exterior.py`
-  (Comercio Exterior, Banco Central del Paraguay). Sube los archivos
-  Importación/Exportación por año, **desde 2010 en adelante** (34 archivos
-  hoy), a `2.Datos_recolectados/3.Compromiso_economico_privado/bcp_comercio_exterior/`
-  en Drive. Probado: sube bien (confirmado con archivos reales de hasta
-  ~14 MB) y una segunda corrida los saltea (idempotente, chequeado por API
-  contra Drive). El sitio está detrás de Cloudflare — requirió `curl_cffi`
-  en vez de `requests` normal (ver sección 4).
-- La primera versión de este script escribía a disco local (Unidad
-  compartida montada en `G:`) — se migró a subir directo a Drive por API
-  para poder correr igual en GitHub Actions. De paso se encontró y se
-  descartó un workaround que ya no hace falta: el path local superaba el
-  límite de 260 caracteres de Windows (MAX_PATH) por lo largo de la ruta de
-  la Unidad compartida.
-- Repo limpiado de artefactos que ya no aplican: el pipeline en R
-  (`Paraguay_index_master_script.R`), el workflow que corría un script de
-  otro proyecto, y todo lo de RStudio (`.Rproj`, `.Rproj.user/`, `.Rhistory`)
-  — el proyecto es 100% Python. También se eliminó `.env.example` (era un
-  ejemplo de referencia, no un archivo que el pipeline necesite leer; cada
-  quien mantiene su propio `.env` local, no versionado).
+  helper de Drive (`src/drive.py`): probados de punta a punta, en local y en
+  GitHub Actions.
+- Tres scripts de ingestion reales, todos de bcp.gov.py (dimensión
+  `3.Compromiso_economico_privado`), compartiendo `_bcp_common.py`:
+  - `bcp_comercio_exterior.py` — Importación/Exportación por año, desde 2010
+    en adelante (34 archivos hoy).
+  - `bcp_inversion_directa.py` — anexo estadístico único de Inversión
+    Directa (1995-actualidad); trae un cuadro con flujos trimestrales por
+    país del inversionista, incluida una fila "ESTADOS UNIDOS".
+  - `bcp_remesas_familiares.py` — Excel único de remesas familiares, con
+    columna "EE.UU." y desglose mensual.
+  - Los tres probados con datos reales: suben bien y una segunda corrida
+    saltea lo que ya está (idempotente). bcp.gov.py está detrás de
+    Cloudflare — requiere `curl_cffi` (ver sección 4).
+- Repo limpiado de artefactos que ya no aplican: el pipeline en R, el
+  workflow de otro proyecto, todo lo de RStudio, y `.env.example` — el
+  proyecto es 100% Python.
+- **Incidente de seguridad resuelto (2026-08-26):** una clave de la cuenta
+  de servicio quedó expuesta en el historial de git desde el primer commit
+  (adentro de archivos de sesión de RStudio, `.Rproj.user/`, ya eliminados).
+  Google la detectó y notificó. Se investigó el alcance completo (dos claves
+  de esta cuenta de servicio + una clave ajena de otro proyecto +
+  contraseñas en texto plano, todo dentro de `.Rproj.user/`), se purgó del
+  historial completo con `git filter-repo` + force-push, se rotaron todas
+  las credenciales afectadas, y se auditó de nuevo el historial ya limpio
+  antes de hacer público el repo. Queda como recordatorio permanente: repetir
+  esta auditoría completa antes de cualquier futuro cambio de visibilidad.
 - `SHEET_ID` apunta hoy a un Sheet de **prueba** (en Mi unidad personal, no en
   la Unidad compartida del proyecto) porque compartir con la cuenta de
   servicio falló dentro de la Unidad compartida (ver pendientes).
+- Repo público desde 2026-08-26, con el workflow disparándose cada 12 horas
+  además de manual.
 
 ## 7. Pendientes
 
-1. **Definir las cuatro dimensiones y sus variables** — sigue siendo el
-   bloqueante principal para saber qué otras fuentes agregar.
+1. **Definir el resto de las variables de cada dimensión** — las cuatro
+   dimensiones ya tienen nombre (sección 1), pero solo
+   `3.Compromiso_economico_privado` tiene variables/fuentes definidas hasta
+   ahora.
 2. **Resolver el acceso a la Unidad compartida de Drive para el Sheet**
    (distinto del acceso a la carpeta de datos, que ya funciona). Compartir
    el Sheet definitivo con la cuenta de servicio dentro de esa Unidad
@@ -157,13 +184,18 @@ curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo ne
    fuera de la organización" en esa unidad, o agregar la cuenta de servicio
    como miembro directo. Una vez resuelto, actualizar el secret `SHEET_ID`
    en GitHub.
-3. Ir agregando un módulo en `src/ingestion/` por cada variable, siguiendo la
-   convención de la sección 4.
-4. Diseñar la etapa que lee los datos crudos de Drive y arma lo que
-   finalmente va al Sheet (limpieza, homologación entre fuentes, qué campos
-   importan) — todavía no existe.
-
-*(Resuelto 2026-08-26: `bcp_comercio_exterior.py` corrió en GitHub Actions y
-subió/verificó los archivos en Drive sin depender de nada montado en local —
-confirmado leyendo `pipeline_log`. También se agregó el cron de 12hs y se
-auditó todo el historial de git antes de volver público el repo — sección 3.)*
+3. **Inversión Directa BEA** (`https://www.bea.gov/data/intl-trade-investment/direct-investment-country-and-industry`,
+   fuente complementaria a `bcp_inversion_directa.py`): requiere una API key
+   gratuita de BEA (`apps.bea.gov/API/signup`) que el usuario tiene que
+   generar — no se puede automatizar la creación de esa cuenta. Falta la key
+   para escribir `bea_inversion_directa.py`.
+4. **Anuncios de proyectos de inversión de EE.UU. hacia Paraguay** (REDIEX):
+   el link dado (`rediex.gov.py/inversiones/`) es solo una página de menú,
+   sin ningún dataset ni archivo descargable — se revisaron las subpáginas
+   relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
+   Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
+   específico o confirmar si esta variable existe como dataset en otro lado.
+5. Diseñar las etapas `02_limpias` y `03_final` que lean los datos crudos de
+   `01_crudas` y armen lo que finalmente va al Sheet (limpieza, homologación
+   entre fuentes, qué campos importan) — todavía no existen, ni en Drive ni
+   en el repo.
