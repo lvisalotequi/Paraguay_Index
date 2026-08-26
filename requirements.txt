@@ -2,3 +2,7 @@ gspread>=6.0
 google-auth>=2.28
 pandas>=2.2
 python-dotenv>=1.0
+
+# src/ingestion
+beautifulsoup4>=4.12
+curl_cffi>=0.7      # bypass de Cloudflare (ej. bcp_comercio_exterior.py)

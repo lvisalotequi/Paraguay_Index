@@ -1,11 +1,21 @@
-"""Pipeline maestro: corre cada modulo de src/ingestion y registra la corrida en Google Sheets."""
+"""Pipeline maestro: corre cada modulo de src/ingestion (solo extraccion, cada uno
+guarda sus datos crudos en su propia carpeta) y registra la corrida en Google Sheets."""
 import importlib
 import pkgutil
 import sys
 from datetime import datetime, timezone
 
 from src import ingestion
-from src.sheets import append_log_row, write_dataframe
+from src.sheets import append_log_row
+
+# En Windows, la consola a veces usa un codec (cp1252) que no soporta los
+# emojis de las rutas de la Unidad compartida (DATA_ROOT) y print() explota
+# con UnicodeEncodeError. Se reconfigura a UTF-8 si el stream lo permite.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 
 def discover_ingestion_modules():
@@ -19,7 +29,7 @@ def discover_ingestion_modules():
 
 def run():
     started = datetime.now(timezone.utc)
-    results = {}
+    modules_run = []
     errors = {}
 
     for name in discover_ingestion_modules():
@@ -29,19 +39,16 @@ def run():
             continue
         print(f"[run] src/ingestion/{name}.py")
         try:
-            results[name] = module.run()
+            module.run()
+            modules_run.append(name)
         except Exception as exc:
             errors[name] = repr(exc)
             print(f"[error] {name}: {exc}", file=sys.stderr)
 
-    for name, df in results.items():
-        print(f"[sheets] escribiendo pestana '{name}'")
-        write_dataframe(name, df)
-
     append_log_row(
         started=started,
         finished=datetime.now(timezone.utc),
-        modules_run=list(results.keys()),
+        modules_run=modules_run,
         errors=errors,
     )
 
@@ -49,7 +56,7 @@ def run():
         print(f"Pipeline termino con errores: {errors}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Pipeline OK. Modulos de ingestion ejecutados: {list(results.keys()) or '(ninguno todavia)'}")
+    print(f"Pipeline OK. Modulos de ingestion ejecutados: {modules_run or '(ninguno todavia)'}")
 
 
 if __name__ == "__main__":

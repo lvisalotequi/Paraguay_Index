@@ -13,6 +13,12 @@ looker/
 *.sav
 *.dta
 *.do
+*.xls
+*.xlsx
+*.xlsb
+
+# Datos crudos descargados por src/ingestion/ (no se versionan)
+data/
 # Resultados o salidas temporales
 *.html
 *.pdf
@@ -22,18 +28,9 @@ looker/
 *.m4a
 
 # Cache de paquetes
-.Rcheck/
 __pycache__/
 *.pyc
 
 # Archivos de sistema (Windows/macOS)
 .DS_Store
 Thumbs.db
-
-# Node / web (por si usas Quarto, R Shiny, etc.)
-node_modules/
-dist/
-build/
-
-# NO ignorar el archivo .Rproj
-!*.Rproj
