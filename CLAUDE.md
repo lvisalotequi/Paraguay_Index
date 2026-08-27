@@ -100,6 +100,18 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 - Los archivos que un sitio publica como serie completa en un solo Excel (no
   uno por año) se suben tal cual, con su nombre original saneado — no hace
   falta iterar años. Ejemplo: `bcp_inversion_directa.py`, `bcp_remesas_familiares.py`.
+- **Filtrar a Paraguay/EE.UU. en el origen siempre que se pueda** (política
+  2026-08-27, aplica a toda fuente nueva): antes de bajar un dataset global,
+  buscar si la fuente tiene un filtro server-side por país (parámetro de API,
+  `filters` de un datastore CKAN, etc.) y usarlo — ver `bid_proyectos.py`
+  (CKAN `filters={"cntry_nm":"Paraguay"}`), `bancomundial_proyectos.py`
+  (`countrycode_exact=PY`) o `fa_gov_asistencia_oficial.py` (`PRY` en la
+  URL) en vez de bajar el archivo/dataset completo (que puede pesar GBs para
+  todos los países del mundo). Si la fuente NO tiene filtro server-side pero
+  el archivo es grande, descargarlo igual pero filtrar las filas a Paraguay
+  **antes de subir** (con pandas) — ver `exim_autorizaciones.py`. Si el
+  archivo es chico (unos pocos MB) igual sin filtro server-side, subirlo
+  completo sin filtrar es aceptable — ver `dfc_proyectos_activos.py`.
 - Credenciales: nunca hardcodear rutas ni secrets en el código. Usar
   `os.environ["GOOGLE_APPLICATION_CREDENTIALS"]` (ver `src/sheets.py` y
   `src/drive.py`) y `os.environ["SHEET_ID"]` (solo `src/sheets.py`).
@@ -162,6 +174,31 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
     el usuario la generó en `apps.bea.gov/API/signup`).
   - Los cuatro probados con datos reales: suben bien y una segunda corrida
     saltea lo que ya está (idempotente).
+- Seis scripts de ingestion reales de la dimensión `1.Compromiso_financiero_oficial`
+  (2015-actualidad; ver política de filtrado a Paraguay/EE.UU. en sección 4):
+  - `fa_gov_asistencia_oficial.py` — API del dashboard de ForeignAssistance.gov,
+    ya filtrada a Paraguay por la URL (`.../PRY/...`); un JSON por año+medida
+    (Obligations/Disbursements). Evita el dump global de 3.75 GB.
+  - `usaspending_obligaciones.py` — API de descarga masiva de USAspending,
+    filtrada a Paraguay por `place_of_performance_locations`; un ZIP por año
+    (la API solo acepta rangos de hasta 1 año, y es asíncrona: se pide, se
+    consulta el estado, se descarga cuando está listo).
+  - `dfc_proyectos_activos.py` — Excel único de DFC (todos los países, pero
+    pesa poco, ~300 KB, no hace falta filtrar). Es **anual**, no mensual.
+  - `exim_autorizaciones.py` — CSV único de EXIM (~19 MB, todos los países);
+    se descarga completo y se sube solo filtrado a Paraguay (~60 de ~52.700
+    filas). Es **trimestral**, no mensual.
+  - `bid_proyectos.py` — API CKAN de datos abiertos del BID (`data.iadb.org`,
+    mismo portal que usa el equipo para otra fuente de BID), filtrada a
+    Paraguay server-side.
+  - `bancomundial_proyectos.py` — API pública de proyectos del Banco Mundial,
+    filtrada a Paraguay server-side (`countrycode_exact=PY`).
+  - `bid_proyectos.py` y `bancomundial_proyectos.py` son fuentes complementarias
+    para "Desembolsos multilaterales atribuibles a EE.UU." — el cálculo
+    ponderado por cuota de capital de EE.UU. es trabajo de una etapa
+    posterior, acá solo se extraen los proyectos crudos de cada banco.
+  - Los seis probados con datos reales: suben bien (confirmado con datos
+    reales) y una segunda corrida saltea lo que ya está.
 - Repo limpiado de artefactos que ya no aplican: el pipeline en R, el
   workflow de otro proyecto, todo lo de RStudio, y `.env.example` — el
   proyecto es 100% Python.
@@ -184,9 +221,10 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
 ## 7. Pendientes
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
-   dimensiones ya tienen nombre (sección 1), pero solo
-   `3.Compromiso_economico_privado` tiene variables/fuentes definidas hasta
-   ahora.
+   dimensiones ya tienen nombre (sección 1); `3.Compromiso_economico_privado`
+   y `1.Compromiso_financiero_oficial` ya tienen variables/fuentes definidas,
+   faltan `2.Actividad_gubernamental_y_diplomática` y
+   `4.Visibilidad_mediática_y_relevancia_publica`.
 2. **Resolver el acceso a la Unidad compartida de Drive para el Sheet**
    (distinto del acceso a la carpeta de datos, que ya funciona). Compartir
    el Sheet definitivo con la cuenta de servicio dentro de esa Unidad
