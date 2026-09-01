@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "project": "us-py-engagement-idx",
+  "profile": "proxy_b_metrics",
+  "output": "output/cost_efficiency_v1/april_month",
+  "per_query_gib": 10,
+  "per_run_gib": 100,
+  "monthly_ledger_gib": 100,
+  "location": "US",
+  "note": "Proxy B agregado. Carpeta canónica conserva abril 2025 para reutilizar caché. Planificar siempre antes de ejecutar. Facturación debe permanecer deshabilitada."
+}

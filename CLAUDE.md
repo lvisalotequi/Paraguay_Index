@@ -61,6 +61,19 @@ futura (`clean` / integración / export) que todavía no existe en este repo
   (convención para helpers compartidos entre módulos de una misma fuente/
   sitio — ej. `_bcp_common.py`, que usan los tres módulos de bcp.gov.py para
   no repetir el bypass de Cloudflare y el manejo de nombres de archivo).
+- **Excepción a "solo extraen y suben, no tocan disco local":** `gdelt_proxy_b.py`
+  (dimensión 4) no hace fetch en vivo. Lee CSV ya generados por
+  `gdelt_extraction/` (ver sección 6) y los sube tal cual. La extracción real
+  contra GDELT vía BigQuery consume cuota mensual de un sandbox sin
+  facturación y necesita login OAuth personal (`gcloud auth application-default
+  login`) para verificar antes de cada consulta que la facturación sigue
+  deshabilitada — no tiene sentido automatizarla cada 12 horas en GitHub
+  Actions (no hay login humano ahí, y se fundiría la cuota gratuita rápido).
+  Por eso la extracción corre a mano, localmente, desde `gdelt_extraction/`;
+  `gdelt_proxy_b.py` solo centraliza en Drive lo que esa extracción ya
+  produjo. En Actions, donde `gdelt_extraction/output/` no existe (está en
+  `.gitignore`, nunca se clona), el módulo imprime un aviso y no sube nada —
+  no es un error, es el comportamiento esperado.
 
 ## 3. Persistencia y ejecución
 
@@ -199,6 +212,33 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
     posterior, acá solo se extraen los proyectos crudos de cada banco.
   - Los seis probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
+- Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
+  (2026-09-01):
+  - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
+    `gdelt_extraction/` (ver más abajo), cobertura mediática bilateral PY-US
+    según la regla "proxy B" sobre GDELT 2.1 GKG (coocurrencia geográfica
+    PY-US + señales temáticas D/I/R/E — diplomáticas, gobierno/instituciones,
+    comercio/fronteras/inmigración, economía/impuestos; ver
+    `gdelt_extraction/proxy_b_config.json`, versión aceptada 2026-08-27). Es
+    una aproximación de coocurrencia con señales institucionales, **no**
+    noticias validadas individualmente ni medición de calidad de relaciones
+    diplomáticas — ver los límites documentados en la propia config y en
+    `gdelt_extraction/CONTEXTO_PORTABLE_PROXY_B.md`.
+  - `gdelt_extraction/` — el extractor en sí (`historical_campaign.py` y
+    soporte), corrido a mano localmente contra el proyecto GCP
+    `us-py-engagement-idx` (sandbox de BigQuery sin facturación, techo
+    preventivo mensual 850 GiB). No es un módulo de `src/ingestion/` — ver
+    la excepción documentada en la sección 4. Cobertura completa feb-2015 a
+    dic-2025 (falta ene-2026 en adelante — requiere generar un estimado
+    nuevo con `estimate_history.py` antes de seguir); el detalle exacto de
+    qué meses están cubiertos vive en
+    `gdelt_extraction/output/historical_campaign/CONTINUIDAD.md` (se
+    reescribe en cada corrida, no confiar en esta nota para el estado
+    exacto). **Para correrlo en otra computadora**, ver
+    `gdelt_extraction/EJECUCION_PORTABLE.md` — necesita Google Cloud SDK
+    instalado y autenticado aparte (no viene con el repo ni con Python), y
+    en Windows puede requerir habilitar rutas largas si el checkout queda en
+    una ruta profunda (ver esa misma guía).
 - Repo limpiado de artefactos que ya no aplican: el pipeline en R, el
   workflow de otro proyecto, todo lo de RStudio, y `.env.example` — el
   proyecto es 100% Python.
@@ -222,9 +262,11 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
    dimensiones ya tienen nombre (sección 1); `3.Compromiso_economico_privado`
-   y `1.Compromiso_financiero_oficial` ya tienen variables/fuentes definidas,
-   faltan `2.Actividad_gubernamental_y_diplomática` y
-   `4.Visibilidad_mediática_y_relevancia_publica`.
+   y `1.Compromiso_financiero_oficial` ya tienen variables/fuentes definidas.
+   `4.Visibilidad_mediática_y_relevancia_publica` ya tiene una primera fuente
+   real (`gdelt_proxy_b.py` / `gdelt_extraction/`, ver sección 6) pero podría
+   sumar más variables. Sigue totalmente indefinida
+   `2.Actividad_gubernamental_y_diplomática`.
 2. **Resolver el acceso a la Unidad compartida de Drive para el Sheet**
    (distinto del acceso a la carpeta de datos, que ya funciona). Compartir
    el Sheet definitivo con la cuenta de servicio dentro de esa Unidad

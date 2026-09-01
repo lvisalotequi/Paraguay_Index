@@ -34,3 +34,9 @@ __pycache__/
 # Archivos de sistema (Windows/macOS)
 .DS_Store
 Thumbs.db
+
+# Extractor GDELT (dimensión 4) — solo código/config se versiona, no el
+# workspace de extracción (recibos, SQL, CSVs: mismo criterio que data/)
+gdelt_extraction/output/
+gdelt_extraction/.venv/
+!gdelt_extraction/*.json

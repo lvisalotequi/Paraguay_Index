@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "project": "us-py-engagement-idx",
+  "profile": "proxy_b_metrics",
+  "output": "output/historical_rule_b",
+  "per_query_gib": 20,
+  "per_run_gib": 100,
+  "monthly_ledger_gib": 850,
+  "location": "US",
+  "note": "Campaña histórica regla B. Techo preventivo mensual de 850 GiB, inferior al límite gratuito anunciado. Facturación debe permanecer deshabilitada."
+}
