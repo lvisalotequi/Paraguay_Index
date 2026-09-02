@@ -16,7 +16,7 @@ Execute after reviewing the estimate::
     python bilateral_media_extractor.py gdelt --project MY_PROJECT \
         --start 2025-01 --end 2025-01 --execute --max-gib 1 --max-total-gib 1
 
-Google Trends (unofficial fallback; see HANDOFF_CONTEXT.md)::
+Google Trends (unofficial fallback)::
 
     python bilateral_media_extractor.py trends --start 2015-03 --end 2026-07
 """
