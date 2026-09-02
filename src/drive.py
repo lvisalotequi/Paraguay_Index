@@ -10,20 +10,29 @@ DRIVE_ROOT_ID es la carpeta "2.Datos_recolectados" de la Unidad compartida.
 La cuenta de servicio tiene rol Writer ahi (puede crear/editar, no puede
 borrar - no hace falta para ingestion).
 
-Nota de fiabilidad (2026-09-02): la busqueda por nombre de Drive
-(`files.list(q="name = '...'")`) sobre la Unidad compartida no siempre
-encuentra carpetas que ya existen - confirmado en la practica: llamadas a
-resolve_ingestion_folder() para las mismas 14 fuentes de siempre, sin
-ningun cambio de codigo, crearon carpetas duplicadas vacias porque la
-busqueda no encontro las carpetas reales (con datos) en varios intentos
-seguidos, para las 4 dimensiones. Para no depender de esa busqueda en cada
-corrida, FOLDER_IDS de mas abajo cachea los IDs ya confirmados de las
-carpetas reales - resolve_ingestion_folder los usa directo, sin buscar.
-Para una fuente nueva (todavia sin entrada en FOLDER_IDS), resolve_folder
-sigue buscando por nombre como antes, pero ahora con reintentos (ver
-_buscar_hijo_con_reintentos) para reducir el riesgo de duplicar; conviene
-agregar su ID a FOLDER_IDS a mano despues de la primera corrida exitosa,
-para que las corridas siguientes ya no dependan de la busqueda.
+Nota sobre los nombres de carpeta de dimension (2026-09-02): el usuario
+renombro a mano las 4 carpetas de dimension dentro de CARPETA_CRUDAS en
+Drive, agregandoles el sufijo "_crudas" (ej. "3.Compromiso_economico_privado"
+paso a llamarse "3.Compromiso_economico_privado_crudas"). Los modulos de
+src/ingestion/ NO se tocaron - sus constantes DIMENSION siguen siendo el
+nombre de dimension SIN el sufijo (asi queda mas prolijo el resto del
+codigo, ver CLAUDE.md seccion 1). Por eso resolve_ingestion_folder agrega
+el sufijo "_crudas" el buscar/crear la carpeta de dimension - si a alguien
+se le ocurre buscar "{dimension}" sin el sufijo, va a encontrar (o peor,
+crear) una carpeta vacia que no es la real. Esto ya paso una vez (el mismo
+2026-09-02, antes de que el usuario avisara del rename): quedaron 8
+carpetas duplicadas vacias en Drive de esa confusion - el servicio no
+puede borrarlas (rol Writer), hay que borrarlas a mano desde Drive cuando
+se pueda.
+
+FOLDER_IDS de mas abajo cachea los IDs ya confirmados de las carpetas
+reales (con datos) de cada fuente, para no depender de la busqueda por
+nombre en cada corrida - resolve_ingestion_folder los usa directo. Para
+una fuente nueva (todavia sin entrada en FOLDER_IDS), cae de vuelta a
+resolve_folder con el sufijo "_crudas" ya aplicado, con reintentos (ver
+_buscar_hijo_con_reintentos) como defensa extra ante demoras de indexado
+de Drive; conviene agregar su ID a FOLDER_IDS a mano despues de la primera
+corrida exitosa.
 """
 import io
 import os
@@ -132,14 +141,16 @@ def resolve_folder(*segmentos):
 
 
 def resolve_ingestion_folder(dimension, fuente):
-    """Atajo para CARPETA_CRUDAS/{dimension}/{fuente} - lo que usan todos los
-    modulos de src/ingestion/ para saber donde subir sus archivos. Usa
-    FOLDER_IDS si ya se conoce el id (evita la busqueda por nombre); si es
-    una fuente nueva, cae de vuelta a resolve_folder (busqueda + reintentos)."""
+    """Atajo para CARPETA_CRUDAS/{dimension}_crudas/{fuente} - lo que usan
+    todos los modulos de src/ingestion/ para saber donde subir sus
+    archivos (el sufijo "_crudas" es el nombre REAL de la carpeta en Drive,
+    ver la nota del modulo arriba - DIMENSION en cada modulo no lo lleva).
+    Usa FOLDER_IDS si ya se conoce el id (evita la busqueda por nombre); si
+    es una fuente nueva, cae de vuelta a resolve_folder (busqueda + reintentos)."""
     conocido = FOLDER_IDS.get((dimension, fuente))
     if conocido:
         return conocido
-    return resolve_folder(CARPETA_CRUDAS, dimension, fuente)
+    return resolve_folder(CARPETA_CRUDAS, f"{dimension}_crudas", fuente)
 
 
 def resolve_processing_folder(dimension_limpia):

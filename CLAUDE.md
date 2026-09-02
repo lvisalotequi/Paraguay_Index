@@ -399,19 +399,22 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   servicio falló dentro de la Unidad compartida (ver pendientes).
 - Repo público desde 2026-08-26, con el workflow disparándose cada 3 meses
   además de manual.
-- **Fiabilidad de `resolve_ingestion_folder` resuelta (2026-09-02):** la
-  búsqueda por nombre de Drive (`files.list(q="name = '...'")`) sobre la
-  Unidad compartida no siempre encuentra carpetas que ya existen —
-  confirmado en la práctica: llamadas a `resolve_ingestion_folder()` para
-  las mismas 14 fuentes de siempre (sin ningún cambio de código) crearon 8
-  carpetas duplicadas **vacías** porque la búsqueda no encontró las
-  carpetas reales (con datos) en varios intentos seguidos, para las 4
-  dimensiones — intermitente: minutos antes, las mismas llamadas sí habían
-  encontrado y actualizado los archivos reales. Las 8 carpetas vacías
-  quedaron en Drive (el servicio no puede borrarlas, rol Writer) —
-  inofensivas, hay que borrarlas a mano cuando se pueda. Arreglado con
-  `FOLDER_IDS`/`LIMPIAS_FOLDER_IDS` en `src/drive.py`: un diccionario con
-  los IDs ya confirmados de las 14 carpetas de ingestion + la de processing
+- **Carpetas de dimensión renombradas a mano por el usuario (descubierto
+  2026-09-02):** las 4 carpetas de dimensión dentro de `01_crudas` pasaron
+  a llamarse `{dimensión}_crudas` (ej. `3.Compromiso_economico_privado_crudas`)
+  — rename hecho directo en Drive, sin avisar en el momento. Las
+  constantes `DIMENSION` de cada módulo NO llevan ese sufijo, así que
+  `resolve_ingestion_folder()` (que buscaba/creaba por el nombre exacto de
+  `DIMENSION`) dejó de encontrar las carpetas reales y creó **8 carpetas
+  duplicadas vacías** (para las 4 dimensiones) antes de que el usuario
+  avisara del rename. Las 8 quedaron en Drive (el servicio no puede
+  borrarlas, rol Writer) — inofensivas, hay que borrarlas a mano cuando se
+  pueda. Arreglado en dos partes en `src/drive.py`: (1)
+  `resolve_ingestion_folder()` ahora arma la ruta con el sufijo
+  `_crudas` agregado (`CARPETA_CRUDAS/{dimension}_crudas/{fuente}`) para
+  que cualquier fuente nueva caiga en la carpeta real, no en una vacía
+  nueva; (2) `FOLDER_IDS`/`LIMPIAS_FOLDER_IDS`, un diccionario con los IDs
+  ya confirmados de las 14 carpetas de ingestion + la de processing
   — `resolve_ingestion_folder()`/`resolve_processing_folder()` los usan
   directo, sin buscar. Para una fuente/dimensión nueva (todavía sin
   entrada en el diccionario), sigue cayendo a la búsqueda por nombre, pero
