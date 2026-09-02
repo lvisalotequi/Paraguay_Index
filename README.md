@@ -15,11 +15,11 @@ análisis.
 | # | Dimensión | Estado |
 | --- | --- | --- |
 | 1 | Compromiso financiero oficial | ✅ 6 fuentes activas |
-| 2 | Actividad gubernamental y diplomática | 🟡 2 fuentes activas |
+| 2 | Actividad gubernamental y diplomática | 🟡 3 fuentes activas |
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**13 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**14 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
@@ -27,7 +27,8 @@ GitHub Actions:
 - **Actividad gubernamental y diplomática**: proyectos de ley y resoluciones
   del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov);
   reuniones del Consejo de Comercio e Inversión (TIFA/TIC) Paraguay-EE.UU.
-  (USTR).
+  (USTR); tratados y acuerdos internacionales (TIAS) entre Paraguay y EE.UU.
+  (State.gov).
 - **Compromiso económico privado**: Comercio Exterior (BCP), Inversión
   Directa (BCP + BEA), Remesas Familiares (BCP).
 - **Visibilidad mediática**: cobertura bilateral vía GDELT (regla "proxy B"),

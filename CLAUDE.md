@@ -171,13 +171,14 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 ```
 google-api-python-client   # src/drive.py (subida de archivos crudos)
 google-auth                # autenticación con la cuenta de servicio
-gspread                     # src/sheets.py (pestaña pipeline_log)
+gspread                     # src/sheets.py (pestañas pipeline_log y catalogo_fuentes)
 python-dotenv                # carga .env en local (run_pipeline.py)
 
 beautifulsoup4   # parseo de HTML en ingestion
-curl_cffi         # requests que bypasea Cloudflare (fuentes de bcp.gov.py)
-openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py)
-pandas              # filtrado local / armar excel (exim_autorizaciones.py, congreso_menciones_paraguay.py)
+curl_cffi         # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, state.gov)
+ddgs               # búsqueda en DuckDuckGo (state_gov_tias_paraguay.py — state.gov no tiene índice navegable de TIAS)
+openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
+pandas              # filtrado local / armar excel (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
 requests             # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 ```
 
@@ -232,7 +233,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     posterior, acá solo se extraen los proyectos crudos de cada banco.
   - Los seis probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
-- Dos fuentes reales de la dimensión `2.Actividad_gubernamental_y_diplomática`
+- Tres fuentes reales de la dimensión `2.Actividad_gubernamental_y_diplomática`
   (2026-09-02):
   - `congreso_menciones_paraguay.py` — a diferencia de las demás fuentes, no
     existe como archivo descargable en ningún sitio: se **construye** acá
@@ -276,6 +277,43 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     on Trade and Investment"), no la fecha del comunicado. La verificación
     distingue esto de un error real (fecha que sí aparece pero no coincide)
     y lo marca como "no se pudo confirmar", no como "dato incorrecto".
+  - `state_gov_tias_paraguay.py` — publicaciones TIAS (Treaties and Other
+    International Acts Series) entre Paraguay y EE.UU., desde el Office of
+    Treaty Affairs de state.gov. state.gov no tiene un índice navegable de
+    TIAS por país ni un buscador propio que sirva para esto (confirmado
+    2026-09-02) — la única forma de encontrarlas es buscando por texto. Es
+    otro diseño **híbrido**, igual que `ustr_consejo_comercio_inversion.py`:
+    un histórico fijo con los 3 TIAS de Paraguay ≥2015 encontrados y
+    confirmados el 2026-09-02 (años de TIAS 2021, 2025 y 2026 — también
+    existen TIAS de Paraguay más viejos, con numeración pre-2000 sin guion,
+    que quedan fuera del rango a propósito) + una búsqueda en vivo vía
+    DuckDuckGo (paquete `ddgs`) para detectar TIAS nuevos que todavía no
+    estén en el histórico. Igual que USTR, en cada corrida se vuelve a pedir
+    la página de cada uno de los hitos fijos para confirmar que los datos
+    guardados sigan siendo reales (columnas `verificado`/`nota_verificacion`).
+    **Riesgo distinto al resto de las fuentes**: la búsqueda de DuckDuckGo
+    puede fallar o devolver menos resultados corriendo desde IPs compartidas
+    (como las de GitHub Actions) que desde una IP residencial — si las tres
+    consultas fallan, el módulo no rompe: sube igual el histórico fijo ya
+    verificado y avisa por consola. state.gov está detrás de bot-blocking
+    (403 con `requests` normal, confirmado 2026-09-02) — usa `curl_cffi` con
+    `impersonate="chrome"`, igual que bcp.gov.py. El límite superior de años
+    no es una constante fija sino "el año en curso" en cada corrida (con un
+    tope fijo en 2025, el TIAS 26-317 — Status of Forces Agreement, vigente
+    desde 2026-03-17 — se hubiera quedado afuera para siempre pese a estar
+    ya verificado como real; encontrado y corregido el mismo 2026-09-02, en
+    la primera corrida real del módulo). Adaptado de un script de referencia
+    que pasó el usuario, simplificado a un único Excel en memoria sin
+    dependencias de Node ni archivos intermedios en disco, siguiendo la
+    convención del resto de `src/ingestion/`. Probado con datos reales: 3
+    TIAS, 0 sin verificar. **Completitud del histórico verificada a mano
+    (2026-09-02)**: además de los 3 hitos ya confirmados, se corrió una
+    búsqueda separada por prefijo de año en state.gov para todo 2015-2024
+    ("Paraguay (15-" ... "Paraguay (24-"), repetida dos veces de forma
+    independiente para descartar ruido puntual de DuckDuckGo — en ambas
+    corridas hubo hits sueltos pero ninguno matcheó el patrón real de URL
+    de un TIAS de Paraguay. No hay ningún TIAS de Paraguay perdido en ese
+    rango.
 - Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
