@@ -23,7 +23,16 @@ Que hace: combina dos partes.
    para cada match entra a la pagina del comunicado para confirmar la fecha
    exacta. Asi que futuras reuniones del Consejo se agregan solas.
 
-Sube un Excel (una fila por evento) a Drive. Es idempotente por dia.
+3. Una verificacion del historico fijo: en CADA corrida, se vuelve a pedir
+   la URL de cada uno de los 5 eventos de EVENTOS_HISTORICOS (5 pedidos
+   nada mas, no todo el archivo) y se confirma que la pagina siga
+   existiendo, siga mencionando a Paraguay, y que la fecha publicada
+   coincida con la guardada. Asi el historico fijo no queda como una foto
+   que nadie vuelve a chequear - si USTR reescribe o da de baja una pagina,
+   la columna `verificado` lo va a mostrar en la proxima corrida.
+
+Sube un Excel (una fila por evento, con columnas `verificado` y
+`nota_verificacion`) a Drive. Es idempotente por dia.
 
 Nota sobre el "tipo" de evento: de los 5 hitos del historico, solo 3 son
 literalmente "reuniones del Consejo" (2022, 2023, 2024 - primera, segunda y
@@ -141,6 +150,67 @@ def _fecha_del_comunicado(url):
     return fecha.strftime("%Y-%m-%d")
 
 
+def _verificar_evento_historico(evento):
+    """Vuelve a pedir la URL de un evento del historico fijo y confirma que
+    lo guardado siga siendo real: pagina accesible, menciona a Paraguay, y
+    la fecha guardada aparece en algun lugar de la pagina. Devuelve
+    (verificado, nota).
+
+    Nota tecnica: se buscan TODAS las fechas que aparecen en el texto, no
+    solo la primera - algunas paginas archivadas (formato pre-2018) no
+    traen la fecha del comunicado en ningun lugar extraible (sin <time>,
+    sin clase de fecha), y la primera fecha que aparece en el texto puede
+    ser una mencion a otro hecho dentro del cuerpo de la noticia (ej. "este
+    acuerdo reemplaza al firmado el 26 de septiembre de 2003" - una fecha
+    real, pero de OTRO evento, no del comunicado en si). Por eso no alcanza
+    con tomar "la primera fecha encontrada" como si fuera la fecha del
+    comunicado.
+    """
+    try:
+        resp = requests.get(evento["url"], timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        return False, f"no se pudo acceder a la URL: {exc!r}"
+
+    texto = BeautifulSoup(resp.text, "html.parser").get_text(" ", strip=True)
+    if "paraguay" not in texto.lower():
+        return False, "la pagina ya no menciona a Paraguay"
+
+    fechas_en_pagina = set()
+    for match in PATRON_FECHA.finditer(texto):
+        fecha = datetime.strptime(match.group(0).replace(",", ""), "%B %d %Y").strftime("%Y-%m-%d")
+        fechas_en_pagina.add(fecha)
+
+    if evento["fecha"] in fechas_en_pagina:
+        return True, "OK - pagina accesible, mencion a Paraguay y fecha guardada confirmadas"
+
+    if fechas_en_pagina:
+        return False, (
+            f"la pagina existe y menciona a Paraguay, pero la fecha guardada "
+            f"({evento['fecha']}) no aparece en el texto - fechas encontradas: "
+            f"{', '.join(sorted(fechas_en_pagina))} (revisar a mano; puede ser "
+            f"una mencion a otro hecho dentro de la noticia, no la fecha del "
+            f"comunicado)"
+        )
+
+    return False, (
+        "la pagina existe y menciona a Paraguay, pero no tiene ninguna fecha "
+        "extraible en el texto (comun en paginas archivadas anteriores a "
+        "2018) - no se pudo confirmar la fecha de forma automatica"
+    )
+
+
+def _historico_verificado():
+    """EVENTOS_HISTORICOS con columnas 'verificado' y 'nota_verificacion' agregadas."""
+    resultado = []
+    for evento in EVENTOS_HISTORICOS:
+        verificado, nota = _verificar_evento_historico(evento)
+        if not verificado:
+            print(f"    [!] historico sin verificar - {evento['fecha']} {evento['url']}: {nota}")
+        resultado.append({**evento, "verificado": verificado, "nota_verificacion": nota})
+    return resultado
+
+
 def _revisar_sitio_vivo():
     """Revisa mes a mes, desde ANIO_DESDE_VIVO hasta el anio actual, el sitio no archivado."""
     anio_actual = datetime.now(timezone.utc).year
@@ -161,6 +231,10 @@ def _revisar_sitio_vivo():
                         "tipo": "Reunion del Consejo TIC (revision automatica)",
                         "titulo": titulo,
                         "url": url,
+                        # Recien se extrajo de la pagina en esta misma corrida -
+                        # no hace falta re-verificarlo, ya esta confirmado.
+                        "verificado": True,
+                        "nota_verificacion": "extraido y confirmado en esta misma corrida",
                     }
                 )
     return eventos
@@ -175,7 +249,7 @@ def run():
         print(f"[{FUENTE}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
         return
 
-    eventos = list(EVENTOS_HISTORICOS) + _revisar_sitio_vivo()
+    eventos = _historico_verificado() + _revisar_sitio_vivo()
     df = pd.DataFrame(eventos).drop_duplicates(subset=["url"]).sort_values("fecha")
 
     buffer = io.BytesIO()
@@ -184,7 +258,11 @@ def run():
     mime_xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     subir_archivo(buffer.getvalue(), nombre, carpeta_id, mime_type=mime_xlsx)
 
-    print(f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - {len(df)} eventos.")
+    sin_verificar = (~df["verificado"]).sum()
+    print(
+        f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - "
+        f"{len(df)} eventos, {sin_verificar} sin verificar."
+    )
 
 
 if __name__ == "__main__":

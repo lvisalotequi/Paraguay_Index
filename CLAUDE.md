@@ -262,7 +262,20 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     tercera reunión); los otros 2 son hitos previos (MOU 2015, firma del
     TIFA 2017) — columna `tipo` para distinguirlos. Probado con datos
     reales: 5 eventos, 0 nuevos del chequeo en vivo (no hubo reunión en
-    2025 todavía).
+    2025 todavía). **Verificación del histórico (2026-09-02, a pedido del
+    usuario — "quiero poder verificar si la información histórica es
+    real")**: en cada corrida se vuelve a pedir la URL de cada uno de los 5
+    hitos fijos (solo 5 pedidos, no todo el archivo) y se confirma que la
+    página siga existiendo, mencione a Paraguay, y que la fecha guardada
+    aparezca en el texto — columnas `verificado`/`nota_verificacion` en el
+    Excel. Al probarlo encontró un caso real: la página de 2017 (formato
+    archivado pre-2018) no tiene ninguna fecha extraíble en el texto — la
+    única fecha que aparece es "26 de septiembre de 2003", que es una
+    mención real pero a un acuerdo *anterior* que este TIFA reemplaza
+    ("Agreement Establishing the United States–Paraguay Bilateral Council
+    on Trade and Investment"), no la fecha del comunicado. La verificación
+    distingue esto de un error real (fecha que sí aparece pero no coincide)
+    y lo marca como "no se pudo confirmar", no como "dato incorrecto".
 - Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
