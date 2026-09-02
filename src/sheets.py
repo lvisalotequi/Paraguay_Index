@@ -33,13 +33,15 @@ def write_dataframe(tab_name, df):
     ws.update([df.columns.tolist()] + rows)
 
 
-def append_log_row(started, finished, modules_run, errors):
-    """Agrega una fila a la pestana 'pipeline_log', creandola si no existe."""
+def append_log_row(started, finished, modules_run, errors, tab_name="pipeline_log"):
+    """Agrega una fila a la pestana de log (por defecto 'pipeline_log',
+    creandola si no existe). run_processing.py usa tab_name='processing_log'
+    para no mezclar sus corridas con las de ingestion en la misma pestana."""
     sh = _spreadsheet()
     try:
-        ws = sh.worksheet("pipeline_log")
+        ws = sh.worksheet(tab_name)
     except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title="pipeline_log", rows=1, cols=5)
+        ws = sh.add_worksheet(title=tab_name, rows=1, cols=5)
         ws.append_row(["started_utc", "finished_utc", "modules_run", "errors", "status"])
 
     status = "OK" if not errors else "ERROR"

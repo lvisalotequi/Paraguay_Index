@@ -26,20 +26,41 @@ seguridad previa).
 ## 2. Arquitectura del pipeline
 
 ```
-src/ingestion/{fuente}.py  →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/  (archivos crudos)
-                    │
-                    └──  run_pipeline.py  →  pestaña pipeline_log del Sheet (solo auditoria)
+src/ingestion/{fuente}.py    →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/   (archivos crudos)
+                    │                              │
+                    │                              ▼
+                    │          src/processing/{dimensión}.py  →  Drive: 02_limpias/{dimensión}_limpias/  (CSV consolidado)
+                    ▼
+     run_pipeline.py → pestaña pipeline_log        run_processing.py → pestaña processing_log
+     (ambos en el Sheet, solo auditoria)
 ```
 
-La carpeta de Drive tiene 3 etapas (`01_crudas`, `02_limpias`, `03_final`);
-por ahora **solo existe `01_crudas`** — las otras dos etapas todavía no
-tienen ningún script que las llene (ver sección 7, pendiente #4).
+La carpeta de Drive tiene 3 etapas (`01_crudas`, `02_limpias`, `03_final`).
+`01_crudas` (ingestion) y `02_limpias` (processing) ya existen y tienen
+codigo (ver sección 6). `03_final` todavía no tiene ningún script que la
+llene (ver sección 7, pendiente #4).
 
 **Regla central: los scripts de `src/ingestion/` SOLO extraen datos y los
 suben a Drive.** No escriben nada a disco local, no limpian, no transforman,
-no consolidan, y no escriben a Google Sheets. Eso es trabajo de una etapa
-futura (`clean` / integración / export) que todavía no existe en este repo
-— se agrega cuando haga falta.
+no consolidan, y no escriben a Google Sheets. Limpiar/consolidar es trabajo
+de `src/processing/` (ver más abajo) — una etapa separada, corrida a mano,
+no automatizada todavía.
+
+- **`src/processing/{dimensión}.py`** (agregado 2026-09-02): a diferencia
+  de ingestion, SI lee los archivos crudos que ingestion ya subio a Drive
+  (via `src.drive.listar_archivos`/`descargar_archivo`), aisla la cifra
+  especifica de EE.UU. de cada fuente de esa dimensión, normaliza a
+  trimestres (sumando meses o repitiendo un valor anual segun la
+  granularidad nativa de cada fuente — ver el docstring de cada módulo) y
+  sube un único CSV ancho (una fila por trimestre, una columna por
+  variable) a `02_limpias/{dimensión}_limpias/`. Expone `run()`, igual que
+  ingestion; `run_processing.py` los descubre automáticamente con
+  `pkgutil.iter_modules` (mismo patrón que `run_pipeline.py`) y registra la
+  corrida en la pestaña `processing_log` del Sheet (separada de
+  `pipeline_log`, para no mezclar corridas de ingestion y de processing).
+  No forma parte del schedule automático de GitHub Actions todavía — se
+  corre a mano cuando hace falta. Primer módulo real:
+  `compromiso_economico_privado.py` (dimensión 3) — ver sección 6.
 
 - Cada módulo en `src/ingestion/` expone una función `run()` sin argumentos.
   Efecto esperado: descarga cada archivo **en memoria** y lo sube directo a
@@ -189,8 +210,21 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   GitHub Actions.
 - Cuatro scripts de ingestion reales, todos de la dimensión
   `3.Compromiso_economico_privado`:
-  - `bcp_comercio_exterior.py` — Importación/Exportación por año, desde 2010
-    en adelante (34 archivos hoy).
+  - `bcp_comercio_exterior.py` — **cambiada de fuente el 2026-09-02** (a
+    pedido del usuario, para poder alimentar `src/processing/`): antes
+    bajaba un archivo por año desde `importaciones-partidas-p` (desglosado
+    por PARTIDA ARANCELARIA — producto —, sin ninguna cifra por país
+    socio, asi que no servia para aislar comercio con EE.UU.). Ahora baja
+    el Boletín de Comercio Exterior único (serie completa 1961-actualidad,
+    desde `comercio-externo-comex-mensual`) con las hojas "Exp./Imp. por
+    países" — trimestral desde 1994, incluye fila "Estados Unidos de
+    América"/"Estados Unidos de America" (el propio BCP la escribe sin
+    tilde en la hoja de importaciones — ver `src/processing/` para el
+    workaround). Si la página lista más de una versión del boletín (la
+    vieja queda en cache junto a la actual), se elige la de año+trimestre
+    más reciente por el propio nombre del archivo, no por orden de
+    aparición. Los 34 archivos viejos (por partida) quedan en Drive sin
+    usarse — el servicio no puede borrarlos (rol Writer).
   - `bcp_inversion_directa.py` — anexo estadístico único de Inversión
     Directa (1995-actualidad); trae un cuadro con flujos trimestrales por
     país del inversionista, incluida una fila "ESTADOS UNIDOS".
@@ -365,6 +399,38 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   servicio falló dentro de la Unidad compartida (ver pendientes).
 - Repo público desde 2026-08-26, con el workflow disparándose cada 3 meses
   además de manual.
+- **Fiabilidad de `resolve_ingestion_folder` resuelta (2026-09-02):** la
+  búsqueda por nombre de Drive (`files.list(q="name = '...'")`) sobre la
+  Unidad compartida no siempre encuentra carpetas que ya existen —
+  confirmado en la práctica: llamadas a `resolve_ingestion_folder()` para
+  las mismas 14 fuentes de siempre (sin ningún cambio de código) crearon 8
+  carpetas duplicadas **vacías** porque la búsqueda no encontró las
+  carpetas reales (con datos) en varios intentos seguidos, para las 4
+  dimensiones — intermitente: minutos antes, las mismas llamadas sí habían
+  encontrado y actualizado los archivos reales. Las 8 carpetas vacías
+  quedaron en Drive (el servicio no puede borrarlas, rol Writer) —
+  inofensivas, hay que borrarlas a mano cuando se pueda. Arreglado con
+  `FOLDER_IDS`/`LIMPIAS_FOLDER_IDS` en `src/drive.py`: un diccionario con
+  los IDs ya confirmados de las 14 carpetas de ingestion + la de processing
+  — `resolve_ingestion_folder()`/`resolve_processing_folder()` los usan
+  directo, sin buscar. Para una fuente/dimensión nueva (todavía sin
+  entrada en el diccionario), sigue cayendo a la búsqueda por nombre, pero
+  ahora con reintentos (`_buscar_hijo_con_reintentos`) — conviene agregar
+  su ID al diccionario a mano después de la primera corrida exitosa.
+- **Primer módulo de `src/processing/` (2026-09-02):**
+  `compromiso_economico_privado.py` (dimensión 3) — consolida las 4
+  fuentes crudas en un único CSV trimestral (`trimestre`, `anio`,
+  `trimestre_num`, y una columna por variable: exportaciones/importaciones
+  con EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
+  Cuadro 4 del anexo del BCP, remesas desde EE.UU. sumando meses en
+  trimestre, y posición de IED de BEA repetida en los 4 trimestres de cada
+  año — ver el docstring del módulo para el detalle de cada fuente y sus
+  unidades nativas, que se dejan sin reescalar). Sube a
+  `02_limpias/3.Compromiso_economico_privado_limpias/`. Probado con datos
+  reales: 46 trimestres, 2015-Q1 a 2026-Q2. Corrido con
+  `run_processing.py` (mismo patrón de auto-descubrimiento que
+  `run_pipeline.py`, ver sección 2) — separado del schedule automático de
+  GitHub Actions, se corre a mano.
 
 ## 7. Pendientes
 
@@ -391,8 +457,10 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    específico o confirmar si esta variable existe como dataset en otro lado.
 4. Diseñar las etapas `02_limpias` y `03_final` que lean los datos crudos de
    `01_crudas` y armen lo que finalmente va al Sheet (limpieza, homologación
-   entre fuentes, qué campos importan) — todavía no existen, ni en Drive ni
-   en el repo.
+   entre fuentes, qué campos importan). **`02_limpias` ya arrancó
+   (2026-09-02)** con `src/processing/compromiso_economico_privado.py`
+   (dimensión 3, ver sección 6) — faltan las otras 3 dimensiones y, más
+   adelante, `03_final`.
 
 *(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
 con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret

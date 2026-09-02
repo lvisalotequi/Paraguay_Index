@@ -37,21 +37,32 @@ GitHub Actions:
 ## Cómo funciona
 
 ```
-src/ingestion/{fuente}.py  →  Google Drive: 01_crudas/{dimensión}/{fuente}/
-                    │
-                    └──  run_pipeline.py  →  pestaña pipeline_log del Sheet
+src/ingestion/{fuente}.py    →  Google Drive: 01_crudas/{dimensión}/{fuente}/
+                    │                              │
+                    │                              ▼
+                    │          src/processing/{dimensión}.py  →  02_limpias/{dimensión}_limpias/
+                    ▼
+     run_pipeline.py → pestaña pipeline_log        run_processing.py → pestaña processing_log
 ```
 
 Cada script de `src/ingestion/` extrae una variable de una fuente pública
 (scraping, API, o CSV/Excel oficial), filtra a lo relevante para
 Paraguay/EE.UU. cuando la fuente lo permite, y sube el archivo crudo a la
-carpeta de Drive de su dimensión. Es idempotente: si el archivo ya está
-subido, la corrida lo saltea. `run_pipeline.py` descubre y corre todos los
-módulos automáticamente — agregar una fuente nueva no requiere tocar nada
-más.
+carpeta de Drive de su dimensión, sin transformarlo. Es idempotente: si el
+archivo ya está subido, la corrida lo saltea. `run_pipeline.py` descubre y
+corre todos los módulos automáticamente — agregar una fuente nueva no
+requiere tocar nada más.
+
+`src/processing/` es la etapa siguiente: lee los archivos crudos que
+ingestion ya subió, aisla la cifra de EE.UU. de cada fuente, normaliza a
+trimestres, y sube un único CSV consolidado por dimensión a
+`02_limpias/`. `run_processing.py` sigue el mismo patrón de
+auto-descubrimiento que `run_pipeline.py`. Todavía cubre solo la dimensión
+`3.Compromiso_economico_privado` — se corre a mano, no está en el schedule
+automático.
 
 Los datos extraídos **no viven en este repo** (viven en Google Drive, fuera
-de git) — acá solo está el código que los extrae.
+de git) — acá solo está el código que los extrae y los procesa.
 
 ## Correrlo en local
 
@@ -59,6 +70,7 @@ de git) — acá solo está el código que los extrae.
 pip install -r requirements.txt
 # crear un .env con GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID, BEA_API_KEY y CONGRESS_API_KEY
 python run_pipeline.py
+python run_processing.py
 ```
 
 Necesitás una cuenta de servicio de Google Cloud con acceso de Editor al
@@ -83,10 +95,12 @@ sale cada dato sin tener que leer el código.
 
 ```
 run_pipeline.py       # orquestador: descubre y corre cada módulo de ingestion
+run_processing.py     # orquestador: descubre y corre cada módulo de processing
 src/
-  drive.py             # helpers de subida a Google Drive
+  drive.py             # helpers de subida/lectura en Google Drive
   sheets.py             # registro de auditoría en Google Sheets
-  ingestion/            # un script por variable/fuente de datos
+  ingestion/            # un script por variable/fuente de datos (solo extrae, sube crudo)
+  processing/           # un script por dimensión (limpia y consolida en un CSV trimestral)
 gdelt_extraction/      # extractor de cobertura mediática GDELT (corre aparte, a mano)
 CLAUDE.md              # contexto técnico completo del proyecto
 ```
