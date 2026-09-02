@@ -15,15 +15,17 @@ análisis.
 | # | Dimensión | Estado |
 | --- | --- | --- |
 | 1 | Compromiso financiero oficial | ✅ 6 fuentes activas |
-| 2 | Actividad gubernamental y diplomática | ⏳ sin definir todavía |
+| 2 | Actividad gubernamental y diplomática | 🟡 1 fuente activa |
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**11 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**12 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
   DFC, EXIM, BID (proyectos), Banco Mundial (proyectos).
+- **Actividad gubernamental y diplomática**: proyectos de ley y resoluciones
+  del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov).
 - **Compromiso económico privado**: Comercio Exterior (BCP), Inversión
   Directa (BCP + BEA), Remesas Familiares (BCP).
 - **Visibilidad mediática**: cobertura bilateral vía GDELT (regla "proxy B"),
@@ -52,7 +54,7 @@ de git) — acá solo está el código que los extrae.
 
 ```bash
 pip install -r requirements.txt
-# crear un .env con GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID y BEA_API_KEY
+# crear un .env con GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID, BEA_API_KEY y CONGRESS_API_KEY
 python run_pipeline.py
 ```
 

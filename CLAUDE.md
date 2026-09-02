@@ -137,11 +137,12 @@ futura (`clean` / integración / export) que todavía no existe en este repo
   `.gitignore`). Mismo archivo de credenciales para Sheets y para Drive —
   cada módulo pide el scope de OAuth que necesita al construir sus propias
   `Credentials`.
-- Local: variables de entorno en `.env` (no versionado) —
-  `GOOGLE_APPLICATION_CREDENTIALS`, `SHEET_ID`, `BEA_API_KEY`.
+- Local: variables de entorno en `.env` (no versionado, `run_pipeline.py` lo
+  carga solo con `python-dotenv`) — `GOOGLE_APPLICATION_CREDENTIALS`,
+  `SHEET_ID`, `BEA_API_KEY`, `CONGRESS_API_KEY`.
 - GitHub Actions: secrets `GOOGLE_SHEETS_CREDENTIALS` (JSON completo de la
-  cuenta de servicio), `SHEET_ID` y `BEA_API_KEY`, en Settings > Secrets and
-  variables > Actions.
+  cuenta de servicio), `SHEET_ID`, `BEA_API_KEY` y `CONGRESS_API_KEY`, en
+  Settings > Secrets and variables > Actions.
 - El Sheet de destino debe estar compartido como **Editor** con el
   `client_email` de la cuenta de servicio. Si el Sheet vive dentro de una
   Unidad compartida de Google Workspace, puede bloquear compartir con cuentas
@@ -151,14 +152,16 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 ### Dependencias (`requirements.txt`)
 
 ```
-gspread                    # cliente de Google Sheets (solo pipeline_log)
-google-auth                # autenticación con la cuenta de servicio
 google-api-python-client   # src/drive.py (subida de archivos crudos)
-pandas                     # queda declarado para cuando exista una etapa de limpieza
-python-dotenv               # cargar .env en local
-beautifulsoup4              # parseo de HTML en ingestion
-curl_cffi                   # requests que bypasea Cloudflare (fuentes que lo necesiten)
-requests                    # fuentes que exponen una API normal (ej. bea_inversion_directa.py)
+google-auth                # autenticación con la cuenta de servicio
+gspread                     # src/sheets.py (pestaña pipeline_log)
+python-dotenv                # carga .env en local (run_pipeline.py)
+
+beautifulsoup4   # parseo de HTML en ingestion
+curl_cffi         # requests que bypasea Cloudflare (fuentes de bcp.gov.py)
+openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py)
+pandas              # filtrado local / armar excel (exim_autorizaciones.py, congreso_menciones_paraguay.py)
+requests             # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 ```
 
 ## 6. Estado actual
@@ -212,6 +215,23 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
     posterior, acá solo se extraen los proyectos crudos de cada banco.
   - Los seis probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
+- Primera fuente real de la dimensión `2.Actividad_gubernamental_y_diplomática`
+  (2026-09-02):
+  - `congreso_menciones_paraguay.py` — a diferencia de las demás fuentes, no
+    existe como archivo descargable en ningún sitio: se **construye** acá
+    combinando dos APIs. Busca texto completo por "Paraguay" en
+    `api.govinfo.gov` (colección BILLS — HR, S, HRES, SRES, HJRES, SJRES,
+    HCONRES, SCONRES), deduplica por proyecto (GovInfo devuelve una fila por
+    cada versión publicada, no por proyecto), filtra a 2015-2025, y enriquece
+    cada proyecto con datos estructurados de `api.congress.gov` (título,
+    fechas, cámara, área de política, patrocinador). Sube un único `.xlsx`
+    (una fila por proyecto), con fecha en el nombre (idempotente por día).
+    Probado con datos reales: 49 proyectos en el rango. **Límite real de la
+    fuente**: es búsqueda de texto completo, no un filtro temático — un
+    proyecto puede aparecer solo por mencionar a Paraguay de paso (ver
+    docstring del módulo). Requiere `CONGRESS_API_KEY` (gratuita, el usuario
+    la generó en `api.congress.gov/sign-up` — la misma key sirve para ambas
+    APIs).
 - Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
@@ -261,12 +281,13 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
 ## 7. Pendientes
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
-   dimensiones ya tienen nombre (sección 1); `3.Compromiso_economico_privado`
-   y `1.Compromiso_financiero_oficial` ya tienen variables/fuentes definidas.
-   `4.Visibilidad_mediática_y_relevancia_publica` ya tiene una primera fuente
-   real (`gdelt_proxy_b.py` / `gdelt_extraction/`, ver sección 6) pero podría
-   sumar más variables. Sigue totalmente indefinida
-   `2.Actividad_gubernamental_y_diplomática`.
+   dimensiones ya tienen nombre (sección 1) y las cuatro tienen ya al menos
+   una fuente real; `3.Compromiso_economico_privado` y
+   `1.Compromiso_financiero_oficial` tienen variables/fuentes definidas.
+   `4.Visibilidad_mediática_y_relevancia_publica` y
+   `2.Actividad_gubernamental_y_diplomática` tienen cada una una primera
+   fuente (`gdelt_proxy_b.py` y `congreso_menciones_paraguay.py`, ver
+   sección 6) pero podrían sumar más variables.
 2. **Resolver el acceso a la Unidad compartida de Drive para el Sheet**
    (distinto del acceso a la carpeta de datos, que ya funciona). Compartir
    el Sheet definitivo con la cuenta de servicio dentro de esa Unidad

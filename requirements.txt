@@ -7,5 +7,6 @@ python-dotenv>=1.0                # carga .env en local (run_pipeline.py)
 # src/ingestion
 beautifulsoup4>=4.12   # parseo de HTML (bcp_comercio_exterior.py, dfc_proyectos_activos.py, exim_autorizaciones.py)
 curl_cffi>=0.7          # requests que bypasea Cloudflare (fuentes de bcp.gov.py)
-pandas>=2.2             # filtrado local antes de subir (exim_autorizaciones.py)
-requests>=2.31          # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC)
+openpyxl>=3.1            # escribir .xlsx con pandas (congreso_menciones_paraguay.py)
+pandas>=2.2              # filtrado local antes de subir / armar excel (exim_autorizaciones.py, congreso_menciones_paraguay.py)
+requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
