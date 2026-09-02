@@ -35,6 +35,8 @@ PAIS = "Paraguay"
 
 DIMENSION = "1.Compromiso_financiero_oficial"
 FUENTE = "exim_autorizaciones"
+DESCRIPCION = "Autorizaciones de EXIM Bank vinculadas a Paraguay, por trimestre fiscal"
+URL_FUENTE = URL_CATALOGO
 
 
 def _obtener_url_csv():

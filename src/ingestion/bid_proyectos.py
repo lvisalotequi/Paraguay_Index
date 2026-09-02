@@ -32,6 +32,8 @@ FILAS_POR_PEDIDO = 5000  # el total de proyectos de Paraguay (~940) entra en un 
 
 DIMENSION = "1.Compromiso_financiero_oficial"
 FUENTE = "bid_proyectos"
+DESCRIPCION = "Proyectos del BID en Paraguay (insumo para desembolsos multilaterales atribuibles a EE.UU.)"
+URL_FUENTE = "https://data.iadb.org"
 
 
 def _pedir_proyectos():

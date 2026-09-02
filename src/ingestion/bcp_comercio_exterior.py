@@ -35,6 +35,8 @@ URL_LISTADO = "https://www.bcp.gov.py/web/institucional/importaciones-partidas-p
 
 DIMENSION = "3.Compromiso_economico_privado"
 FUENTE = "bcp_comercio_exterior"
+DESCRIPCION = "Comercio exterior (Importación/Exportación) de Paraguay por año, desde 2010"
+URL_FUENTE = URL_LISTADO
 
 # Filtrar por tipo: ["Importación"], ["Exportación"] o None para traer ambos
 TIPOS_A_INCLUIR = None

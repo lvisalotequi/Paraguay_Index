@@ -32,6 +32,8 @@ URL_PAGINA = "https://www.bcp.gov.py/remesas-familiares"
 
 DIMENSION = "3.Compromiso_economico_privado"
 FUENTE = "bcp_remesas_familiares"
+DESCRIPCION = "Remesas familiares recibidas en Paraguay por país de origen (incluye EE.UU.), mensual"
+URL_FUENTE = URL_PAGINA
 
 
 def _obtener_archivo():

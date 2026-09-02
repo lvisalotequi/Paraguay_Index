@@ -5,10 +5,11 @@ import pkgutil
 import sys
 from datetime import datetime, timezone
 
+import pandas as pd
 from dotenv import load_dotenv
 
 from src import ingestion
-from src.sheets import append_log_row
+from src.sheets import append_log_row, write_dataframe
 
 # Carga GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID, BEA_API_KEY, etc. desde un
 # .env local si existe. En GitHub Actions no hay .env (las variables ya
@@ -38,19 +39,40 @@ def run():
     started = datetime.now(timezone.utc)
     modules_run = []
     errors = {}
+    catalogo = []
 
     for name in discover_ingestion_modules():
         module = importlib.import_module(f"src.ingestion.{name}")
         if not hasattr(module, "run"):
             print(f"[skip] src/ingestion/{name}.py no define run(), se ignora.")
             continue
+
         print(f"[run] src/ingestion/{name}.py")
         try:
             module.run()
             modules_run.append(name)
+            estado = "OK"
         except Exception as exc:
             errors[name] = repr(exc)
             print(f"[error] {name}: {exc}", file=sys.stderr)
+            estado = "ERROR"
+
+        # Trazabilidad: de donde sale cada fuente, aunque esta corrida haya
+        # fallado - asi el catalogo no pierde una fila por un error puntual.
+        catalogo.append(
+            {
+                "fuente": name,
+                "dimension": getattr(module, "DIMENSION", ""),
+                "descripcion": getattr(module, "DESCRIPCION", ""),
+                "url_fuente": getattr(module, "URL_FUENTE", ""),
+                "estado_ultima_corrida": estado,
+                "ultima_corrida_utc": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+    if catalogo:
+        df_catalogo = pd.DataFrame(catalogo).sort_values(["dimension", "fuente"])
+        write_dataframe("catalogo_fuentes", df_catalogo)
 
     append_log_row(
         started=started,

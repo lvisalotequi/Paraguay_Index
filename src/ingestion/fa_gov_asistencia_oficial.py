@@ -31,6 +31,8 @@ PAGE_SIZE = 100
 
 DIMENSION = "1.Compromiso_financiero_oficial"
 FUENTE = "fa_gov_asistencia_oficial"
+DESCRIPCION = "Asistencia oficial de EE.UU. a Paraguay (obligaciones y desembolsos), por año"
+URL_FUENTE = "https://foreignassistance.gov"
 
 
 def _pedir_medida(anio, medida):

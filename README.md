@@ -15,17 +15,19 @@ análisis.
 | # | Dimensión | Estado |
 | --- | --- | --- |
 | 1 | Compromiso financiero oficial | ✅ 6 fuentes activas |
-| 2 | Actividad gubernamental y diplomática | 🟡 1 fuente activa |
+| 2 | Actividad gubernamental y diplomática | 🟡 2 fuentes activas |
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**12 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**13 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
   DFC, EXIM, BID (proyectos), Banco Mundial (proyectos).
 - **Actividad gubernamental y diplomática**: proyectos de ley y resoluciones
-  del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov).
+  del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov);
+  reuniones del Consejo de Comercio e Inversión (TIFA/TIC) Paraguay-EE.UU.
+  (USTR).
 - **Compromiso económico privado**: Comercio Exterior (BCP), Inversión
   Directa (BCP + BEA), Remesas Familiares (BCP).
 - **Visibilidad mediática**: cobertura bilateral vía GDELT (regla "proxy B"),
@@ -68,6 +70,13 @@ GitHub Actions corre el pipeline cada 3 meses (`.github/workflows/run_pipeline.y
 además de disparo manual desde la pestaña Actions. Cada corrida queda
 registrada en la pestaña `pipeline_log` del Google Sheet, con timestamp y
 errores si los hubo.
+
+## Trazabilidad
+
+Cada corrida reescribe la pestaña `catalogo_fuentes` del Sheet: una fila por
+fuente, con su dimensión, una descripción de qué extrae, la página pública
+de origen, y el estado/timestamp de la última corrida — para saber de dónde
+sale cada dato sin tener que leer el código.
 
 ## Estructura del repo
 

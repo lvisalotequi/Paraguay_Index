@@ -24,6 +24,8 @@ from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
 DIMENSION = "4.Visibilidad_mediática_y_relevancia_publica"
 FUENTE = "gdelt_proxy_b"
+DESCRIPCION = "Cobertura mediática bilateral Paraguay-EE.UU. vía GDELT (regla proxy B) — sube lo que gdelt_extraction/ ya produjo localmente"
+URL_FUENTE = "https://www.gdeltproject.org"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_OUTPUT_DIR = REPO_ROOT / "gdelt_extraction" / "output" / "historical_rule_b" / "proxy_b_metrics"

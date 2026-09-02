@@ -81,6 +81,8 @@ IDENTIFICADOR_POR_TIPO = {
 
 DIMENSION = "2.Actividad_gubernamental_y_diplomática"
 FUENTE = "congreso_menciones_paraguay"
+DESCRIPCION = "Proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay, 2015-2025"
+URL_FUENTE = "https://www.congress.gov"
 
 
 def _api_key():

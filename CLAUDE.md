@@ -53,10 +53,20 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 - `run_pipeline.py` es el orquestador: descubre automáticamente los módulos de
   `src/ingestion/` (con `pkgutil.iter_modules`, no hay que registrarlos a
   mano) y llama `run()` de cada uno. No espera ningún valor de retorno.
+- **Trazabilidad (política 2026-09-02)**: cada módulo declara, junto a
+  `DIMENSION`/`FUENTE`, dos constantes más: `DESCRIPCION` (una línea, qué
+  extrae) y `URL_FUENTE` (la página/portal público de origen — no
+  necesariamente el endpoint de API que usa el código, sino donde una
+  persona puede ir a verificar la fuente). `run_pipeline.py` lee estas
+  cuatro constantes de cada módulo con `getattr` (con fallback si faltan) y
+  arma la pestaña `catalogo_fuentes` del Sheet en cada corrida — una fila
+  por módulo, con estado y timestamp de la última corrida. Es la forma de
+  saber de dónde sale cada dato sin tener que leer el código.
 - Cada corrida agrega una fila a la pestaña `pipeline_log` del Sheet
-  (timestamp, módulos corridos, errores) — es la única escritura a Sheets que
-  hace el pipeline hoy, y sirve para confirmar que una corrida ejecutó de
-  punta a punta sin depender de leer logs de GitHub.
+  (timestamp, módulos corridos, errores) y reescribe `catalogo_fuentes` —
+  son las dos únicas escrituras a Sheets que hace el pipeline hoy, y sirven
+  para confirmar que una corrida ejecutó de punta a punta sin depender de
+  leer logs de GitHub.
 - Archivos que empiezan con `_` en `src/ingestion/` se ignoran como módulos
   (convención para helpers compartidos entre módulos de una misma fuente/
   sitio — ej. `_bcp_common.py`, que usan los tres módulos de bcp.gov.py para
@@ -91,8 +101,10 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 - Como la subida es por API (no por disco montado), **esto ya corre igual en
   local o en GitHub Actions** — no depende de tener la Unidad compartida
   montada en ninguna letra de unidad.
-- **Salida a Sheets**: solo la pestaña `pipeline_log` (auditoría de que corrió).
-  Ninguna fuente escribe datos a Sheets todavía.
+- **Salida a Sheets**: `pipeline_log` (auditoría de que corrió) y
+  `catalogo_fuentes` (trazabilidad — de dónde sale cada fuente, ver sección
+  4). Ninguna fuente escribe sus *datos* a Sheets todavía, solo estos dos
+  metadatos de auditoría.
 - **Ejecución**: GitHub Actions, disparo manual (`workflow_dispatch`) desde la
   pestaña Actions del repo, y programado cada 3 meses (`schedule` cron
   `0 0 1 */3 *`, 1 de enero/abril/julio/octubre, UTC).
@@ -101,6 +113,11 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 
 - Cada script de ingestion: `src/ingestion/{nombre_fuente}.py` con una función
   `def run()`. No hace falta tocar `run_pipeline.py` al agregar uno nuevo.
+- **Obligatorio para trazabilidad**: además de `DIMENSION` y `FUENTE`, todo
+  módulo nuevo declara `DESCRIPCION` (una línea, qué extrae) y `URL_FUENTE`
+  (la página pública de origen, no el endpoint de API interno). Sin esto la
+  fila del módulo en `catalogo_fuentes` queda vacía — no rompe el pipeline,
+  pero rompe la trazabilidad.
 - Carpeta de Drive: `carpeta_id = resolve_ingestion_folder("{dimensión}", "{nombre_fuente}")`
   desde `src/drive.py`, una sola vez al principio de `run()`. Por archivo:
   `existe_archivo(nombre, carpeta_id)` para chequear, `subir_archivo(bytes,
@@ -215,7 +232,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     posterior, acá solo se extraen los proyectos crudos de cada banco.
   - Los seis probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
-- Primera fuente real de la dimensión `2.Actividad_gubernamental_y_diplomática`
+- Dos fuentes reales de la dimensión `2.Actividad_gubernamental_y_diplomática`
   (2026-09-02):
   - `congreso_menciones_paraguay.py` — a diferencia de las demás fuentes, no
     existe como archivo descargable en ningún sitio: se **construye** acá
@@ -232,6 +249,20 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     docstring del módulo). Requiere `CONGRESS_API_KEY` (gratuita, el usuario
     la generó en `api.congress.gov/sign-up` — la misma key sirve para ambas
     APIs).
+  - `ustr_consejo_comercio_inversion.py` — hitos del Consejo de Comercio e
+    Inversión (TIFA/TIC) entre Paraguay y EE.UU., vía scraping de
+    ustr.gov (el buscador propio del sitio no funciona — confirmado
+    2026-09-02, cero resultados para cualquier término, sin API detrás). Es
+    un diseño **híbrido**: un historico fijo con los 5 hitos 2015-2024
+    (verificados a mano escaneando el archivo completo de USTR mes a mes —
+    ese rango cerrado no se vuelve a escanear cada corrida) + una revisión
+    liviana del sitio en vivo desde 2025 en adelante en cada corrida, para
+    que futuras reuniones se agreguen solas. De los 5 hitos, solo 3 son
+    literalmente "reuniones del Consejo" (2022/2023/2024, primera/segunda/
+    tercera reunión); los otros 2 son hitos previos (MOU 2015, firma del
+    TIFA 2017) — columna `tipo` para distinguirlos. Probado con datos
+    reales: 5 eventos, 0 nuevos del chequeo en vivo (no hubo reunión en
+    2025 todavía).
 - Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
