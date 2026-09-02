@@ -28,6 +28,14 @@ GovInfo devuelve una fila por cada VERSION publicada de un mismo proyecto
 "cuantos proyectos mencionan a Paraguay", no cuantas veces se republico cada
 uno.
 
+Cada fila incluye ademas `extracto_mencion_paraguay`: un fragmento real del
+texto del proyecto centrado en la primera mencion de "Paraguay", sacado del
+mismo documento que GovInfo ya encontro que la contiene (endpoint de
+contenido `/packages/{packageId}/htm`, no un snippet inventado). Es para
+poder verificar de un vistazo, sin abrir el proyecto entero, que el hit es
+real y en que contexto aparece Paraguay (ver el limite de busqueda de texto
+completo mas abajo).
+
 Limite importante: es busqueda de texto completo, no un filtro tematico. Un
 proyecto puede aparecer solo porque menciona a Paraguay de paso (ej. un
 listado de paises de la region en una resolucion sobre Venezuela) y no
@@ -47,11 +55,15 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
 URL_GOVINFO_SEARCH = "https://api.govinfo.gov/search"
+URL_GOVINFO_TEXTO = "https://api.govinfo.gov/packages/{package_id}/htm"
 URL_CONGRESS_BILL = "https://api.congress.gov/v3/bill/{congreso}/{tipo}/{numero}"
+
+RADIO_EXTRACTO = 150  # caracteres a cada lado de "Paraguay" en el extracto
 
 # Coleccion BILLS de GovInfo = todo tipo de proyecto/resolucion del Congreso.
 QUERY_GOVINFO = "Paraguay AND collection:BILLS"
@@ -112,7 +124,10 @@ def _buscar_proyectos_govinfo():
 
 
 def _proyectos_unicos(hits):
-    """Deduplica los hits de GovInfo a nivel de proyecto (congreso+tipo+numero)."""
+    """Deduplica los hits de GovInfo a nivel de proyecto (congreso+tipo+numero).
+    Se queda tambien con el packageId del primer hit de cada proyecto -
+    alcanza para el extracto: GovInfo ya confirmo que ESA version contiene
+    "Paraguay", no hace falta pedir el texto de las demas versiones."""
     proyectos = {}
     for hit in hits:
         match = PATRON_PACKAGE_ID.match(hit.get("packageId", ""))
@@ -120,8 +135,35 @@ def _proyectos_unicos(hits):
             continue
         congreso, tipo, numero, version = match.groups()
         clave = (int(congreso), tipo.upper(), numero)
-        proyectos.setdefault(clave, []).append(version)
+        info = proyectos.setdefault(clave, {"versiones": [], "package_id_ref": hit["packageId"]})
+        info["versiones"].append(version)
     return proyectos
+
+
+def _extracto_mencion_paraguay(package_id):
+    """Descarga el texto de una version del proyecto que GovInfo ya encontro
+    que menciona a Paraguay, y devuelve un extracto real centrado en la
+    primera mencion - para poder verificar el hit sin abrir el documento
+    entero. "" si por algun motivo no se encuentra (ej. texto reformateado
+    entre la busqueda y esta descarga)."""
+    resp = requests.get(
+        URL_GOVINFO_TEXTO.format(package_id=package_id),
+        params={"api_key": _api_key()},
+        timeout=30,
+    )
+    resp.raise_for_status()
+
+    texto = BeautifulSoup(resp.text, "html.parser").get_text(" ", strip=True)
+    texto = re.sub(r"\s+", " ", texto).strip()
+
+    match = re.search(r"paraguay", texto, re.IGNORECASE)
+    if not match:
+        return ""
+
+    inicio = max(match.start() - RADIO_EXTRACTO, 0)
+    fin = min(match.end() + RADIO_EXTRACTO, len(texto))
+    extracto = texto[inicio:fin].strip()
+    return f"{'...' if inicio > 0 else ''}{extracto}{'...' if fin < len(texto) else ''}"
 
 
 def _enriquecer_proyecto(congreso, tipo, numero):
@@ -132,7 +174,7 @@ def _enriquecer_proyecto(congreso, tipo, numero):
     return resp.json()["bill"]
 
 
-def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill):
+def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill, extracto):
     sponsors = bill.get("sponsors") or [{}]
     patrocinador = sponsors[0]
     latest = bill.get("latestAction") or {}
@@ -143,6 +185,7 @@ def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill):
         "numero": numero,
         "identificador": f"{IDENTIFICADOR_POR_TIPO.get(tipo, tipo)} {numero}",
         "titulo": bill.get("title"),
+        "extracto_mencion_paraguay": extracto,
         "fecha_introduccion": bill.get("introducedDate"),
         "fecha_ultima_accion": latest.get("actionDate"),
         "ultima_accion": latest.get("text"),
@@ -173,14 +216,20 @@ def run():
 
     filas = []
     errores = []
-    for (congreso, tipo, numero), versiones in sorted(candidatos.items()):
+    for (congreso, tipo, numero), info in sorted(candidatos.items()):
         try:
             bill = _enriquecer_proyecto(congreso, tipo, numero)
         except Exception as exc:  # noqa: BLE001
             errores.append((f"{congreso}-{tipo}-{numero}", repr(exc)))
             continue
 
-        fila = _fila_desde_proyecto(congreso, tipo, numero, versiones, bill)
+        try:
+            extracto = _extracto_mencion_paraguay(info["package_id_ref"])
+        except Exception as exc:  # noqa: BLE001
+            print(f"    [!] no se pudo sacar extracto de {congreso}-{tipo}-{numero}: {exc!r}")
+            extracto = ""
+
+        fila = _fila_desde_proyecto(congreso, tipo, numero, info["versiones"], bill, extracto)
         fecha_intro = fila["fecha_introduccion"] or ""
         if fecha_intro[:4].isdigit():
             anio_intro = int(fecha_intro[:4])

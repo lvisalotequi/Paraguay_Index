@@ -249,7 +249,13 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     proyecto puede aparecer solo por mencionar a Paraguay de paso (ver
     docstring del módulo). Requiere `CONGRESS_API_KEY` (gratuita, el usuario
     la generó en `api.congress.gov/sign-up` — la misma key sirve para ambas
-    APIs).
+    APIs). **Columna de verificación (2026-09-02, a pedido del usuario)**:
+    cada fila incluye `extracto_mencion_paraguay`, un fragmento real del
+    texto del proyecto centrado en la primera mención de "Paraguay" — se
+    descarga el contenido de la misma versión que GovInfo ya encontró que
+    lo menciona (`/packages/{packageId}/htm`), no un snippet inventado, así
+    se puede confirmar de un vistazo que el hit es real y en qué contexto
+    aparece, sin abrir el proyecto entero.
   - `ustr_consejo_comercio_inversion.py` — hitos del Consejo de Comercio e
     Inversión (TIFA/TIC) entre Paraguay y EE.UU., vía scraping de
     ustr.gov (el buscador propio del sitio no funciona — confirmado
