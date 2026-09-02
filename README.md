@@ -19,7 +19,7 @@ análisis.
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**11 fuentes de datos corriendo hoy**, automáticamente cada 12 horas vía
+**11 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
@@ -62,7 +62,7 @@ proyecto. Ver sección 5 de [CLAUDE.md](CLAUDE.md) para el detalle completo.
 
 ## Automatización
 
-GitHub Actions corre el pipeline cada 12 horas (`.github/workflows/run_pipeline.yml`),
+GitHub Actions corre el pipeline cada 3 meses (`.github/workflows/run_pipeline.yml`),
 además de disparo manual desde la pestaña Actions. Cada corrida queda
 registrada en la pestaña `pipeline_log` del Google Sheet, con timestamp y
 errores si los hubo.

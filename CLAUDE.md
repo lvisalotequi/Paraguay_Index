@@ -67,8 +67,8 @@ futura (`clean` / integración / export) que todavía no existe en este repo
   contra GDELT vía BigQuery consume cuota mensual de un sandbox sin
   facturación y necesita login OAuth personal (`gcloud auth application-default
   login`) para verificar antes de cada consulta que la facturación sigue
-  deshabilitada — no tiene sentido automatizarla cada 12 horas en GitHub
-  Actions (no hay login humano ahí, y se fundiría la cuota gratuita rápido).
+  deshabilitada — no tiene sentido automatizarla en GitHub Actions (no hay
+  login humano ahí, y se fundiría la cuota gratuita rápido).
   Por eso la extracción corre a mano, localmente, desde `gdelt_extraction/`;
   `gdelt_proxy_b.py` solo centraliza en Drive lo que esa extracción ya
   produjo. En Actions, donde `gdelt_extraction/output/` no existe (está en
@@ -94,8 +94,8 @@ futura (`clean` / integración / export) que todavía no existe en este repo
 - **Salida a Sheets**: solo la pestaña `pipeline_log` (auditoría de que corrió).
   Ninguna fuente escribe datos a Sheets todavía.
 - **Ejecución**: GitHub Actions, disparo manual (`workflow_dispatch`) desde la
-  pestaña Actions del repo, y programado cada 12 horas (`schedule` cron
-  `0 */12 * * *`, UTC).
+  pestaña Actions del repo, y programado cada 3 meses (`schedule` cron
+  `0 0 1 */3 *`, 1 de enero/abril/julio/octubre, UTC).
 
 ## 4. Convenciones de código
 
@@ -255,7 +255,7 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
 - `SHEET_ID` apunta hoy a un Sheet de **prueba** (en Mi unidad personal, no en
   la Unidad compartida del proyecto) porque compartir con la cuenta de
   servicio falló dentro de la Unidad compartida (ver pendientes).
-- Repo público desde 2026-08-26, con el workflow disparándose cada 12 horas
+- Repo público desde 2026-08-26, con el workflow disparándose cada 3 meses
   además de manual.
 
 ## 7. Pendientes
