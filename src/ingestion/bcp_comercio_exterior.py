@@ -25,10 +25,10 @@ from urllib.parse import urljoin
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 from src.ingestion._bcp_common import (
     URL_BASE,
+    descargar_bytes,
     limpiar_nombre_archivo,
     mime_de,
     obtener_html,
-    descargar_bytes,
 )
 
 URL_LISTADO = "https://www.bcp.gov.py/web/institucional/importaciones-partidas-p"

@@ -21,11 +21,11 @@ from urllib.parse import urljoin
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 from src.ingestion._bcp_common import (
     URL_BASE,
+    descargar_bytes,
     limpiar_nombre_archivo,
     mime_de,
     nombre_desde_url,
     obtener_html,
-    descargar_bytes,
 )
 
 URL_PAGINA = "https://www.bcp.gov.py/remesas-familiares"

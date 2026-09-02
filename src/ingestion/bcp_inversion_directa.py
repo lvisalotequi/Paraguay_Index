@@ -18,16 +18,17 @@ El nombre incluye el rango de anios (ej. "...1995 - 2024.xlsx") y cambia
 cuando el BCP actualiza el anexo, asi que cada actualizacion sube como
 archivo nuevo en vez de sobreescribir el anterior.
 """
+from urllib.parse import urljoin
+
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 from src.ingestion._bcp_common import (
     URL_BASE,
+    descargar_bytes,
     limpiar_nombre_archivo,
     mime_de,
     nombre_desde_url,
     obtener_html,
-    descargar_bytes,
 )
-from urllib.parse import urljoin
 
 URL_PAGINA = "https://www.bcp.gov.py/web/institucional/-inversion-directa-id-"
 

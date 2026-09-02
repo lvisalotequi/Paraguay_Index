@@ -5,8 +5,15 @@ import pkgutil
 import sys
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
+
 from src import ingestion
 from src.sheets import append_log_row
+
+# Carga GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID, BEA_API_KEY, etc. desde un
+# .env local si existe. En GitHub Actions no hay .env (las variables ya
+# vienen de los secrets del workflow) - load_dotenv() no hace nada en ese caso.
+load_dotenv()
 
 # En Windows, la consola a veces usa un codec (cp1252) que no soporta los
 # emojis de las rutas de la Unidad compartida (DATA_ROOT) y print() explota

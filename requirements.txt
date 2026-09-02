@@ -1,10 +1,11 @@
-gspread>=6.0
-google-auth>=2.28
+# Pipeline maestro (run_pipeline.py) y helpers de Google (src/drive.py, src/sheets.py)
 google-api-python-client>=2.100   # src/drive.py (subida de archivos crudos)
-pandas>=2.2                        # filtrado local antes de subir (ej. exim_autorizaciones.py)
-python-dotenv>=1.0
+google-auth>=2.28                 # autenticacion con la cuenta de servicio (Sheets y Drive)
+gspread>=6.0                      # src/sheets.py (pestana pipeline_log)
+python-dotenv>=1.0                # carga .env en local (run_pipeline.py)
 
 # src/ingestion
-beautifulsoup4>=4.12
-curl_cffi>=0.7      # bypass de Cloudflare (ej. bcp_comercio_exterior.py)
-requests>=2.31       # fuentes que exponen una API normal (ej. bea_inversion_directa.py)
+beautifulsoup4>=4.12   # parseo de HTML (bcp_comercio_exterior.py, dfc_proyectos_activos.py, exim_autorizaciones.py)
+curl_cffi>=0.7          # requests que bypasea Cloudflare (fuentes de bcp.gov.py)
+pandas>=2.2             # filtrado local antes de subir (exim_autorizaciones.py)
+requests>=2.31          # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC)
