@@ -223,7 +223,7 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
     una aproximación de coocurrencia con señales institucionales, **no**
     noticias validadas individualmente ni medición de calidad de relaciones
     diplomáticas — ver los límites documentados en la propia config y en
-    `gdelt_extraction/CONTEXTO_PORTABLE_PROXY_B.md`.
+    `gdelt_extraction/README.md`.
   - `gdelt_extraction/` — el extractor en sí (`historical_campaign.py` y
     soporte), corrido a mano localmente contra el proyecto GCP
     `us-py-engagement-idx` (sandbox de BigQuery sin facturación, techo
@@ -235,7 +235,7 @@ requests                    # fuentes que exponen una API normal (ej. bea_invers
     `gdelt_extraction/output/historical_campaign/CONTINUIDAD.md` (se
     reescribe en cada corrida, no confiar en esta nota para el estado
     exacto). **Para correrlo en otra computadora**, ver
-    `gdelt_extraction/EJECUCION_PORTABLE.md` — necesita Google Cloud SDK
+    `gdelt_extraction/README.md` — necesita Google Cloud SDK
     instalado y autenticado aparte (no viene con el repo ni con Python), y
     en Windows puede requerir habilitar rutas largas si el checkout queda en
     una ruta profunda (ver esa misma guía).
