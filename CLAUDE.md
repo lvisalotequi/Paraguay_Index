@@ -26,10 +26,10 @@ seguridad previa).
 ## 2. Arquitectura del pipeline
 
 ```
-src/ingestion/{fuente}.py    →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/   (archivos crudos)
+src/ingestion/{fuente}.py    →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/          (archivos crudos)
                     │                              │
                     │                              ▼
-                    │          src/processing/{dimensión}.py  →  Drive: 02_limpias/{dimensión}_limpias/  (CSV consolidado)
+                    │          src/processing/{dimensión}.py  →  Drive: 02_limpias/{dimensión}_limpias/{variable}/  (1 CSV por variable)
                     ▼
      run_pipeline.py → pestaña pipeline_log        run_processing.py → pestaña processing_log
      (ambos en el Sheet, solo auditoria)
@@ -46,21 +46,28 @@ no consolidan, y no escriben a Google Sheets. Limpiar/consolidar es trabajo
 de `src/processing/` (ver más abajo) — una etapa separada, corrida a mano,
 no automatizada todavía.
 
-- **`src/processing/{dimensión}.py`** (agregado 2026-09-02): a diferencia
-  de ingestion, SI lee los archivos crudos que ingestion ya subio a Drive
-  (via `src.drive.listar_archivos`/`descargar_archivo`), aisla la cifra
-  especifica de EE.UU. de cada fuente de esa dimensión, normaliza a
-  trimestres (sumando meses o repitiendo un valor anual segun la
-  granularidad nativa de cada fuente — ver el docstring de cada módulo) y
-  sube un único CSV ancho (una fila por trimestre, una columna por
-  variable) a `02_limpias/{dimensión}_limpias/`. Expone `run()`, igual que
-  ingestion; `run_processing.py` los descubre automáticamente con
-  `pkgutil.iter_modules` (mismo patrón que `run_pipeline.py`) y registra la
-  corrida en la pestaña `processing_log` del Sheet (separada de
-  `pipeline_log`, para no mezclar corridas de ingestion y de processing).
-  No forma parte del schedule automático de GitHub Actions todavía — se
-  corre a mano cuando hace falta. Primer módulo real:
-  `compromiso_economico_privado.py` (dimensión 3) — ver sección 6.
+- **`src/processing/{dimensión}.py`** (agregado 2026-09-02, rediseñado
+  2026-09-03): a diferencia de ingestion, SI lee los archivos crudos que
+  ingestion ya subio a Drive (via `src.drive.listar_archivos`/
+  `descargar_archivo`), aisla la cifra especifica de EE.UU. de cada fuente
+  de esa dimensión, normaliza a trimestres (sumando meses o repitiendo un
+  valor anual segun la granularidad nativa de cada fuente — ver el
+  docstring de cada módulo), y sube un CSV **por variable** (no un CSV
+  combinado por dimensión) a `02_limpias/{dimensión}_limpias/{variable}/` —
+  una carpeta por variable, política 2026-09-03 a pedido del usuario, para
+  que cada variable se pueda leer/actualizar sola en una etapa posterior.
+  Esquema fijo e igual en las 4 dimensiones: `trimestre, anio,
+  trimestre_num, valor, unidad` — el helper `src/processing/_common.py`
+  (`subir_variable()`/`reescalar()`) centraliza esta convención, así ningún
+  módulo arma el CSV a mano. Todas las variables monetarias van en **USD
+  sin escalar** (nunca miles/millones mezclados dentro de la misma
+  dimensión); las de tipo "cantidad" (conteos) y "índice" quedan tal cual,
+  sin conversión. Expone `run()`, igual que ingestion; `run_processing.py`
+  los descubre automáticamente con `pkgutil.iter_modules` (mismo patrón que
+  `run_pipeline.py`) y registra la corrida en la pestaña `processing_log`
+  del Sheet (separada de `pipeline_log`). No forma parte del schedule
+  automático de GitHub Actions todavía — se corre a mano cuando hace
+  falta. Cubre las 4 dimensiones — ver sección 6.
 
 - Cada módulo en `src/ingestion/` expone una función `run()` sin argumentos.
   Efecto esperado: descarga cada archivo **en memoria** y lo sube directo a
@@ -420,20 +427,57 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   entrada en el diccionario), sigue cayendo a la búsqueda por nombre, pero
   ahora con reintentos (`_buscar_hijo_con_reintentos`) — conviene agregar
   su ID al diccionario a mano después de la primera corrida exitosa.
-- **Primer módulo de `src/processing/` (2026-09-02):**
-  `compromiso_economico_privado.py` (dimensión 3) — consolida las 4
-  fuentes crudas en un único CSV trimestral (`trimestre`, `anio`,
-  `trimestre_num`, y una columna por variable: exportaciones/importaciones
-  con EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
-  Cuadro 4 del anexo del BCP, remesas desde EE.UU. sumando meses en
-  trimestre, y posición de IED de BEA repetida en los 4 trimestres de cada
-  año — ver el docstring del módulo para el detalle de cada fuente y sus
-  unidades nativas, que se dejan sin reescalar). Sube a
-  `02_limpias/3.Compromiso_economico_privado_limpias/`. Probado con datos
-  reales: 46 trimestres, 2015-Q1 a 2026-Q2. Corrido con
-  `run_processing.py` (mismo patrón de auto-descubrimiento que
-  `run_pipeline.py`, ver sección 2) — separado del schedule automático de
-  GitHub Actions, se corre a mano.
+- **`src/processing/` cubre las 4 dimensiones (2026-09-02, rediseñado
+  2026-09-03):** un módulo por dimensión, cada uno consolida sus fuentes
+  crudas y sube **un CSV por variable** (no un CSV combinado por dimensión)
+  a `02_limpias/{dimensión}_limpias/{variable}/` — esquema fijo en las 4
+  dimensiones: `trimestre, anio, trimestre_num, valor, unidad`. **Política
+  de carpetas y unidades (2026-09-03, a pedido del usuario — "quiero una
+  carpeta por cada variable... en formatos iguales"):** cada variable tiene
+  su propia carpeta (para poder leerse/actualizarse sola después), y dentro
+  de cada tipo (monetario / cantidad / índice) las variables comparten
+  unidad — todo lo monetario en USD sin escalar, nunca miles/millones
+  mezclados. `src/processing/_common.py` centraliza esta convención
+  (`subir_variable()`/`reescalar()`) para que ningún módulo arme el CSV a
+  mano. Corridos con `run_processing.py` (auto-descubrimiento, ver sección
+  2) — separado del schedule automático de GitHub Actions, se corre a
+  mano. Probados con datos reales el 2026-09-03:
+  - `compromiso_financiero_oficial.py` (dimensión 1, 7 variables, todo
+    **monetario en USD sin escalar**): obligaciones/desembolsos de
+    ForeignAssistance.gov (anual, repetido en los 4 trimestres — la fuente
+    no tiene fecha más fina que el año fiscal), obligaciones de
+    USAspending (trimestral real, sumando `federal_action_obligation` de
+    las transacciones Contracts+Assistance por `action_date`), comprometido
+    de DFC (anual repetido — solo ~4 proyectos históricos de Paraguay),
+    autorizado de EXIM (trimestral real por `Decision Date`, solo
+    `Decision == "Approved"`), y aprobado de BID/Banco Mundial (trimestral
+    real por fecha de aprobación del proyecto — **monto total del
+    proyecto, todavía NO ponderado por la cuota de capital de EE.UU.**, ver
+    pendiente #5). Rango 2015-Q1 a 2027-Q1 (el Banco Mundial ya tiene un
+    proyecto con aprobación futura anunciada) — varía por variable, cada
+    una con su propio CSV.
+  - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, 3 variables,
+    todo **cantidad** — conteos, no montos): proyectos del Congreso que
+    mencionan a Paraguay (por `fecha_introduccion`, 27 trimestres con al
+    menos 1), hitos del Consejo de Comercio e Inversión de USTR (por
+    `fecha`, muy disperso — 5 trimestres con datos en 10 años), y TIAS de
+    Paraguay vigentes (por `fecha_entrada_vigor`, igual de disperso — 3
+    trimestres con datos).
+  - `compromiso_economico_privado.py` (dimensión 3, 5 variables, todo
+    **monetario en USD sin escalar**): exportaciones/importaciones con
+    EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
+    Cuadro 4 del anexo del BCP, remesas desde EE.UU. (sumando meses en
+    trimestre), y posición de IED de BEA (anual repetido). Rango 2015-Q1
+    a 2026-Q2 (varía por variable).
+  - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, 2
+    variables, **cantidad + índice**) a partir de `gdelt_proxy_b` (fila
+    `source_country == "BOTH"` de los CSV con prefijo `monthly_` — el
+    archivo `historical_processed_2015-02_2020-03.csv` queda afuera a
+    propósito porque duplicaría esos meses, ver docstring del módulo):
+    cantidad de artículos proxy por trimestre, y tono promedio del
+    trimestre ponderado por cantidad de artículos (trimestres sin ningún
+    artículo no tienen fila en la variable de tono — no se rellenan con
+    0). 44 trimestres, 2015-Q1 a 2025-Q4.
 
 ## 7. Pendientes
 
@@ -458,12 +502,16 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
    Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
    específico o confirmar si esta variable existe como dataset en otro lado.
-4. Diseñar las etapas `02_limpias` y `03_final` que lean los datos crudos de
-   `01_crudas` y armen lo que finalmente va al Sheet (limpieza, homologación
-   entre fuentes, qué campos importan). **`02_limpias` ya arrancó
-   (2026-09-02)** con `src/processing/compromiso_economico_privado.py`
-   (dimensión 3, ver sección 6) — faltan las otras 3 dimensiones y, más
-   adelante, `03_final`.
+4. Diseñar la etapa `03_final` que lea los CSV de `02_limpias` y arme lo
+   que finalmente va al Sheet. **`02_limpias` ya cubre las 4 dimensiones
+   (2026-09-02/03)**, ver sección 6 — falta `03_final`.
+5. **Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
+   EE.UU.** — `compromiso_financiero_oficial.py` (processing, dimensión 1)
+   hoy suma el monto TOTAL aprobado de cada proyecto multilateral, no la
+   porción atribuible a EE.UU. según su participación accionaria en cada
+   banco. Es una cifra de "actividad multilateral" general, no una cifra
+   de compromiso de EE.UU. propiamente dicha — el cálculo de ponderación
+   queda pendiente.
 
 *(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
 con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret

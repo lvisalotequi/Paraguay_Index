@@ -40,7 +40,7 @@ GitHub Actions:
 src/ingestion/{fuente}.py    →  Google Drive: 01_crudas/{dimensión}/{fuente}/
                     │                              │
                     │                              ▼
-                    │          src/processing/{dimensión}.py  →  02_limpias/{dimensión}_limpias/
+                    │          src/processing/{dimensión}.py  →  02_limpias/{dimensión}_limpias/{variable}/
                     ▼
      run_pipeline.py → pestaña pipeline_log        run_processing.py → pestaña processing_log
 ```
@@ -55,11 +55,15 @@ requiere tocar nada más.
 
 `src/processing/` es la etapa siguiente: lee los archivos crudos que
 ingestion ya subió, aisla la cifra de EE.UU. de cada fuente, normaliza a
-trimestres, y sube un único CSV consolidado por dimensión a
-`02_limpias/`. `run_processing.py` sigue el mismo patrón de
-auto-descubrimiento que `run_pipeline.py`. Todavía cubre solo la dimensión
-`3.Compromiso_economico_privado` — se corre a mano, no está en el schedule
-automático.
+trimestres, y sube **un CSV por variable** (no un CSV combinado por
+dimensión) a `02_limpias/{dimensión}_limpias/{variable}/` — ya cubre las 4
+dimensiones, 17 variables en total. Todos los CSV comparten el mismo
+esquema (`trimestre, anio, trimestre_num, valor, unidad`), y las variables
+de un mismo tipo (monetario/cantidad/índice) quedan en una unidad
+consistente entre sí (ej. todo lo monetario en USD sin escalar, nunca
+mezclando miles y millones). `run_processing.py` sigue el mismo patrón de
+auto-descubrimiento que `run_pipeline.py` — se corre a mano, no está en el
+schedule automático.
 
 Los datos extraídos **no viven en este repo** (viven en Google Drive, fuera
 de git) — acá solo está el código que los extrae y los procesa.
@@ -100,7 +104,7 @@ src/
   drive.py             # helpers de subida/lectura en Google Drive
   sheets.py             # registro de auditoría en Google Sheets
   ingestion/            # un script por variable/fuente de datos (solo extrae, sube crudo)
-  processing/           # un script por dimensión (limpia y consolida en un CSV trimestral)
+  processing/           # un script por dimensión (limpia y sube un CSV trimestral por variable)
 gdelt_extraction/      # extractor de cobertura mediática GDELT (corre aparte, a mano)
 CLAUDE.md              # contexto técnico completo del proyecto
 ```

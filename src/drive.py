@@ -69,10 +69,28 @@ FOLDER_IDS = {
 }
 
 # Igual que FOLDER_IDS pero para las carpetas de salida de processing
-# (CARPETA_LIMPIAS/{dimension_limpia}) - se completa a mano la primera vez
-# que cada dimension corre processing de verdad.
-LIMPIAS_FOLDER_IDS = {
-    "3.Compromiso_economico_privado_limpias": "17zdZbDYcC0vA7oeDLPBPEuyV_Ul2h_yR",
+# (CARPETA_LIMPIAS/{dimension_limpia}/{variable} - una carpeta POR VARIABLE
+# dentro de cada dimension limpia, politica 2026-09-03 a pedido del
+# usuario) - se completa a mano la primera vez que cada variable sube algo
+# de verdad.
+VARIABLE_FOLDER_IDS = {
+    ("1.Compromiso_financiero_oficial_limpias", "fa_gov_obligaciones"): "1j4_Go3o8LfjttUV-VtLCiuYhL6nijzb9",
+    ("1.Compromiso_financiero_oficial_limpias", "fa_gov_desembolsos"): "1XZh4cR8mNXNuCb70J-NWqUA038_ivlTn",
+    ("1.Compromiso_financiero_oficial_limpias", "usaspending_obligaciones"): "11cN6Qhmdmv6OLkSzFFHa3LZwCFi504rL",
+    ("1.Compromiso_financiero_oficial_limpias", "dfc_comprometido"): "1gi1QRZcTF71hD54Q2j-L35WLlwnDnrgO",
+    ("1.Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
+    ("1.Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
+    ("1.Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_aprobados"): "1vpfBqS9csMIuJn17G_GcaPOQxrKpvkxQ",
+    ("2.Actividad_gubernamental_y_diplomática_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",
+    ("2.Actividad_gubernamental_y_diplomática_limpias", "ustr_hitos_consejo_comercio_inversion"): "1JGXXrWqPA7gYHzOuhaVcDPnJyFKCj-dx",
+    ("2.Actividad_gubernamental_y_diplomática_limpias", "state_gov_tias_vigentes"): "1JvNvfSbalrOv0TfpxKQbCCn9-jGXR0mW",
+    ("3.Compromiso_economico_privado_limpias", "exportaciones"): "1R7RGu_NJ4pzo_0Y56lADLNUn3O6J1KOx",
+    ("3.Compromiso_economico_privado_limpias", "importaciones"): "1yyry1LlAUZVSfwXkJ-LjZ8sY4t6hURl0",
+    ("3.Compromiso_economico_privado_limpias", "inversion_directa_bcp"): "1HKc9ZONIfM7EMkUjusxVzUtrtg1tLBVk",
+    ("3.Compromiso_economico_privado_limpias", "remesas"): "1YXlotyhgt_rbyr5GOp4O1rty8UlJKwYQ",
+    ("3.Compromiso_economico_privado_limpias", "bea_inversion_directa"): "1M6IvbQK4ShQwrLQtHyhMAkKCORw95oOC",
+    ("4.Visibilidad_mediática_y_relevancia_publica_limpias", "gdelt_proxy_articles"): "1es-fZCxupBXBkhtL4rg0LIhcdWriforY",
+    ("4.Visibilidad_mediática_y_relevancia_publica_limpias", "gdelt_tone_promedio"): "1YfWSeWAVULcUh9bS1WiYy5rDFH-yu3DI",
 }
 
 
@@ -153,15 +171,16 @@ def resolve_ingestion_folder(dimension, fuente):
     return resolve_folder(CARPETA_CRUDAS, f"{dimension}_crudas", fuente)
 
 
-def resolve_processing_folder(dimension_limpia):
-    """Atajo para CARPETA_LIMPIAS/{dimension_limpia} - donde los modulos de
-    src/processing/ suben sus CSV consolidados. Usa LIMPIAS_FOLDER_IDS si ya
-    se conoce el id (evita la busqueda por nombre, ver nota de fiabilidad
-    arriba); si es una dimension nueva, cae de vuelta a resolve_folder."""
-    conocido = LIMPIAS_FOLDER_IDS.get(dimension_limpia)
+def resolve_variable_folder(dimension_limpia, variable):
+    """Atajo para CARPETA_LIMPIAS/{dimension_limpia}/{variable} - una
+    carpeta por variable, donde cada modulo de src/processing/ sube el CSV
+    de esa variable. Usa VARIABLE_FOLDER_IDS si ya se conoce el id (evita
+    la busqueda por nombre); si es una variable nueva, cae de vuelta a
+    resolve_folder (busqueda + reintentos)."""
+    conocido = VARIABLE_FOLDER_IDS.get((dimension_limpia, variable))
     if conocido:
         return conocido
-    return resolve_folder(CARPETA_LIMPIAS, dimension_limpia)
+    return resolve_folder(CARPETA_LIMPIAS, dimension_limpia, variable)
 
 
 def existe_archivo(nombre, carpeta_id):
