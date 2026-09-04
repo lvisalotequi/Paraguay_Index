@@ -184,7 +184,9 @@ no automatizada todavía.
   `Credentials`.
 - Local: variables de entorno en `.env` (no versionado, `run_pipeline.py` lo
   carga solo con `python-dotenv`) — `GOOGLE_APPLICATION_CREDENTIALS`,
-  `SHEET_ID`, `BEA_API_KEY`, `CONGRESS_API_KEY`.
+  `SHEET_ID`, `BEA_API_KEY`, `CONGRESS_API_KEY`. Hay una plantilla en
+  `.env.example` (sí versionada, sin valores reales) para copiar y
+  completar.
 - GitHub Actions: secrets `GOOGLE_SHEETS_CREDENTIALS` (JSON completo de la
   cuenta de servicio), `SHEET_ID`, `BEA_API_KEY` y `CONGRESS_API_KEY`, en
   Settings > Secrets and variables > Actions.
@@ -193,20 +195,37 @@ no automatizada todavía.
   Unidad compartida de Google Workspace, puede bloquear compartir con cuentas
   externas al dominio (una cuenta de servicio cuenta como externa) — ver el
   punto pendiente en la sección 7.
+- **Windows: rutas largas (verificado 2026-09-03, a pedido del usuario —
+  "que otra persona pueda correrlo en local sin problemas").** La ruta de
+  esta carpeta dentro de la Unidad compartida mide ~190 caracteres ella
+  sola (nombres largos + emojis); sumada a las rutas anidadas que crea un
+  entorno virtual de Python al instalar paquetes, es fácil superar el
+  límite de 260 caracteres que Windows respeta por defecto (falla la
+  instalación de dependencias o la corrida misma, con errores confusos de
+  archivo no encontrado — ya pasó en una sesión anterior de este proyecto).
+  Dos soluciones, no excluyentes:
+  1. **Recomendado**: clonar el repo de GitHub a una ruta corta (ej.
+     `C:\dev\Paraguay_Index`) en vez de trabajar directo desde la Unidad
+     compartida montada. El código no necesita vivir ahí — los datos se
+     leen/escriben por la API de Drive, no por disco local (ver sección 2,
+     "Regla central"), así que no hace falta tener la Unidad compartida
+     montada para nada relacionado al código.
+  2. Habilitar `LongPathsEnabled` en el registro de Windows (requiere
+     permisos de administrador en esa máquina).
 
 ### Dependencias (`requirements.txt`)
 
 ```
-google-api-python-client   # src/drive.py (subida de archivos crudos)
+google-api-python-client   # src/drive.py (subida y lectura de archivos en Drive)
 google-auth                # autenticación con la cuenta de servicio
-gspread                     # src/sheets.py (pestañas pipeline_log y catalogo_fuentes)
-python-dotenv                # carga .env en local (run_pipeline.py)
+gspread                     # src/sheets.py (pestañas pipeline_log, catalogo_fuentes, processing_log)
+python-dotenv                # carga .env en local (run_pipeline.py, run_processing.py)
 
 beautifulsoup4   # parseo de HTML en ingestion
 curl_cffi         # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, state.gov)
 ddgs               # búsqueda en DuckDuckGo (state_gov_tias_paraguay.py — state.gov no tiene índice navegable de TIAS)
 openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
-pandas              # filtrado local / armar excel (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
+pandas              # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/)
 requests             # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 ```
 

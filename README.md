@@ -71,15 +71,29 @@ de git) — acá solo está el código que los extrae y los procesa.
 ## Correrlo en local
 
 ```bash
+git clone <url-del-repo>   # a una ruta corta, ver nota de Windows más abajo
+cd Paraguay_Index
 pip install -r requirements.txt
-# crear un .env con GOOGLE_APPLICATION_CREDENTIALS, SHEET_ID, BEA_API_KEY y CONGRESS_API_KEY
+cp .env.example .env       # completar con los valores reales (pedirle las credenciales al dueño del proyecto)
 python run_pipeline.py
 python run_processing.py
 ```
 
 Necesitás una cuenta de servicio de Google Cloud con acceso de Editor al
 Sheet de destino y rol Writer en la Unidad compartida de Drive del
-proyecto. Ver sección 5 de [CLAUDE.md](CLAUDE.md) para el detalle completo.
+proyecto — el archivo JSON de esa cuenta es un secreto, no está en el
+repo, hay que pedírselo al dueño del proyecto. Ver sección 5 de
+[CLAUDE.md](CLAUDE.md) para el detalle completo.
+
+**Windows**: cloná el repo a una ruta corta (ej. `C:\dev\Paraguay_Index`)
+en vez de trabajar directo desde la Unidad compartida montada — esa ruta
+es muy larga (nombres largos + emojis) y sumada a las rutas que crea un
+entorno virtual de Python puede superar el límite de 260 caracteres que
+Windows respeta por defecto, rompiendo la instalación de dependencias. El
+código no necesita vivir dentro de la Unidad compartida: los datos se
+leen/escriben por la API de Drive, no por disco local. Ver sección 5 de
+[CLAUDE.md](CLAUDE.md) para la alternativa (habilitar rutas largas en
+Windows).
 
 ## Automatización
 
