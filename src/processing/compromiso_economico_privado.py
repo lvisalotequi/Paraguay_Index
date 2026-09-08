@@ -93,6 +93,8 @@ def _mapear_columnas_trimestre(fila_anio, fila_trim):
     anios = fila_anio.ffill()
     mapeo = {}
     for col, trim in fila_trim.items():
+        if trim == "l":  # typo real del BCP: el trimestre "I" viene tipeado
+            trim = "I"   # como una ele minuscula en varios anios (ej. 2015, 2016)
         if trim not in NUMERO_TRIM or pd.isna(anios[col]):
             continue
         # el rotulo del anio no siempre es el numero solo - la hoja de

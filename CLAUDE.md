@@ -503,7 +503,20 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
     Cuadro 4 del anexo del BCP, remesas desde EE.UU. (sumando meses en
     trimestre), y posición de IED de BEA (anual repetido). Rango 2015-Q1
-    a 2026-Q2 (varía por variable).
+    a 2026-Q2 (varía por variable). **Bug de datos encontrado y corregido
+    (2026-09-08, a pedido del usuario — "veo que jalas data desde el
+    segundo trimestre"):** `exportaciones` venía sin el primer trimestre
+    de 2015 y 2016 — no era un límite de la fuente, era un typo real del
+    propio Boletín del BCP: en la hoja "Exp. por países", la fila de
+    rótulos de trimestre tiene una **"l" minúscula en vez de "I" mayúscula**
+    para el primer trimestre de varios años (23 años en total en esa hoja,
+    6 en "Imp. por países" — todos anteriores a 2015 salvo los dos de
+    exportaciones ya mencionados, así que no afectaban nada más dentro del
+    rango del proyecto). `_mapear_columnas_trimestre()` solo reconocía
+    "I"/"II"/"III"/"IV" exactos, así que esas columnas quedaban afuera en
+    silencio. Se corrigió normalizando "l" → "I" antes de mapear. Confirmado
+    con datos reales: `exportaciones` pasó de 44 a 46 trimestres, ahora
+    2015-Q1 a 2026-Q2 igual que `importaciones`.
   - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, 2
     variables, **cantidad + índice**) a partir de `gdelt_proxy_b` (fila
     `source_country == "BOTH"` de los CSV con prefijo `monthly_` — el
