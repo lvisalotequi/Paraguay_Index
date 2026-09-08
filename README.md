@@ -139,8 +139,62 @@ significa que ya se revisó y se puede usar tal cual.
 ## Estructura del repo
 
 ```
-run_pipeline.py       # orquestador: descubre (pkgutil) y corre run() de cada módulo de src/ingestion/
-run_processing.py     # orquestador: descubre (pkgutil) y corre run() de cada módulo de src/processing/
+Paraguay_Index/
+│
+├── .github/workflows/run_pipeline.yml         # Corre run_pipeline.py cada 3 meses (cron) + disparo manual
+│
+├── src/
+│   ├── drive.py                               # Subida/lectura de archivos y carpetas en Google Drive
+│   ├── sheets.py                               # Auditoría en Google Sheets (pipeline_log, processing_log, catalogo_fuentes)
+│   │
+│   ├── ingestion/                              # Un script por fuente: SOLO extrae y sube crudo a 01_crudas/{dimensión}/{fuente}/
+│   │   ├── _bcp_common.py                      # Bypass de Cloudflare (curl_cffi), compartido por las 3 fuentes de bcp.gov.py
+│   │   ├── bcp_comercio_exterior.py            # Boletín de Comercio Exterior del BCP                    (dimensión 3)
+│   │   ├── bcp_inversion_directa.py            # Anexo Estadístico de Inversión Directa del BCP          (dimensión 3)
+│   │   ├── bcp_remesas_familiares.py           # Excel de Remesas Familiares del BCP                      (dimensión 3)
+│   │   ├── bea_inversion_directa.py            # API de BEA, dataset MNE                                  (dimensión 3)
+│   │   ├── fa_gov_asistencia_oficial.py        # API de ForeignAssistance.gov                             (dimensión 1)
+│   │   ├── usaspending_obligaciones.py         # API asíncrona de USAspending                             (dimensión 1)
+│   │   ├── dfc_proyectos_activos.py            # Excel de proyectos activos de DFC                        (dimensión 1)
+│   │   ├── exim_autorizaciones.py              # CSV de EXIM, filtrado a Paraguay antes de subir           (dimensión 1)
+│   │   ├── bid_proyectos.py                    # API CKAN del BID, filtrada a Paraguay server-side         (dimensión 1)
+│   │   ├── bancomundial_proyectos.py           # API del Banco Mundial, filtrada a Paraguay server-side    (dimensión 1)
+│   │   ├── congreso_menciones_paraguay.py      # GovInfo + Congress.gov: proyectos que mencionan Paraguay  (dimensión 2)
+│   │   ├── ustr_consejo_comercio_inversion.py  # Scraping histórico + en vivo de ustr.gov                  (dimensión 2)
+│   │   ├── state_gov_tias_paraguay.py          # Histórico + búsqueda en vivo (DuckDuckGo) de TIAS         (dimensión 2)
+│   │   └── gdelt_proxy_b.py                    # Sube los CSV ya extraídos por gdelt_extraction/           (dimensión 4)
+│   │
+│   └── processing/                             # Un script por dimensión: limpia y sube un CSV por variable a 02_limpias/
+│       ├── _common.py                                     # Convención compartida de salida (subir_variable, reescalar)
+│       ├── compromiso_financiero_oficial.py               # 7 variables                    (dimensión 1)
+│       ├── actividad_gubernamental_y_diplomatica.py       # 3 variables                    (dimensión 2)
+│       ├── compromiso_economico_privado.py                # 5 variables                    (dimensión 3)
+│       └── visibilidad_mediatica_y_relevancia_publica.py  # 2 variables                    (dimensión 4)
+│
+├── gdelt_extraction/                    # Extractor de GDELT (dimensión 4) - corre aparte y a mano, no vía run_pipeline.py
+│   ├── historical_campaign.py           # Extracción histórica completa contra BigQuery
+│   ├── bilateral_media_extractor.py     # Lógica central de la regla "proxy B"
+│   ├── extraction_workflow.py
+│   ├── proxy_b.py
+│   ├── gdelt_queries.py
+│   ├── estimate_history.py              # Genera el estimado de los meses que todavía faltan
+│   ├── usage_ledger.py                  # Control del techo mensual de cuota gratuita de BigQuery
+│   ├── proxy_b_config.json              # Config aceptada de la regla "proxy B"
+│   ├── historical_workflow_config.json
+│   ├── workflow_config.json
+│   ├── requirements.txt                 # Dependencias propias (Google Cloud SDK se instala aparte)
+│   └── README.md                        # Cómo correrlo en otra computadora
+│
+├── run_pipeline.py                      # Orquestador: descubre (pkgutil) y corre cada módulo de src/ingestion/
+├── run_processing.py                    # Orquestador: descubre (pkgutil) y corre cada módulo de src/processing/
+│
+├── requirements.txt                     # Dependencias del proyecto
+├── CLAUDE.md                            # Contexto técnico completo del proyecto
+├── config/
+│   └── credential_cloud.json            # Credenciales de la cuenta de servicio de GCP (no se sube)
+├── .env.example                         # Plantilla de variables de entorno (sí se sube, sin valores reales)
+├── .env                                 # Variables de entorno reales (no se sube)
+└── .gitignore
 ```
 
 ### `src/` — helpers compartidos
@@ -181,10 +235,3 @@ run_processing.py     # orquestador: descubre (pkgutil) y corre run() de cada m�
 - **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()`, `_extraer_ustr()`, `_extraer_tias()`, `_contar_por_trimestre(fechas)` → `run()` (3 variables).
 - **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (5 variables).
 - **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` → `run()` (2 variables).
-
-### Resto del repo
-
-```
-gdelt_extraction/      # extractor de cobertura mediática GDELT (corre aparte, a mano)
-CLAUDE.md              # contexto técnico completo del proyecto
-```
