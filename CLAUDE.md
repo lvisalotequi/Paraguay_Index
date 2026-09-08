@@ -393,7 +393,20 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     una aproximación de coocurrencia con señales institucionales, **no**
     noticias validadas individualmente ni medición de calidad de relaciones
     diplomáticas — ver los límites documentados en la propia config y en
-    `gdelt_extraction/README.md`.
+    `gdelt_extraction/README.md`. Sube dos tipos de archivo: 17 CSV
+    `monthly_{desde}_{hasta}.csv` que tilan sin huecos ni superposición todo
+    el rango feb-2015 a dic-2025 (son la fuente de verdad, los que usa
+    `src/processing/`), más **un único `historical_processed_{desde}_{hasta}.csv`**
+    que es el conglomerado de esos mismos 17 archivos en uno solo, para quien
+    quiera bajar todo de una — no se genera aparte, es un `pd.concat()` de
+    los 17 monthly (regenerado el 2026-09-08, a pedido del usuario; la
+    versión anterior de este archivo solo cubría feb-2015 a mar-2020, un
+    resabio de una corrida vieja — se reemplazó la copia local, pero la
+    vieja sigue huérfana en Drive porque el servicio no puede borrar, rol
+    Writer; hay que borrarla a mano cuando se pueda).
+    `src/processing/visibilidad_mediatica_y_relevancia_publica.py`
+    ignora este archivo a propósito (solo lee los `monthly_*`, ver su
+    docstring) para no contar cada mes dos veces.
   - `gdelt_extraction/` — el extractor en sí (`historical_campaign.py` y
     soporte), corrido a mano localmente contra el proyecto GCP
     `us-py-engagement-idx` (sandbox de BigQuery sin facturación, techo
