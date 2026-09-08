@@ -249,8 +249,10 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     workaround). Si la página lista más de una versión del boletín (la
     vieja queda en cache junto a la actual), se elige la de año+trimestre
     más reciente por el propio nombre del archivo, no por orden de
-    aparición. Los 34 archivos viejos (por partida) quedan en Drive sin
-    usarse — el servicio no puede borrarlos (rol Writer).
+    aparición. Los 34 archivos viejos (por partida) quedaron sin usarse
+    tras el cambio — el usuario los borró a mano de Drive el 2026-09-08
+    (el servicio no puede borrar, rol Writer), ya que ahora la fuente
+    trabaja con un único archivo (el Boletín).
   - `bcp_inversion_directa.py` — anexo estadístico único de Inversión
     Directa (1995-actualidad); trae un cuadro con flujos trimestrales por
     país del inversionista, incluida una fila "ESTADOS UNIDOS".
