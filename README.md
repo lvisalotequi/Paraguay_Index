@@ -128,8 +128,8 @@ significa que ya se revisó y se puede usar tal cual.
 | 2. Actividad gubernamental y diplomática | congreso_proyectos_mencion_paraguay | En revisión |
 | 2. Actividad gubernamental y diplomática | ustr_hitos_consejo_comercio_inversion | En revisión |
 | 2. Actividad gubernamental y diplomática | state_gov_tias_vigentes | En revisión |
-| 3. Compromiso económico privado | exportaciones | En revisión |
-| 3. Compromiso económico privado | importaciones | En revisión |
+| 3. Compromiso económico privado | **exportaciones** | **Validado** |
+| 3. Compromiso económico privado | **importaciones** | **Validado** |
 | 3. Compromiso económico privado | inversion_directa_bcp | En revisión |
 | 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
 | 3. Compromiso económico privado | bea_inversion_directa | En revisión |
