@@ -51,7 +51,7 @@ from src.ingestion._bcp_common import (
 
 URL_PAGINA = "https://www.bcp.gov.py/web/institucional/comercio-externo-comex-mensual"
 
-DIMENSION = "3.Compromiso_economico_privado"
+DIMENSION = "3_Compromiso_economico_privado"
 FUENTE = "bcp_comercio_exterior"
 DESCRIPCION = "Comercio exterior de Paraguay por país socio (incluye EE.UU.), trimestral desde 1994"
 URL_FUENTE = URL_PAGINA

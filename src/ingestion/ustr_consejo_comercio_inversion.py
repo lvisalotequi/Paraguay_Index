@@ -52,7 +52,7 @@ from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
 URL_BASE = "https://ustr.gov"
 
-DIMENSION = "2.Actividad_gubernamental_y_diplomática"
+DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
 FUENTE = "ustr_consejo_comercio_inversion"
 DESCRIPCION = "Reuniones e hitos del Consejo de Comercio e Inversión (TIFA/TIC) entre Paraguay y EE.UU."
 URL_FUENTE = "https://ustr.gov/countries-regions/western-hemisphere/paraguay"

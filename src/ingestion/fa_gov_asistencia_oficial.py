@@ -29,7 +29,7 @@ MEDIDAS = ["Obligations", "Disbursements"]
 ANIO_MINIMO = 2015
 PAGE_SIZE = 100
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "fa_gov_asistencia_oficial"
 DESCRIPCION = "Asistencia oficial de EE.UU. a Paraguay (obligaciones y desembolsos), por año"
 URL_FUENTE = "https://foreignassistance.gov"

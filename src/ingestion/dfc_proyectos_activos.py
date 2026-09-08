@@ -30,7 +30,7 @@ from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 URL_BASE = "https://www.dfc.gov"
 URL_PAGINA = "https://www.dfc.gov/our-impact/transaction-data"
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "dfc_proyectos_activos"
 DESCRIPCION = "Proyectos de financiamiento y garantías activas de DFC (global, se filtra a Paraguay en una etapa posterior)"
 URL_FUENTE = URL_PAGINA

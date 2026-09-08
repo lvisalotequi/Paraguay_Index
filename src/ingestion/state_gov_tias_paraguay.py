@@ -60,7 +60,7 @@ URL_BASE = "https://www.state.gov"
 PAIS = "Paraguay"
 IMPERSONATE = "chrome"  # state.gov bloquea requests normal (403), confirmado 2026-09-02
 
-DIMENSION = "2.Actividad_gubernamental_y_diplomática"
+DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
 FUENTE = "state_gov_tias_paraguay"
 DESCRIPCION = "Publicaciones TIAS (tratados y acuerdos internacionales) entre Paraguay y EE.UU."
 URL_FUENTE = "https://www.state.gov/treaties-and-other-international-acts-series-tias/"

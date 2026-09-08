@@ -12,8 +12,8 @@ borrar - no hace falta para ingestion).
 
 Nota sobre los nombres de carpeta de dimension (2026-09-02): el usuario
 renombro a mano las 4 carpetas de dimension dentro de CARPETA_CRUDAS en
-Drive, agregandoles el sufijo "_crudas" (ej. "3.Compromiso_economico_privado"
-paso a llamarse "3.Compromiso_economico_privado_crudas"). Los modulos de
+Drive, agregandoles el sufijo "_crudas" (ej. "3_Compromiso_economico_privado"
+paso a llamarse "3_Compromiso_economico_privado_crudas"). Los modulos de
 src/ingestion/ NO se tocaron - sus constantes DIMENSION siguen siendo el
 nombre de dimension SIN el sufijo (asi queda mas prolijo el resto del
 codigo, ver CLAUDE.md seccion 1). Por eso resolve_ingestion_folder agrega
@@ -52,20 +52,20 @@ CARPETA_LIMPIAS = "02_limpias"  # subcarpeta donde processing sube sus CSV conso
 # 2026-09-02 (ver nota de fiabilidad arriba). Evitan una busqueda por nombre
 # en cada corrida - la fuente de verdad es Drive, esto es solo una cache.
 FOLDER_IDS = {
-    ("1.Compromiso_financiero_oficial", "fa_gov_asistencia_oficial"): "1xwZrYYSCrW5mnhfeTB3QXDFCn1JUzKB7",
-    ("1.Compromiso_financiero_oficial", "usaspending_obligaciones"): "1UkTtUHZppeZ0KojVWzH4gFn-mZYdqbN1",
-    ("1.Compromiso_financiero_oficial", "exim_autorizaciones"): "1ufc_mOeVDduU0ZboK0Y2_mI5nYIq9Wh6",
-    ("1.Compromiso_financiero_oficial", "dfc_proyectos_activos"): "1jz2hOG81GGOETPX9JPF0G0L0oTTyt7TA",
-    ("1.Compromiso_financiero_oficial", "bid_proyectos"): "1Hc0uqRJA3_4BD7EbnaVDA9TbEy7v-Lc_",
-    ("1.Compromiso_financiero_oficial", "bancomundial_proyectos"): "1u1eYPMSIHxnySRvK-PEoETIp1rrdJ-bA",
-    ("2.Actividad_gubernamental_y_diplomática", "congreso_menciones_paraguay"): "1V0F9qzym6h83FUYQuy_L7vdJYQ_VeYXS",
-    ("2.Actividad_gubernamental_y_diplomática", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",
-    ("2.Actividad_gubernamental_y_diplomática", "state_gov_tias_paraguay"): "1koUH_-Wsij9fM8VVcMQ0Oh1d1cMRAgxD",
-    ("3.Compromiso_economico_privado", "bcp_comercio_exterior"): "1HFeiS2Q2Ezi7tZPWZcQvbdo0dbeWCO4u",
-    ("3.Compromiso_economico_privado", "bcp_inversion_directa"): "145-zhp9c3hjQtz4vg5EManKsmpE_8r6D",
-    ("3.Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",
-    ("3.Compromiso_economico_privado", "bea_inversion_directa"): "1ZMTwLGpNcROTrUmEVDXkX1g7yYumkwon",
-    ("4.Visibilidad_mediática_y_relevancia_publica", "gdelt_proxy_b"): "108u-nqX6hKckFlfv807gZ4p-oHWA-_Ob",
+    ("1_Compromiso_financiero_oficial", "fa_gov_asistencia_oficial"): "1xwZrYYSCrW5mnhfeTB3QXDFCn1JUzKB7",
+    ("1_Compromiso_financiero_oficial", "usaspending_obligaciones"): "1UkTtUHZppeZ0KojVWzH4gFn-mZYdqbN1",
+    ("1_Compromiso_financiero_oficial", "exim_autorizaciones"): "1ufc_mOeVDduU0ZboK0Y2_mI5nYIq9Wh6",
+    ("1_Compromiso_financiero_oficial", "dfc_proyectos_activos"): "1jz2hOG81GGOETPX9JPF0G0L0oTTyt7TA",
+    ("1_Compromiso_financiero_oficial", "bid_proyectos"): "1Hc0uqRJA3_4BD7EbnaVDA9TbEy7v-Lc_",
+    ("1_Compromiso_financiero_oficial", "bancomundial_proyectos"): "1u1eYPMSIHxnySRvK-PEoETIp1rrdJ-bA",
+    ("2_Actividad_gubernamental_y_diplomatica", "congreso_menciones_paraguay"): "1V0F9qzym6h83FUYQuy_L7vdJYQ_VeYXS",
+    ("2_Actividad_gubernamental_y_diplomatica", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",
+    ("2_Actividad_gubernamental_y_diplomatica", "state_gov_tias_paraguay"): "1koUH_-Wsij9fM8VVcMQ0Oh1d1cMRAgxD",
+    ("3_Compromiso_economico_privado", "bcp_comercio_exterior"): "1HFeiS2Q2Ezi7tZPWZcQvbdo0dbeWCO4u",
+    ("3_Compromiso_economico_privado", "bcp_inversion_directa"): "145-zhp9c3hjQtz4vg5EManKsmpE_8r6D",
+    ("3_Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",
+    ("3_Compromiso_economico_privado", "bea_inversion_directa"): "1ZMTwLGpNcROTrUmEVDXkX1g7yYumkwon",
+    ("4_Visibilidad_mediatica_y_relevancia_publica", "gdelt_proxy_b"): "108u-nqX6hKckFlfv807gZ4p-oHWA-_Ob",
 }
 
 # Igual que FOLDER_IDS pero para las carpetas de salida de processing
@@ -74,23 +74,23 @@ FOLDER_IDS = {
 # usuario) - se completa a mano la primera vez que cada variable sube algo
 # de verdad.
 VARIABLE_FOLDER_IDS = {
-    ("1.Compromiso_financiero_oficial_limpias", "fa_gov_obligaciones"): "1j4_Go3o8LfjttUV-VtLCiuYhL6nijzb9",
-    ("1.Compromiso_financiero_oficial_limpias", "fa_gov_desembolsos"): "1XZh4cR8mNXNuCb70J-NWqUA038_ivlTn",
-    ("1.Compromiso_financiero_oficial_limpias", "usaspending_obligaciones"): "11cN6Qhmdmv6OLkSzFFHa3LZwCFi504rL",
-    ("1.Compromiso_financiero_oficial_limpias", "dfc_comprometido"): "1gi1QRZcTF71hD54Q2j-L35WLlwnDnrgO",
-    ("1.Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
-    ("1.Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
-    ("1.Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_aprobados"): "1vpfBqS9csMIuJn17G_GcaPOQxrKpvkxQ",
-    ("2.Actividad_gubernamental_y_diplomática_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",
-    ("2.Actividad_gubernamental_y_diplomática_limpias", "ustr_hitos_consejo_comercio_inversion"): "1JGXXrWqPA7gYHzOuhaVcDPnJyFKCj-dx",
-    ("2.Actividad_gubernamental_y_diplomática_limpias", "state_gov_tias_vigentes"): "1JvNvfSbalrOv0TfpxKQbCCn9-jGXR0mW",
-    ("3.Compromiso_economico_privado_limpias", "exportaciones"): "1R7RGu_NJ4pzo_0Y56lADLNUn3O6J1KOx",
-    ("3.Compromiso_economico_privado_limpias", "importaciones"): "1yyry1LlAUZVSfwXkJ-LjZ8sY4t6hURl0",
-    ("3.Compromiso_economico_privado_limpias", "inversion_directa_bcp"): "1HKc9ZONIfM7EMkUjusxVzUtrtg1tLBVk",
-    ("3.Compromiso_economico_privado_limpias", "remesas"): "1YXlotyhgt_rbyr5GOp4O1rty8UlJKwYQ",
-    ("3.Compromiso_economico_privado_limpias", "bea_inversion_directa"): "1M6IvbQK4ShQwrLQtHyhMAkKCORw95oOC",
-    ("4.Visibilidad_mediática_y_relevancia_publica_limpias", "gdelt_proxy_articles"): "1es-fZCxupBXBkhtL4rg0LIhcdWriforY",
-    ("4.Visibilidad_mediática_y_relevancia_publica_limpias", "gdelt_tone_promedio"): "1YfWSeWAVULcUh9bS1WiYy5rDFH-yu3DI",
+    ("1_Compromiso_financiero_oficial_limpias", "fa_gov_obligaciones"): "1j4_Go3o8LfjttUV-VtLCiuYhL6nijzb9",
+    ("1_Compromiso_financiero_oficial_limpias", "fa_gov_desembolsos"): "1XZh4cR8mNXNuCb70J-NWqUA038_ivlTn",
+    ("1_Compromiso_financiero_oficial_limpias", "usaspending_obligaciones"): "11cN6Qhmdmv6OLkSzFFHa3LZwCFi504rL",
+    ("1_Compromiso_financiero_oficial_limpias", "dfc_comprometido"): "1gi1QRZcTF71hD54Q2j-L35WLlwnDnrgO",
+    ("1_Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
+    ("1_Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
+    ("1_Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_aprobados"): "1vpfBqS9csMIuJn17G_GcaPOQxrKpvkxQ",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "ustr_hitos_consejo_comercio_inversion"): "1JGXXrWqPA7gYHzOuhaVcDPnJyFKCj-dx",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "state_gov_tias_vigentes"): "1JvNvfSbalrOv0TfpxKQbCCn9-jGXR0mW",
+    ("3_Compromiso_economico_privado_limpias", "exportaciones"): "1R7RGu_NJ4pzo_0Y56lADLNUn3O6J1KOx",
+    ("3_Compromiso_economico_privado_limpias", "importaciones"): "1yyry1LlAUZVSfwXkJ-LjZ8sY4t6hURl0",
+    ("3_Compromiso_economico_privado_limpias", "inversion_directa_bcp"): "1HKc9ZONIfM7EMkUjusxVzUtrtg1tLBVk",
+    ("3_Compromiso_economico_privado_limpias", "remesas"): "1YXlotyhgt_rbyr5GOp4O1rty8UlJKwYQ",
+    ("3_Compromiso_economico_privado_limpias", "bea_inversion_directa"): "1M6IvbQK4ShQwrLQtHyhMAkKCORw95oOC",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles"): "1es-fZCxupBXBkhtL4rg0LIhcdWriforY",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio"): "1YfWSeWAVULcUh9bS1WiYy5rDFH-yu3DI",
 }
 
 

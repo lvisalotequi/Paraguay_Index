@@ -22,7 +22,7 @@ from pathlib import Path
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
-DIMENSION = "4.Visibilidad_mediática_y_relevancia_publica"
+DIMENSION = "4_Visibilidad_mediatica_y_relevancia_publica"
 FUENTE = "gdelt_proxy_b"
 DESCRIPCION = "Cobertura mediática bilateral Paraguay-EE.UU. vía GDELT (regla proxy B) — sube lo que gdelt_extraction/ ya produjo localmente"
 URL_FUENTE = "https://www.gdeltproject.org"

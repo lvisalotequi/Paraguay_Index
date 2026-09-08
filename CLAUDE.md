@@ -13,10 +13,10 @@ ingestion independiente. El resultado se centraliza en un Google Sheet.
 
 Las cuatro dimensiones, ya nombradas en la carpeta de Drive del proyecto:
 
-1. `1.Compromiso_financiero_oficial`
-2. `2.Actividad_gubernamental_y_diplomática`
-3. `3.Compromiso_economico_privado`
-4. `4.Visibilidad_mediática_y_relevancia_publica`
+1. `1_Compromiso_financiero_oficial`
+2. `2_Actividad_gubernamental_y_diplomatica`
+3. `3_Compromiso_economico_privado`
+4. `4_Visibilidad_mediatica_y_relevancia_publica`
 
 Las variables de cada dimensión todavía se van definiendo sobre la marcha
 (el usuario pasa una fuente + qué extraer, sección 8 tiene el detalle de las
@@ -120,7 +120,7 @@ no automatizada todavía.
   `2.Datos_recolectados` (Unidad compartida del proyecto), y `CARPETA_CRUDAS`
   (`"01_crudas"`). Cada fuente sube a
   `DRIVE_ROOT_ID/01_crudas/{dimensión}/{fuente}/` — ej. Comercio Exterior del
-  BCP va en `2.Datos_recolectados/01_crudas/3.Compromiso_economico_privado/bcp_comercio_exterior/`.
+  BCP va en `2.Datos_recolectados/01_crudas/3_Compromiso_economico_privado/bcp_comercio_exterior/`.
   `resolve_ingestion_folder(dimension, fuente)` arma esa ruta y crea las
   subcarpetas que falten (atajo sobre `resolve_folder()`, que acepta
   cualquier lista de segmentos si hiciera falta apuntar a otro lado).
@@ -235,7 +235,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   helper de Drive (`src/drive.py`): probados de punta a punta, en local y en
   GitHub Actions.
 - Cuatro scripts de ingestion reales, todos de la dimensión
-  `3.Compromiso_economico_privado`:
+  `3_Compromiso_economico_privado`:
   - `bcp_comercio_exterior.py` — **cambiada de fuente el 2026-09-02** (a
     pedido del usuario, para poder alimentar `src/processing/`): antes
     bajaba un archivo por año desde `importaciones-partidas-p` (desglosado
@@ -268,7 +268,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     el usuario la generó en `apps.bea.gov/API/signup`).
   - Los cuatro probados con datos reales: suben bien y una segunda corrida
     saltea lo que ya está (idempotente).
-- Seis scripts de ingestion reales de la dimensión `1.Compromiso_financiero_oficial`
+- Seis scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
   (2015-actualidad; ver política de filtrado a Paraguay/EE.UU. en sección 4):
   - `fa_gov_asistencia_oficial.py` — API del dashboard de ForeignAssistance.gov,
     ya filtrada a Paraguay por la URL (`.../PRY/...`); un JSON por año+medida
@@ -293,7 +293,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     posterior, acá solo se extraen los proyectos crudos de cada banco.
   - Los seis probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
-- Tres fuentes reales de la dimensión `2.Actividad_gubernamental_y_diplomática`
+- Tres fuentes reales de la dimensión `2_Actividad_gubernamental_y_diplomatica`
   (2026-09-02):
   - `congreso_menciones_paraguay.py` — a diferencia de las demás fuentes, no
     existe como archivo descargable en ningún sitio: se **construye** acá
@@ -380,7 +380,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     corridas hubo hits sueltos pero ninguno matcheó el patrón real de URL
     de un TIAS de Paraguay. No hay ningún TIAS de Paraguay perdido en ese
     rango.
-- Primera fuente real de la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
+- Primera fuente real de la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
     `gdelt_extraction/` (ver más abajo), cobertura mediática bilateral PY-US
@@ -427,7 +427,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   además de manual.
 - **Carpetas de dimensión renombradas a mano por el usuario (descubierto
   2026-09-02):** las 4 carpetas de dimensión dentro de `01_crudas` pasaron
-  a llamarse `{dimensión}_crudas` (ej. `3.Compromiso_economico_privado_crudas`)
+  a llamarse `{dimensión}_crudas` (ej. `3_Compromiso_economico_privado_crudas`)
   — rename hecho directo en Drive, sin avisar en el momento. Las
   constantes `DIMENSION` de cada módulo NO llevan ese sufijo, así que
   `resolve_ingestion_folder()` (que buscaba/creaba por el nombre exacto de
@@ -439,13 +439,27 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   `resolve_ingestion_folder()` ahora arma la ruta con el sufijo
   `_crudas` agregado (`CARPETA_CRUDAS/{dimension}_crudas/{fuente}`) para
   que cualquier fuente nueva caiga en la carpeta real, no en una vacía
-  nueva; (2) `FOLDER_IDS`/`LIMPIAS_FOLDER_IDS`, un diccionario con los IDs
-  ya confirmados de las 14 carpetas de ingestion + la de processing
-  — `resolve_ingestion_folder()`/`resolve_processing_folder()` los usan
+  nueva; (2) `FOLDER_IDS`/`VARIABLE_FOLDER_IDS`, un diccionario con los IDs
+  ya confirmados de las 14 carpetas de ingestion + las 17 de processing
+  — `resolve_ingestion_folder()`/`resolve_variable_folder()` los usan
   directo, sin buscar. Para una fuente/dimensión nueva (todavía sin
   entrada en el diccionario), sigue cayendo a la búsqueda por nombre, pero
   ahora con reintentos (`_buscar_hijo_con_reintentos`) — conviene agregar
   su ID al diccionario a mano después de la primera corrida exitosa.
+- **Nombres de carpeta sin puntos ni tildes (política 2026-09-08, a pedido
+  del usuario — pensando en que el código lo corra otra persona sin
+  problemas):** las 4 constantes `DIMENSION` (y `DIMENSION_CRUDA`/
+  `DIMENSION_LIMPIA` en processing) pasaron de `"N.Nombre_con_tildes"` a
+  `"N_Nombre_sin_tildes"` — ej. `2.Actividad_gubernamental_y_diplomática` →
+  `2_Actividad_gubernamental_y_diplomatica`. Motivo: un punto o una tilde
+  en un nombre de carpeta puede dar problemas reales en otra máquina/SO
+  (encoding de consola, herramientas que no esperan esos caracteres en
+  rutas). Se corrigió con un reemplazo de texto en los 18 módulos que
+  declaran la constante + `FOLDER_IDS`/`VARIABLE_FOLDER_IDS` en
+  `src/drive.py` (mismas claves, mismos IDs — no se tocó ningún archivo),
+  y se renombraron a mano las 8 carpetas de dimensión reales en Drive
+  (`files.update` sobre el `name`, no crea IDs nuevos). Las 17 carpetas de
+  variable y las 14 de fuente ya cumplían la regla, no se tocaron.
 - **`src/processing/` cubre las 4 dimensiones (2026-09-02, rediseñado
   2026-09-03):** un módulo por dimensión, cada uno consolida sus fuentes
   crudas y sube **un CSV por variable** (no un CSV combinado por dimensión)
@@ -502,10 +516,10 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
    dimensiones ya tienen nombre (sección 1) y las cuatro tienen ya al menos
-   una fuente real; `3.Compromiso_economico_privado` y
-   `1.Compromiso_financiero_oficial` tienen variables/fuentes definidas.
-   `4.Visibilidad_mediática_y_relevancia_publica` y
-   `2.Actividad_gubernamental_y_diplomática` tienen cada una una primera
+   una fuente real; `3_Compromiso_economico_privado` y
+   `1_Compromiso_financiero_oficial` tienen variables/fuentes definidas.
+   `4_Visibilidad_mediatica_y_relevancia_publica` y
+   `2_Actividad_gubernamental_y_diplomatica` tienen cada una una primera
    fuente (`gdelt_proxy_b.py` y `congreso_menciones_paraguay.py`, ver
    sección 6) pero podrían sumar más variables.
 2. **Resolver el acceso a la Unidad compartida de Drive para el Sheet**

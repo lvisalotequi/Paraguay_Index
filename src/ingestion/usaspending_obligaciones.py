@@ -46,7 +46,7 @@ SUB_AWARD_TYPES = ["grant", "procurement"]
 POLL_INTERVAL_SEG = 15
 POLL_TIMEOUT_SEG = 20 * 60  # 20 minutos - el tamano tipico por pais/anio es chico
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "usaspending_obligaciones"
 DESCRIPCION = "Obligaciones y desembolsos de fondos federales de EE.UU. vinculados a Paraguay, por año"
 URL_FUENTE = "https://www.usaspending.gov"

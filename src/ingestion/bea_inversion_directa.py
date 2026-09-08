@@ -30,7 +30,7 @@ from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 URL_API = "https://apps.bea.gov/api/data"
 PAIS_PARAGUAY = "216"  # codigo numerico de pais que usa la API de BEA
 
-DIMENSION = "3.Compromiso_economico_privado"
+DIMENSION = "3_Compromiso_economico_privado"
 FUENTE = "bea_inversion_directa"
 DESCRIPCION = "Posición de Inversión Directa de EE.UU. en Paraguay, anual (fuente complementaria del lado de EE.UU.)"
 URL_FUENTE = "https://www.bea.gov/data/intl-trade-investment/direct-investment-country-and-industry"

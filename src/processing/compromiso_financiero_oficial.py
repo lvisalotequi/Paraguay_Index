@@ -51,8 +51,8 @@ import pandas as pd
 from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
 from src.processing._common import subir_variable
 
-DIMENSION_CRUDA = "1.Compromiso_financiero_oficial"
-DIMENSION_LIMPIA = "1.Compromiso_financiero_oficial_limpias"
+DIMENSION_CRUDA = "1_Compromiso_financiero_oficial"
+DIMENSION_LIMPIA = "1_Compromiso_financiero_oficial_limpias"
 
 ANIO_MINIMO = 2015
 

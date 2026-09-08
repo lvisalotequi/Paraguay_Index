@@ -27,7 +27,7 @@ URL_API = "https://search.worldbank.org/api/v3/projects"
 PAIS = "PY"
 FILAS_POR_PEDIDO = 200  # el total de proyectos de Paraguay entra en un solo pedido
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "bancomundial_proyectos"
 DESCRIPCION = "Proyectos del Banco Mundial en Paraguay (insumo para desembolsos multilaterales atribuibles a EE.UU.)"
 URL_FUENTE = "https://projects.bancomundial.org/es/projects-operations/projects-summary?countrycode_exact=PY"

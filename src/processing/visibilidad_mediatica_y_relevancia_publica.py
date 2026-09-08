@@ -41,8 +41,8 @@ import pandas as pd
 from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
 from src.processing._common import subir_variable
 
-DIMENSION_CRUDA = "4.Visibilidad_mediática_y_relevancia_publica"
-DIMENSION_LIMPIA = "4.Visibilidad_mediática_y_relevancia_publica_limpias"
+DIMENSION_CRUDA = "4_Visibilidad_mediatica_y_relevancia_publica"
+DIMENSION_LIMPIA = "4_Visibilidad_mediatica_y_relevancia_publica_limpias"
 FUENTE = "gdelt_proxy_b"
 
 ANIO_MINIMO = 2015

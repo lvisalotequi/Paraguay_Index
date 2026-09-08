@@ -4,11 +4,11 @@ un CSV trimestral por variable.
 
 A diferencia de src/ingestion/ (que SOLO extrae y sube archivos crudos tal
 cual, sin leerlos ni transformarlos), este modulo SI lee los archivos
-crudos que ingestion ya subio a Drive (01_crudas/3.Compromiso_economico_privado/),
+crudos que ingestion ya subio a Drive (01_crudas/3_Compromiso_economico_privado/),
 aisla la cifra especifica de EE.UU. de cada fuente, arma trimestres a
 partir del formato nativo de cada una, y sube un CSV independiente por
 variable (esquema fijo: trimestre, anio, trimestre_num, valor, unidad) a
-02_limpias/3.Compromiso_economico_privado_limpias/{variable}/ - ver
+02_limpias/3_Compromiso_economico_privado_limpias/{variable}/ - ver
 src/processing/_common.py para el detalle de esta convencion, compartida
 por las 4 dimensiones.
 
@@ -55,8 +55,8 @@ import pandas as pd
 from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
 from src.processing._common import reescalar, subir_variable
 
-DIMENSION_CRUDA = "3.Compromiso_economico_privado"
-DIMENSION_LIMPIA = "3.Compromiso_economico_privado_limpias"
+DIMENSION_CRUDA = "3_Compromiso_economico_privado"
+DIMENSION_LIMPIA = "3_Compromiso_economico_privado_limpias"
 
 ANIO_MINIMO = 2015
 

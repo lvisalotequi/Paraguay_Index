@@ -36,8 +36,8 @@ import pandas as pd
 from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
 from src.processing._common import subir_variable
 
-DIMENSION_CRUDA = "2.Actividad_gubernamental_y_diplomática"
-DIMENSION_LIMPIA = "2.Actividad_gubernamental_y_diplomática_limpias"
+DIMENSION_CRUDA = "2_Actividad_gubernamental_y_diplomatica"
+DIMENSION_LIMPIA = "2_Actividad_gubernamental_y_diplomatica_limpias"
 
 ANIO_MINIMO = 2015
 

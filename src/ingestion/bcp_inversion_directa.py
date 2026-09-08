@@ -32,7 +32,7 @@ from src.ingestion._bcp_common import (
 
 URL_PAGINA = "https://www.bcp.gov.py/web/institucional/-inversion-directa-id-"
 
-DIMENSION = "3.Compromiso_economico_privado"
+DIMENSION = "3_Compromiso_economico_privado"
 FUENTE = "bcp_inversion_directa"
 DESCRIPCION = "Inversión Extranjera Directa en Paraguay por país de origen (incluye EE.UU.), trimestral"
 URL_FUENTE = URL_PAGINA

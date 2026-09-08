@@ -30,7 +30,7 @@ RESOURCE_ID = "814b7b54-477a-4c25-b3bf-6be05412069d"  # EN - IDB Projects List
 FILTRO_PAIS = {"cntry_nm": "Paraguay"}
 FILAS_POR_PEDIDO = 5000  # el total de proyectos de Paraguay (~940) entra en un solo pedido
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "bid_proyectos"
 DESCRIPCION = "Proyectos del BID en Paraguay (insumo para desembolsos multilaterales atribuibles a EE.UU.)"
 URL_FUENTE = "https://data.iadb.org"

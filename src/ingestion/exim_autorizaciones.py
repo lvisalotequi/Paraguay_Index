@@ -33,7 +33,7 @@ from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 URL_CATALOGO = "https://catalog.data.gov/dataset/authorizations-from-10-01-2006-thru-06-30-2025"
 PAIS = "Paraguay"
 
-DIMENSION = "1.Compromiso_financiero_oficial"
+DIMENSION = "1_Compromiso_financiero_oficial"
 FUENTE = "exim_autorizaciones"
 DESCRIPCION = "Autorizaciones de EXIM Bank vinculadas a Paraguay, por trimestre fiscal"
 URL_FUENTE = URL_CATALOGO
