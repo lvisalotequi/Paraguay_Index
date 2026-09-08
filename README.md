@@ -109,16 +109,82 @@ fuente, con su dimensión, una descripción de qué extrae, la página pública
 de origen, y el estado/timestamp de la última corrida — para saber de dónde
 sale cada dato sin tener que leer el código.
 
+## Variables en `02_limpias`
+
+Las 17 variables ya consolidadas por `src/processing/`, con su estado de
+revisión. "En revisión" significa que la metodología de cálculo (fuente,
+fórmula, unidad) todavía no está validada como definitiva; "Validado"
+significa que ya se revisó y se puede usar tal cual.
+
+| Dimensión | Variable | Estado |
+| --- | --- | --- |
+| 1. Compromiso financiero oficial | fa_gov_obligaciones | En revisión |
+| 1. Compromiso financiero oficial | fa_gov_desembolsos | En revisión |
+| 1. Compromiso financiero oficial | usaspending_obligaciones | En revisión |
+| 1. Compromiso financiero oficial | dfc_comprometido | En revisión |
+| 1. Compromiso financiero oficial | exim_autorizado | En revisión |
+| 1. Compromiso financiero oficial | bid_proyectos_aprobados | En revisión |
+| 1. Compromiso financiero oficial | bancomundial_proyectos_aprobados | En revisión |
+| 2. Actividad gubernamental y diplomática | congreso_proyectos_mencion_paraguay | En revisión |
+| 2. Actividad gubernamental y diplomática | ustr_hitos_consejo_comercio_inversion | En revisión |
+| 2. Actividad gubernamental y diplomática | state_gov_tias_vigentes | En revisión |
+| 3. Compromiso económico privado | exportaciones | En revisión |
+| 3. Compromiso económico privado | importaciones | En revisión |
+| 3. Compromiso económico privado | inversion_directa_bcp | En revisión |
+| 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
+| 3. Compromiso económico privado | bea_inversion_directa | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio | En revisión |
+
 ## Estructura del repo
 
 ```
-run_pipeline.py       # orquestador: descubre y corre cada módulo de ingestion
-run_processing.py     # orquestador: descubre y corre cada módulo de processing
-src/
-  drive.py             # helpers de subida/lectura en Google Drive
-  sheets.py             # registro de auditoría en Google Sheets
-  ingestion/            # un script por variable/fuente de datos (solo extrae, sube crudo)
-  processing/           # un script por dimensión (limpia y sube un CSV trimestral por variable)
+run_pipeline.py       # orquestador: descubre (pkgutil) y corre run() de cada módulo de src/ingestion/
+run_processing.py     # orquestador: descubre (pkgutil) y corre run() de cada módulo de src/processing/
+```
+
+### `src/` — helpers compartidos
+
+- **`drive.py`** — subida/lectura de archivos y carpetas en Google Drive.
+  - `resolve_folder(*segmentos)` — arma/crea una ruta de carpetas a partir de `DRIVE_ROOT_ID`.
+  - `resolve_ingestion_folder(dimension, fuente)` — carpeta de destino de un módulo de ingestion (usa el cache `FOLDER_IDS` si ya se conoce).
+  - `resolve_variable_folder(dimension_limpia, variable)` — carpeta de destino de una variable de processing (usa el cache `VARIABLE_FOLDER_IDS`).
+  - `existe_archivo(nombre, carpeta_id)` / `subir_archivo(contenido, nombre, carpeta_id, mime_type)` — chequeo de idempotencia y subida.
+  - `listar_archivos(carpeta_id)` / `descargar_archivo(file_id)` — lectura (usada por `src/processing/`).
+  - `_client()`, `_buscar_hijo()`, `_buscar_hijo_con_reintentos()` — helpers internos de autenticación y búsqueda por nombre.
+- **`sheets.py`** — registro de auditoría en Google Sheets.
+  - `write_dataframe(tab_name, df)` — sobrescribe/crea una pestaña con un DataFrame (usado para `catalogo_fuentes`).
+  - `append_log_row(started, finished, modules_run, errors, tab_name)` — agrega una fila de auditoría (`pipeline_log` o `processing_log`).
+
+### `src/ingestion/` — un script por fuente, solo extrae y sube crudo
+
+- **`_bcp_common.py`** (helper, no es un módulo de ingestion) — bypass de Cloudflare (`curl_cffi`) y utilidades compartidas por las 3 fuentes de bcp.gov.py: `obtener_html()`, `descargar_bytes()`, `limpiar_nombre_archivo()`, `nombre_desde_url()`, `mime_de()`.
+- **`bcp_comercio_exterior.py`** — Boletín de Comercio Exterior del BCP (`_obtener_archivo()` elige la versión más reciente por año+trimestre, `_es_boletin()` filtra el link correcto entre varios documentos de la página) → `run()`.
+- **`bcp_inversion_directa.py`** — Anexo Estadístico de Inversión Directa del BCP (`_obtener_archivo()`) → `run()`.
+- **`bcp_remesas_familiares.py`** — Excel de Remesas Familiares del BCP (`_obtener_archivo()`) → `run()`.
+- **`bea_inversion_directa.py`** — API de BEA, dataset MNE (`_pedir_datos()`) → `run()`.
+- **`fa_gov_asistencia_oficial.py`** — API de ForeignAssistance.gov, un JSON por año+medida (`_pedir_medida(anio, medida)`) → `run()`.
+- **`usaspending_obligaciones.py`** — API asíncrona de USAspending, un ZIP por año (`_pedir_descarga(anio)`, `_esperar_archivo(file_name)`) → `run()`.
+- **`dfc_proyectos_activos.py`** — Excel único de proyectos activos de DFC (`_obtener_archivo()`) → `run()`.
+- **`exim_autorizaciones.py`** — CSV de EXIM, filtrado a Paraguay antes de subir (`_obtener_url_csv()`) → `run()`.
+- **`bid_proyectos.py`** — API CKAN de datos abiertos del BID, filtrada a Paraguay (`_pedir_proyectos()`) → `run()`.
+- **`bancomundial_proyectos.py`** — API de proyectos del Banco Mundial, filtrada a Paraguay (`_pedir_proyectos()`) → `run()`.
+- **`congreso_menciones_paraguay.py`** — combina GovInfo (búsqueda de texto completo) + Congress.gov (datos estructurados): `_buscar_proyectos_govinfo()`, `_proyectos_unicos(hits)`, `_enriquecer_proyecto(...)`, `_extracto_mencion_paraguay(package_id)`, `_fila_desde_proyecto(...)` → `run()`.
+- **`ustr_consejo_comercio_inversion.py`** — histórico fijo + revisión en vivo de ustr.gov: `_historico_verificado()`, `_verificar_evento_historico(evento)`, `_revisar_sitio_vivo()`, `_buscar_en_mes(anio, mes)`, `_fecha_del_comunicado(url)`, `_titulo_relevante(titulo)` → `run()`.
+- **`state_gov_tias_paraguay.py`** — histórico fijo + búsqueda en vivo (DuckDuckGo) de TIAS en state.gov: `_historico_verificado()`, `_buscar_candidatos_vivo(urls_conocidas)`, `_parsear_pagina_tias(url)`, `_anio_desde_tias(tias)`, `_normalizar_fecha(texto)` → `run()`.
+- **`gdelt_proxy_b.py`** — sube a Drive los CSV que ya extrajo `gdelt_extraction/` (`_archivos_a_subir(carpeta_local)`) → `run()`.
+
+### `src/processing/` — un script por dimensión, limpia y sube un CSV por variable
+
+- **`_common.py`** (helper, no es un módulo de processing) — convención compartida de salida: `subir_variable(dimension_limpia, variable, valores, unidad)` arma y sube el CSV (`trimestre, anio, trimestre_num, valor, unidad`); `reescalar(valores, factor)` convierte unidades nativas (miles/millones) a USD.
+- **`compromiso_financiero_oficial.py`** (dimensión 1) — `_extraer_fa_gov()`, `_extraer_usaspending()`, `_extraer_dfc()`, `_extraer_exim()`, `_extraer_bid()`, `_extraer_bancomundial()`, más los helpers de fecha→trimestre `_sumar_por_trimestre()`/`_repetir_en_trimestres()` → `run()` (7 variables).
+- **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()`, `_extraer_ustr()`, `_extraer_tias()`, `_contar_por_trimestre(fechas)` → `run()` (3 variables).
+- **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (5 variables).
+- **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` → `run()` (2 variables).
+
+### Resto del repo
+
+```
 gdelt_extraction/      # extractor de cobertura mediática GDELT (corre aparte, a mano)
 CLAUDE.md              # contexto técnico completo del proyecto
 ```
