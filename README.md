@@ -134,12 +134,12 @@ significa que ya se revisó y se puede usar tal cual.
 | 3. Compromiso económico privado | inversion_directa_bcp | En revisión |
 | 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
 | 3. Compromiso económico privado | bea_inversion_directa | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles (BOTH = PY+US) | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio (BOTH = PY+US) | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles_py | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio_py | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles_us | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio_us | En revisión |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles** (BOTH = PY+US) | **Validado** |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_tone_promedio** (BOTH = PY+US) | **Validado** |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles_py** | **Validado** |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_tone_promedio_py** | **Validado** |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles_us** | **Validado** |
+| 4. Visibilidad mediática y relevancia pública | **gdelt_tone_promedio_us** | **Validado** |
 
 ## Estructura del repo
 
