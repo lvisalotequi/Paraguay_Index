@@ -393,17 +393,32 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     una aproximación de coocurrencia con señales institucionales, **no**
     noticias validadas individualmente ni medición de calidad de relaciones
     diplomáticas — ver los límites documentados en la propia config y en
-    `gdelt_extraction/README.md`. Sube dos tipos de archivo: 17 CSV
-    `monthly_{desde}_{hasta}.csv` que tilan sin huecos ni superposición todo
-    el rango feb-2015 a dic-2025 (son la fuente de verdad, los que usa
-    `src/processing/`), más **un único `historical_processed_{desde}_{hasta}.csv`**
-    que es el conglomerado de esos mismos 17 archivos en uno solo, para quien
-    quiera bajar todo de una — no se genera aparte, es un `pd.concat()` de
-    los 17 monthly (regenerado el 2026-09-08, a pedido del usuario; la
-    versión anterior de este archivo solo cubría feb-2015 a mar-2020, un
-    resabio de una corrida vieja — se reemplazó la copia local, pero la
-    vieja sigue huérfana en Drive porque el servicio no puede borrar, rol
-    Writer; hay que borrarla a mano cuando se pueda).
+    `gdelt_extraction/README.md`. **Aclaración importante sobre la columna
+    `month` (2026-09-08, tras una confusión real en conversación con el
+    usuario):** `month` es el primer día del período que esa fila
+    *describe* (`month=2015-03-01` → cubre 1-31 de marzo), **no** una fecha
+    de corte que apunte al mes anterior — está hardcodeado así en
+    `gdelt_extraction/gdelt_queries.py`
+    (`DATE('{window.start.replace(day=1)}') month`). Es un concepto
+    distinto de `last_complete_month()` en `bilateral_media_extractor.py`
+    (que sí calcula "el mes anterior a hoy", pero solo como default de
+    `--start`/`--end` cuando se corre ese script directo sin fechas
+    explícitas — ni `extraction_workflow.py` ni `historical_campaign.py`,
+    las formas normales de correr una extracción, pasan por ese default).
+    Ver el detalle completo en `gdelt_extraction/README.md`. Sube dos tipos
+    de archivo: 18 CSV `monthly_{desde}_{hasta}.csv` que tilan sin huecos
+    ni superposición todo el rango feb-2015 a ene-2026 (son la fuente de
+    verdad, los que usa `src/processing/`; se suma un `monthly_*` nuevo
+    cada vez que se extiende la extracción, ver la nota de
+    `gdelt_extraction/` más abajo), más **un
+    único `historical_processed_{desde}_{hasta}.csv`** que es el
+    conglomerado de esos mismos archivos en uno solo, para quien quiera
+    bajar todo de una — no se genera aparte, es un `pd.concat()` de todos
+    los monthly, y hay que regenerarlo (y volver a subir) cada vez que se
+    suma un mes nuevo (la versión de un rango viejo queda huérfana en Drive
+    — el servicio no puede borrar, rol Writer; hay que borrarla a mano
+    cuando se pueda. Pasó primero el 2026-09-08: la versión original solo
+    cubría feb-2015 a mar-2020, resabio de una corrida vieja).
     `src/processing/visibilidad_mediatica_y_relevancia_publica.py`
     ignora este archivo a propósito (solo lee los `monthly_*`, ver su
     docstring) para no contar cada mes dos veces.
@@ -412,12 +427,32 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     `us-py-engagement-idx` (sandbox de BigQuery sin facturación, techo
     preventivo mensual 850 GiB). No es un módulo de `src/ingestion/` — ver
     la excepción documentada en la sección 4. Cobertura completa feb-2015 a
-    dic-2025 (falta ene-2026 en adelante — requiere generar un estimado
-    nuevo con `estimate_history.py` antes de seguir); el detalle exacto de
-    qué meses están cubiertos vive en
-    `gdelt_extraction/output/historical_campaign/CONTINUIDAD.md` (se
+    **ene-2026** (extendido 2026-09-08, a pedido del usuario, con
+    `extraction_workflow.py plan/execute --config historical_workflow_config.json`
+    para el rango puntual ene-2026 — no `historical_campaign.py`, que
+    procesaría todo el backlog pendiente en vez de un solo mes; ~7.77 GiB,
+    dentro de los límites). El detalle exacto de qué meses están cubiertos
+    vive en `gdelt_extraction/output/historical_campaign/CONTINUIDAD.md` (se
     reescribe en cada corrida, no confiar en esta nota para el estado
-    exacto). **Para correrlo en otra computadora**, ver
+    exacto). **Para sumar un mes nuevo:** (1) `extraction_workflow.py plan
+    --start AAAA-MM --end AAAA-MM --config historical_workflow_config.json`
+    (dry run, sin costo) para congelar un plan; revisar el GiB estimado; (2)
+    `extraction_workflow.py execute --plan RUTA_DEL_PLAN.json` — chequea
+    que la facturación siga deshabilitada antes y después, si esa
+    verificación falla el programa se detiene sin consultar nada (visto en
+    la práctica: puede fallar por sesión de `gcloud auth login` vencida —
+    reautenticar con `gcloud auth login`, o `gcloud.cmd auth login` desde
+    PowerShell si la política de ejecución de scripts bloquea el `.ps1`);
+    (3) regenerar `historical_processed_{desde}_{hasta}.csv` con un
+    `pd.concat()` de todos los `monthly_*.csv` (no hay script dedicado
+    todavía, se hizo a mano) y borrar la versión vieja local; (4) correr
+    `gdelt_proxy_b.py` para subir el mes nuevo + el histórico regenerado a
+    Drive; (5) correr `visibilidad_mediatica_y_relevancia_publica.py`
+    (processing) para que el trimestre nuevo llegue a
+    `02_limpias/4_Visibilidad_mediatica_y_relevancia_publica_limpias/` — si
+    ya se corrió processing ese mismo día, hay que sobreescribir a mano el
+    archivo del día en Drive (`files.update`), el chequeo de idempotencia
+    es por día. **Para correrlo en otra computadora**, ver
     `gdelt_extraction/README.md` — necesita Google Cloud SDK
     instalado y autenticado aparte (no viene con el repo ni con Python), y
     en Windows puede requerir habilitar rutas largas si el checkout queda en
@@ -532,13 +567,14 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     2015-Q1 a 2026-Q2 igual que `importaciones`.
   - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, 2
     variables, **cantidad + índice**) a partir de `gdelt_proxy_b` (fila
-    `source_country == "BOTH"` de los CSV con prefijo `monthly_` — el
-    archivo `historical_processed_2015-02_2020-03.csv` queda afuera a
-    propósito porque duplicaría esos meses, ver docstring del módulo):
-    cantidad de artículos proxy por trimestre, y tono promedio del
-    trimestre ponderado por cantidad de artículos (trimestres sin ningún
-    artículo no tienen fila en la variable de tono — no se rellenan con
-    0). 44 trimestres, 2015-Q1 a 2025-Q4.
+    `source_country == "BOTH"` de los CSV con prefijo `monthly_` — cualquier
+    archivo `historical_processed_*.csv` queda afuera a propósito porque
+    duplicaría esos mismos meses, ver docstring del módulo): cantidad de
+    artículos proxy por trimestre, y tono promedio del trimestre ponderado
+    por cantidad de artículos (trimestres sin ningún artículo no tienen
+    fila en la variable de tono — no se rellenan con 0). 45 trimestres,
+    2015-Q1 a 2026-Q1 (actualizado 2026-09-08 tras sumar la extracción de
+    enero 2026 — ver la nota de `gdelt_extraction/` más arriba).
 
 ## 7. Pendientes
 

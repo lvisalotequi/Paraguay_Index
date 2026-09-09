@@ -1,6 +1,6 @@
 # gdelt_extraction — extractor de cobertura mediática Paraguay-EE.UU.
 
-Actualizado: 2026-09-02. Único documento de referencia de esta carpeta —
+Actualizado: 2026-09-08. Único documento de referencia de esta carpeta —
 reemplaza a `CONTEXTO_PORTABLE_PROXY_B.md`, `EJECUCION_PORTABLE.md` y
 `WORKFLOW_EXTRACCION.md` (archivados fuera del repo, ver `CLAUDE.md`).
 Solo tiene lo necesario para correr y entender el código; el detalle
@@ -9,7 +9,7 @@ histórico de cómo se llegó a la regla actual quedó fuera.
 ## Qué es
 
 Extrae, vía BigQuery sobre GDELT 2.1 GKG, cobertura mediática bilateral
-Paraguay-EE.UU. para la dimensión `4.Visibilidad_mediática_y_relevancia_publica`
+Paraguay-EE.UU. para la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
 del proyecto. Corre a mano, en local (no en GitHub Actions — ver por qué en
 `src/ingestion/gdelt_proxy_b.py`, el módulo que sube lo que esto produce al
 resto del pipeline).
@@ -31,7 +31,31 @@ una aproximación de coocurrencia con señales institucionales/económicas,
 relaciones diplomáticas. El tono es del documento completo, no de la
 relación bilateral. PY/US es país de fuente, no dirección de la
 interacción. La serie GKG2 arranca el 19 de febrero de 2015 (antes de esa
-fecha faltan datos, no son ceros reales).
+fecha faltan datos, no son ceros reales) — este límite está *hardcodeado*
+en el código (`GDELT_START` en `bilateral_media_extractor.py`, y el
+`max(window.start, date(2015, 2, 19))` de `gdelt_queries.py`), no es solo
+una nota.
+
+**Qué significa la columna `month` (aclarado 2026-09-08, tras una confusión
+real - ver `CLAUDE.md` sección 6):** en cada fila de los `monthly_*.csv`,
+`month` es el **primer día del período que esa fila describe** — ej.
+`month=2015-03-01` cubre el 1 al 31 de marzo de 2015 (`period_start`/
+`period_end` en la misma fila lo confirman). **No** es una fecha de "corte"
+que apunte al mes *anterior*. Esto es literal en `gdelt_queries.py`:
+`SELECT DATE('{window.start.replace(day=1)}') month, ...` - el mes es el
+propio inicio de la ventana que se está consultando, no el mes previo a
+esa ventana.
+
+Aparte, y sin relación directa con lo anterior, `bilateral_media_extractor.py`
+sí tiene una función `last_complete_month()` que calcula "el mes anterior a
+hoy" - pero es solo el valor por **default** de `--start`/`--end` cuando se
+corre `bilateral_media_extractor.py gdelt` directamente **sin** pasar esas
+fechas a mano. Ni `extraction_workflow.py` ni `historical_campaign.py` (las
+formas normales de correr una extracción, ver más abajo) pasan por ese
+default: siempre arman `--start`/`--end` explícitos. No confundir "cuándo
+conviene correr la extracción" (a partir del mes calendario siguiente, para
+tener el mes anterior ya completo) con "qué significa la columna `month`
+del resultado" (el propio mes que describe, no el anterior).
 
 ## Archivos y para qué sirve cada uno
 
@@ -117,15 +141,21 @@ python proxy_b.py RUTA_AL_CSV_CON_THEMES --output RUTA_NUEVA.json
 - No copiar/publicar `application_default_credentials.json`, archivos de
   cuenta de servicio, carpetas `gcloud` o el `venv`.
 
-## Estado actual (2026-09-02)
+## Estado actual (actualizado 2026-09-08)
 
-Cobertura histórica completa: **febrero 2015 a diciembre 2025**. Falta
-**enero 2026 en adelante** — antes de correr `historical_campaign.py
---execute` para ese tramo, correr `estimate_history.py` para generar una
-estimación nueva (la congelada solo cubre hasta diciembre 2025).
+Cobertura histórica completa: **febrero 2015 a enero 2026**. Extendida el
+2026-09-08 con un rango puntual vía `extraction_workflow.py` (no
+`historical_campaign.py` — no hacía falta procesar backlog, solo un mes
+suelto; por eso tampoco hizo falta correr `estimate_history.py` antes, ese
+paso es específico de `historical_campaign.py`). Para sumar el próximo mes,
+ver la receta paso a paso en `CLAUDE.md` sección 6 (nota de
+`gdelt_extraction/`).
 
 `src/ingestion/gdelt_proxy_b.py` (en la raíz del repo, fuera de esta
 carpeta) sube los `monthly_*.csv` que esto produce a Drive
-(`01_crudas/4.Visibilidad_mediática_y_relevancia_publica/gdelt_proxy_b/`) —
+(`01_crudas/4_Visibilidad_mediatica_y_relevancia_publica/gdelt_proxy_b/`) —
 correrlo después de una extracción nueva para que llegue al resto del
-pipeline.
+pipeline. Después, correr `src/processing/visibilidad_mediatica_y_relevancia_publica.py`
+para que el mes nuevo llegue a `02_limpias/` (si ya se corrió processing
+ese mismo día, hay que sobreescribir a mano el archivo del día en Drive -
+el chequeo de idempotencia es por día).
