@@ -119,9 +119,9 @@ significa que ya se revisó y se puede usar tal cual.
 
 | Dimensión | Variable | Estado |
 | --- | --- | --- |
-| 1. Compromiso financiero oficial | fa_gov_obligaciones | En revisión |
-| 1. Compromiso financiero oficial | fa_gov_desembolsos | En revisión |
-| 1. Compromiso financiero oficial | usaspending_obligaciones | En revisión |
+| 1. Compromiso financiero oficial | **fa_gov_obligaciones** | **Validado** |
+| 1. Compromiso financiero oficial | **fa_gov_desembolsos** | **Validado** |
+| 1. Compromiso financiero oficial | **usaspending_obligaciones** | **Validado** |
 | 1. Compromiso financiero oficial | dfc_comprometido | En revisión |
 | 1. Compromiso financiero oficial | exim_autorizado | En revisión |
 | 1. Compromiso financiero oficial | bid_proyectos_aprobados | En revisión |
