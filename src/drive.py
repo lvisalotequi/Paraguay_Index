@@ -91,6 +91,10 @@ VARIABLE_FOLDER_IDS = {
     ("3_Compromiso_economico_privado_limpias", "bea_inversion_directa"): "1M6IvbQK4ShQwrLQtHyhMAkKCORw95oOC",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles"): "1es-fZCxupBXBkhtL4rg0LIhcdWriforY",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio"): "1YfWSeWAVULcUh9bS1WiYy5rDFH-yu3DI",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles_py"): "1e-0fTbbr3skSOTt2D6x2dMhlSgpXU9KO",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_py"): "1ksnf--1J-0bGXQOb7SxH9r_-QKkWBA7v",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles_us"): "1PQj2dAUno-c-UbIXf-vMqL5d5Ix1KXZJ",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_us"): "1WWoWzRRl0gISTUbZPlhhHTMLmtGsYFbY",
 }
 
 

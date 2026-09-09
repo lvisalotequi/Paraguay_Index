@@ -54,10 +54,11 @@ corre todos los módulos automáticamente — agregar una fuente nueva no
 requiere tocar nada más.
 
 `src/processing/` es la etapa siguiente: lee los archivos crudos que
-ingestion ya subió, aisla la cifra de EE.UU. de cada fuente, normaliza a
-trimestres, y sube **un CSV por variable** (no un CSV combinado por
-dimensión) a `02_limpias/{dimensión}_limpias/{variable}/` — ya cubre las 4
-dimensiones, 17 variables en total. Todos los CSV comparten el mismo
+ingestion ya subió, aisla la cifra de EE.UU. (o de Paraguay/EE.UU. por
+separado, en el caso de GDELT) de cada fuente, normaliza a trimestres, y
+sube **un CSV por variable** (no un CSV combinado por dimensión) a
+`02_limpias/{dimensión}_limpias/{variable}/` — ya cubre las 4 dimensiones,
+21 variables en total. Todos los CSV comparten el mismo
 esquema (`trimestre, anio, trimestre_num, valor, unidad`), y las variables
 de un mismo tipo (monetario/cantidad/índice) quedan en una unidad
 consistente entre sí (ej. todo lo monetario en USD sin escalar, nunca
@@ -111,7 +112,7 @@ sale cada dato sin tener que leer el código.
 
 ## Variables en `02_limpias`
 
-Las 17 variables ya consolidadas por `src/processing/`, con su estado de
+Las 21 variables ya consolidadas por `src/processing/`, con su estado de
 revisión. "En revisión" significa que la metodología de cálculo (fuente,
 fórmula, unidad) todavía no está validada como definitiva; "Validado"
 significa que ya se revisó y se puede usar tal cual.
@@ -133,8 +134,12 @@ significa que ya se revisó y se puede usar tal cual.
 | 3. Compromiso económico privado | inversion_directa_bcp | En revisión |
 | 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
 | 3. Compromiso económico privado | bea_inversion_directa | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles | En revisión |
-| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles (BOTH = PY+US) | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio (BOTH = PY+US) | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles_py | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio_py | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_proxy_articles_us | En revisión |
+| 4. Visibilidad mediática y relevancia pública | gdelt_tone_promedio_us | En revisión |
 
 ## Estructura del repo
 
@@ -169,7 +174,7 @@ Paraguay_Index/
 │       ├── compromiso_financiero_oficial.py               # 7 variables                    (dimensión 1)
 │       ├── actividad_gubernamental_y_diplomatica.py       # 3 variables                    (dimensión 2)
 │       ├── compromiso_economico_privado.py                # 5 variables                    (dimensión 3)
-│       └── visibilidad_mediatica_y_relevancia_publica.py  # 2 variables                    (dimensión 4)
+│       └── visibilidad_mediatica_y_relevancia_publica.py  # 6 variables                    (dimensión 4)
 │
 ├── gdelt_extraction/                    # Extractor de GDELT (dimensión 4) - corre aparte y a mano, no vía run_pipeline.py
 │   ├── historical_campaign.py           # Extracción histórica completa contra BigQuery
@@ -234,4 +239,4 @@ Paraguay_Index/
 - **`compromiso_financiero_oficial.py`** (dimensión 1) — `_extraer_fa_gov()`, `_extraer_usaspending()`, `_extraer_dfc()`, `_extraer_exim()`, `_extraer_bid()`, `_extraer_bancomundial()`, más los helpers de fecha→trimestre `_sumar_por_trimestre()`/`_repetir_en_trimestres()` → `run()` (7 variables).
 - **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()`, `_extraer_ustr()`, `_extraer_tias()`, `_contar_por_trimestre(fechas)` → `run()` (3 variables).
 - **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (5 variables).
-- **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` → `run()` (2 variables).
+- **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` (devuelve BOTH/PY/US por separado) → `run()` (6 variables: cantidad y tono, x3 países).

@@ -565,16 +565,34 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     silencio. Se corrigió normalizando "l" → "I" antes de mapear. Confirmado
     con datos reales: `exportaciones` pasó de 44 a 46 trimestres, ahora
     2015-Q1 a 2026-Q2 igual que `importaciones`.
-  - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, 2
-    variables, **cantidad + índice**) a partir de `gdelt_proxy_b` (fila
-    `source_country == "BOTH"` de los CSV con prefijo `monthly_` — cualquier
-    archivo `historical_processed_*.csv` queda afuera a propósito porque
-    duplicaría esos mismos meses, ver docstring del módulo): cantidad de
-    artículos proxy por trimestre, y tono promedio del trimestre ponderado
+  - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, **6
+    variables** desde el 2026-09-09 — antes 2, ver más abajo —, **cantidad +
+    índice**) a partir de `gdelt_proxy_b` (CSV con prefijo `monthly_` —
+    cualquier archivo `historical_processed_*.csv` queda afuera a propósito
+    porque duplicaría esos mismos meses, ver docstring del módulo): por
+    cada trimestre, cantidad de artículos proxy y tono promedio ponderado
     por cantidad de artículos (trimestres sin ningún artículo no tienen
     fila en la variable de tono — no se rellenan con 0). 45 trimestres,
     2015-Q1 a 2026-Q1 (actualizado 2026-09-08 tras sumar la extracción de
     enero 2026 — ver la nota de `gdelt_extraction/` más arriba).
+    **Separación PY/US/BOTH (2026-09-09, a pedido del usuario — antes solo
+    se usaba la fila `source_country == "BOTH"`, perdiendo la distinción de
+    si la cobertura viene de medios paraguayos o estadounidenses):** ahora
+    se suben 3 variantes de cada métrica, una por valor de `source_country`
+    en el CSV crudo — `gdelt_proxy_articles`/`gdelt_tone_promedio` (BOTH,
+    nombres sin cambios para no romper la carpeta de Drive ya existente),
+    `gdelt_proxy_articles_py`/`gdelt_tone_promedio_py`, y
+    `gdelt_proxy_articles_us`/`gdelt_tone_promedio_us`. **BOTH no es una
+    tercera categoría de artículos, es la suma de PY + US** — verificado
+    contra un CSV real (mes 2026-01: BOTH=241 artículos = PY(238) + US(3)
+    exacto): en `gdelt_queries.py`, cada artículo seleccionado por la regla
+    proxy B se cuenta una vez bajo su propio `source_country` (PY o US,
+    según el país verificado del dominio de origen) y otra vez bajo "BOTH"
+    (`CROSS JOIN UNNEST([s.source_country, 'BOTH'])`). El tono de BOTH
+    tampoco es el promedio de tono(PY) y tono(US) — es el promedio pooled
+    sobre todos los artículos de ambos países juntos, así que si un mes
+    tiene muchos más artículos de un país que del otro, el tono de BOTH
+    queda mucho más cerca del tono de ese país que de un promedio 50/50.
 
 ## 7. Pendientes
 
