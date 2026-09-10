@@ -1,16 +1,28 @@
 ---
-title: "Análisis de series y construcción del índice"
-subtitle: "US-PY Engagement Index · etapa 04"
-author: "Piero Valles-Maravi (Especialista) — pvalles@equilibriumbdc.com"
+title: "US-PY Engagement Index"
+subtitle: "Nota metodológica: diagnóstico de las series y construcción del índice"
+author: "Piero Valles-Maraví — Equilibrium BDC"
 date: 2026-09-09
 lang: es
+abstract: |
+  Este documento explica, paso a paso, cómo se construye un índice trimestral que
+  resume la intensidad de la relación bilateral entre Paraguay y Estados Unidos
+  entre 2015 y 2026. Parte de diez series estadísticas provenientes de once
+  fuentes oficiales, examina qué problemas tiene cada una antes de poder
+  combinarlas, y documenta las once decisiones metodológicas que definen el
+  índice resultante. Cada decisión se presenta con las alternativas que se
+  descartaron y con la evidencia que justifica la elección. El documento sigue
+  la secuencia recomendada por el manual de la OCDE y el Centro Común de
+  Investigación de la Comisión Europea para la construcción de indicadores
+  compuestos.
 format:
   html:
     toc: true
     toc-depth: 3
     toc-title: "Contenido"
+    number-sections: true
     code-fold: true
-    code-summary: "ver código"
+    code-summary: "ver el código que produce este resultado"
     code-tools: true
     fig-width: 9
     fig-height: 4.5
@@ -18,38 +30,159 @@ format:
     embed-resources: true
     theme: cosmo
     tbl-cap-location: top
+    reference-location: margin
 execute:
   warning: false
   echo: true
 jupyter: python3
 ---
 
-::: {.callout-note appearance="simple"}
-**Qué es este documento.** La etapa 04 del pipeline. Toma el panel trimestral que
-armó `src/03_integration/03_integration.py` y hace dos cosas, en este orden:
+# Resumen ejecutivo {.unnumbered}
 
-1. **Analizar las series** (sección 2) para saber qué le hace falta a estos datos
-   antes de poder promediarlos en un índice. Cada bloque termina en una decisión
-   concreta de diseño.
-2. **Construir el índice** (sección 3) aplicando esas decisiones, con sub-índices
-   por dimensión y un agregado, más pruebas de sensibilidad.
+**Qué es.** Un índice trimestral que resume en un solo número la intensidad de la
+relación entre Paraguay y Estados Unidos. Se calcula desde el primer trimestre de
+2015 hasta el cuarto trimestre de 2025, y combina diez indicadores estadísticos
+agrupados en tres dimensiones: el compromiso financiero oficial del gobierno
+estadounidense, el compromiso económico privado entre ambos países, y la
+visibilidad mediática de la relación.
 
-**Corre después de:** `run_pipeline.py` → `02_clean` / `processing` → `03_integration`.
-**Salida:** ninguna todavía — nada se sube a Drive ni al Sheet en esta etapa.
+**Cómo se lee.** El índice usa una escala anclada en un período de referencia: el
+promedio de los años 2015 a 2019 equivale a 100 puntos, y cada 10 puntos de
+diferencia equivalen a un desvío estándar de ese mismo período. Un valor de 110
+significa "un desvío por encima del nivel típico del quinquenio 2015-2019". Es la
+misma lógica de escala que usan las pruebas PISA o los índices de precios.
+
+**Qué muestra.** La relación se mantuvo estable alrededor de 100 puntos entre 2015
+y 2019, cayó a 67.9 en 2020 durante la pandemia, se recuperó parcialmente en
+2021-2022, volvió al nivel de referencia en 2023-2024, y cerró 2025 en 92.3. Ese
+cierre esconde un movimiento en direcciones opuestas que el número agregado no
+comunica y que es el hallazgo principal del período: **el compromiso económico
+privado alcanzó su máximo histórico (118.9) mientras el compromiso financiero
+oficial cayó a su mínimo histórico (71.5)**.
+
+**Tres advertencias que deben acompañar cualquier cita del índice.**
+
+1. **Cubre tres de las cuatro dimensiones del marco.** La dimensión de actividad
+   gubernamental y diplomática todavía no tiene variables incorporadas. El índice
+   no es aún el índice completo que define el marco conceptual.
+2. **El agregado esconde más de lo que muestra.** Las tres dimensiones se mueven
+   de forma bastante independiente entre sí, así que el promedio de las tres
+   cancela movimientos importantes. Los sub-índices por dimensión son la lectura
+   informativa; el agregado es una síntesis de conveniencia.
+3. **El primer trimestre de 2026 no es comparable.** Dos de las diez series
+   provienen de una fuente que publica el año fiscal en curso de forma
+   incompleta, lo que empuja artificialmente el índice hacia abajo. Ese trimestre
+   se reporta marcado como provisional y no debe citarse junto a los demás.
+
+# Cómo leer este documento {.unnumbered}
+
+El documento tiene tres partes. La primera (secciones 1 a 3) establece qué se
+quiere medir, con qué convención metodológica se trabaja y qué datos hay
+disponibles. La segunda (sección 4) examina las series una por una para
+identificar los problemas que impiden combinarlas directamente. La tercera
+(secciones 5 a 8) toma las decisiones, construye el índice y lo somete a pruebas
+de validación.
+
+Cada bloque de la sección 4 tiene la misma estructura: **qué se está mirando**,
+**por qué importa para un índice**, **qué se encontró en estos datos** y **qué se
+decide al respecto**. Las decisiones están numeradas y se recopilan todas juntas
+en la sección 5.
+
+El código que produce cada resultado está plegado bajo cada tabla y cada gráfico.
+No hace falta leerlo para seguir el argumento, pero está disponible para que
+cualquier persona pueda reproducir o auditar cada número.
+
+::: {.callout-tip collapse="true"}
+## Glosario de términos técnicos (desplegar)
+
+Estos son los únicos términos técnicos que aparecen en el documento. Cada uno se
+vuelve a explicar en el lugar donde se usa por primera vez.
+
+**Serie trimestral.** Una secuencia de valores, uno por trimestre, para una misma
+variable. Por ejemplo: el valor de las exportaciones paraguayas a Estados Unidos
+en cada trimestre desde 2015.
+
+**Panel.** El conjunto de todas las series juntas, organizado como una tabla donde
+las filas son trimestres y las columnas son variables.
+
+**Normalizar.** Transformar variables medidas en unidades distintas (dólares,
+cantidad de artículos, puntajes de tono) para que puedan compararse y promediarse.
+Sin este paso, la variable con números más grandes domina el resultado por el
+simple hecho de estar medida en una unidad más grande.
+
+**Desvío estándar.** Una medida de cuánto se dispersa una serie alrededor de su
+promedio. Si las exportaciones promedian 60 millones con un desvío estándar de 45
+millones, significa que los trimestres típicamente se alejan unos 45 millones del
+promedio, hacia arriba o hacia abajo.
+
+**Puntaje z (o z-score).** El resultado de restarle a cada valor el promedio de su
+serie y dividir por el desvío estándar de esa serie. Convierte cualquier variable
+a una escala común: 0 significa "igual al promedio", +1 significa "un desvío por
+encima del promedio", −2 significa "dos desvíos por debajo". Es la forma estándar
+de poner en la misma escala variables medidas en unidades distintas.
+
+**Logaritmo.** Una transformación matemática que comprime los valores grandes. Su
+efecto práctico es que un cambio de 1 millón a 2 millones pasa a pesar lo mismo
+que un cambio de 100 a 200 millones, porque en ambos casos el valor se duplicó.
+Se usa con variables de dinero y de conteo, donde lo que interesa es el cambio
+proporcional y no el absoluto.
+
+**Deflactar.** Descontar el efecto de la inflación de una serie expresada en
+dinero, para que los valores de años distintos representen el mismo poder de
+compra. Una exportación de 100 millones de dólares en 2015 y otra de 100 millones
+en 2025 son la misma cifra nominal pero no el mismo valor económico real.
+
+**Percentil (o rango).** La posición relativa de un valor dentro de su propia
+serie, expresada de 0 a 100. El percentil 90 significa que ese trimestre es más
+alto que el 90% de los demás trimestres de esa variable.
+
+**Autocorrelación.** Cuánto se parece cada trimestre al trimestre anterior. Una
+autocorrelación alta indica una serie que se mueve despacio y con inercia; una
+cercana a cero indica una serie donde cada trimestre es independiente del
+anterior, es decir, ruido.
+
+**Estacionalidad.** Un patrón que se repite todos los años en los mismos
+trimestres. Las exportaciones agrícolas, por ejemplo, suelen concentrarse en
+ciertos trimestres por razones de calendario de cosecha, no porque la relación
+comercial haya cambiado.
+
+**Correlación de Spearman.** Una medida de cuánto se mueven juntas dos series, que
+va de −1 (se mueven en direcciones exactamente opuestas) a +1 (se mueven en
+perfecta sintonía), pasando por 0 (no hay relación). A diferencia de la
+correlación habitual, compara posiciones relativas en vez de valores, lo que la
+hace resistente a valores extremos.
+
+**Componentes principales.** Una técnica que busca si varias variables comparten
+un patrón común subyacente. Si la primera componente explica una porción grande de
+la variación total, significa que las variables se mueven como manifestaciones de
+un mismo fenómeno.
+
+**Alfa de Cronbach.** Una medida de consistencia interna, entre 0 y 1, que indica
+cuánto se parecen entre sí las variables que componen un índice. Su interpretación
+depende críticamente del tipo de índice, algo que se explica en la sección 2.2.
+
+**Período base.** El tramo de años que se toma como referencia para fijar la
+escala del índice. Todos los valores se expresan en relación con ese período.
+
+**Revisión.** El cambio que sufre un valor ya publicado del índice cuando se
+recalcula con datos nuevos. Un índice bien diseñado para publicación periódica no
+debería revisar su historia cada vez que se agrega un trimestre.
 :::
 
-# 0. Setup
+# Preparación del entorno {#sec-setup}
 
-Un solo bloque de preparación: entorno, credenciales y el sistema visual del
-documento. Los colores no se eligen gráfico por gráfico — se declaran una vez
-acá y todos los gráficos los consumen por rol, así el documento entero se lee
-como un sistema y no como diez gráficos sueltos.
+Este bloque prepara el entorno de trabajo: carga las librerías, resuelve las
+credenciales de acceso a Google Drive y define el sistema visual del documento.
+No contiene ninguna decisión metodológica.
 
-**Regla de color que se respeta en todo el documento:** el color identifica a la
-**dimensión** (azul = 1, naranja = 3, aqua = 4) y nunca al valor ni al ranking.
-Una variable no cambia de color entre gráficos. Para magnitud con signo
-(estacionalidad, correlaciones) se usa una escala divergente azul ↔ rojo con
-gris neutro en el medio, que es donde el "cero" tiene que leerse como "nada".
+El sistema visual se declara una sola vez y todos los gráficos lo consumen, de
+modo que el documento se lea como un conjunto coherente. La regla de color es
+constante en todo el documento: **el color identifica siempre a la dimensión**
+(azul para el compromiso financiero oficial, naranja para el compromiso económico
+privado, verde para la visibilidad mediática) y nunca codifica el valor ni el
+ranking de una serie. Para representar magnitudes con signo —como una correlación
+que puede ser positiva o negativa— se usa una escala que va de azul a rojo pasando
+por gris, donde el gris marca el punto en que el valor es cero o neutro.
 
 ```{python}
 #| label: setup
@@ -65,11 +198,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import requests
+from dotenv import load_dotenv
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FuncFormatter
 
 
-## 0.1. Rutas y credenciales ------------------------------------------------
+## Rutas y credenciales ------------------------------------------------------
 
 RAIZ_REPO = Path.cwd()
 
@@ -78,19 +213,34 @@ while not (RAIZ_REPO / "src").is_dir() and RAIZ_REPO != RAIZ_REPO.parent:
 
 sys.path.insert(0, str(RAIZ_REPO))
 
+load_dotenv(RAIZ_REPO / ".env")
+
+# se lee con .get y no con os.environ[...] a proposito: si la variable no esta
+# definida, lo que se quiere es el mensaje explicativo y no un KeyError pelado
+CREDENCIALES = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+
+if not CREDENCIALES:
+    raise SystemExit(
+        "Falta la variable GOOGLE_APPLICATION_CREDENTIALS. Revisar el .env de la "
+        "raiz del repositorio."
+    )
+
+if not Path(CREDENCIALES).is_absolute():
+    CREDENCIALES = str(RAIZ_REPO / CREDENCIALES)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = CREDENCIALES
+
+if not Path(CREDENCIALES).is_file():
+    raise SystemExit(f"No existe el archivo de la cuenta de servicio: {CREDENCIALES}.")
+
 SCRIPT_03 = RAIZ_REPO / "src" / "03_integration" / "03_integration.py"
 
 
-## 0.2. Sistema visual -----------------------------------------------------
+## Sistema visual ------------------------------------------------------------
 
-# paleta categorica documentada, slots 1-3 (azul / naranja / aqua). Se usan
-# solo tres porque las formas de "todos contra todos" (small multiples,
-# dispersion) exigen que CUALQUIER par sea distinguible, y son los tres slots
-# validados para eso. Justo alcanzan: una dimension por slot.
 COLOR_DIMENSION = {
     "1_Compromiso_financiero_oficial_limpias": "#2a78d6",                 # azul
     "3_Compromiso_economico_privado_limpias": "#eb6834",                  # naranja
-    "4_Visibilidad_mediatica_y_relevancia_publica_limpias": "#1baf7a",    # aqua
+    "4_Visibilidad_mediatica_y_relevancia_publica_limpias": "#1baf7a",    # verde
 }
 
 ETIQUETA_DIMENSION = {
@@ -99,15 +249,13 @@ ETIQUETA_DIMENSION = {
     "4_Visibilidad_mediatica_y_relevancia_publica_limpias": "4 · Visibilidad mediática",
 }
 
-SUPERFICIE = "#fcfcfb"    # fondo de los graficos
-TINTA = "#0b0b0b"         # texto principal
-TINTA_SUAVE = "#52514e"   # ejes, etiquetas secundarias
-NEUTRO = "#f0efec"        # punto medio de la escala divergente / "sin dato"
+SUPERFICIE = "#fcfcfb"
+TINTA = "#0b0b0b"
+TINTA_SUAVE = "#52514e"
+NEUTRO = "#f0efec"
 LINEA_GRILLA = "#eceae4"
+BORDE = "#dedcd6"
 
-# divergente azul <-> rojo con gris en el medio: dos polos que se leen como
-# opuestos y un centro que se lee como "nada". Los tres anclajes son colores
-# de la paleta documentada, no pasos inventados.
 DIVERGENTE = LinearSegmentedColormap.from_list(
     "azul_gris_rojo", ["#2a78d6", NEUTRO, "#e34948"]
 )
@@ -119,7 +267,7 @@ mpl.rcParams.update({
     "savefig.bbox": "tight",
     "font.family": "sans-serif",
     "font.size": 9,
-    "axes.edgecolor": "#dedcd6",
+    "axes.edgecolor": BORDE,
     "axes.linewidth": 0.8,
     "axes.labelcolor": TINTA_SUAVE,
     "axes.titlecolor": TINTA,
@@ -132,8 +280,7 @@ mpl.rcParams.update({
     "axes.axisbelow": True,
     "grid.color": LINEA_GRILLA,
     "grid.linewidth": 0.8,
-    "grid.linestyle": "-",      # solida: una grilla punteada agrega ruido y se
-                                # lee como "proyeccion" cuando es solo grilla
+    "grid.linestyle": "-",
     "xtick.color": TINTA_SUAVE,
     "ytick.color": TINTA_SUAVE,
     "xtick.labelsize": 8,
@@ -146,12 +293,10 @@ mpl.rcParams.update({
 
 
 def formato_compacto(x, _pos=None):
-    """1.5e8 -> '150M'. Las diez variables viven en escalas muy distintas
-    (de decenas de articulos a cientos de millones de USD) y los ejes
-    quedan ilegibles con notacion cientifica."""
+    """Convierte 150000000 en '150M'. Las series van de decenas de articulos a
+    cientos de millones de dolares: sin esto los ejes quedan ilegibles."""
 
     for limite, sufijo in ((1e9, "B"), (1e6, "M"), (1e3, "k")):
-
         if abs(x) >= limite:
             return f"{x / limite:.0f}{sufijo}"
 
@@ -162,252 +307,458 @@ EJE_COMPACTO = FuncFormatter(formato_compacto)
 
 
 def solo_grilla_y(ax):
-    """Grilla horizontal nada mas: en series de tiempo las verticales no
-    ayudan a leer el valor y ensucian."""
+    """Deja solo la grilla horizontal: en series de tiempo las lineas verticales
+    no ayudan a leer el valor y agregan ruido visual."""
 
     ax.grid(axis="y")
     ax.grid(axis="x", visible=False)
 
 
-print("setup listo")
+def marcas_anuales(trimestres):
+    """Devuelve las posiciones y etiquetas para poner una marca por año."""
+
+    posiciones = [i for i, t in enumerate(trimestres) if t.endswith("Q1")]
+    return posiciones, [trimestres[i][:4] for i in posiciones]
+
+
+def leyenda_dimensiones(ax, **kwargs):
+    """Leyenda con las tres dimensiones, para que la identidad de color nunca
+    dependa solo del color."""
+
+    manijas = [
+        plt.Line2D([], [], marker="o", linestyle="", markersize=6,
+                   color=color, label=ETIQUETA_DIMENSION[dimension])
+        for dimension, color in COLOR_DIMENSION.items()
+    ]
+    ax.legend(handles=manijas, **kwargs)
+
+
+print("Entorno preparado.")
 ```
 
-# 1. Import del panel
+# Qué se prometió medir y con qué se está midiendo {#sec-marco}
 
-El panel no se vuelve a leer de Drive acá: se importa ejecutando la etapa 03,
-que ya es la única dueña de esa lectura. Así no hay dos versiones del código que
-baja los CSV, y si mañana cambia una carpeta de Drive se toca un solo archivo.
+## El marco conceptual
 
-::: {.callout-tip appearance="simple"}
-Cuando la etapa `03_final` empiece a escribir el panel a Drive, este bloque debe
-pasar a leer ese archivo en vez de re-ejecutar el script — es la misma
-dependencia, pero materializada.
+El proyecto define la relación bilateral como un fenómeno de cuatro dimensiones.
+La idea de fondo es que la relación entre dos países no se agota en una sola
+métrica: un país puede recibir mucha ayuda oficial y tener poco comercio, o
+tener mucho comercio y baja presencia en la agenda pública. Medir las cuatro
+dimensiones por separado permite ver esos movimientos divergentes en vez de
+promediarlos hasta hacerlos desaparecer.
+
+| Dimensión | Qué pretende capturar |
+|---|---|
+| **1. Compromiso financiero oficial** | Cuántos recursos públicos destina el Estado estadounidense a Paraguay: ayuda al desarrollo, contratos federales, financiamiento y garantías de sus agencias. |
+| **2. Actividad gubernamental y diplomática** | Cuánta actividad institucional formal existe entre ambos gobiernos: legislación que menciona a Paraguay, tratados vigentes, reuniones de los consejos bilaterales. |
+| **3. Compromiso económico privado** | Cuánto intercambio económico ocurre entre agentes privados de ambos países: comercio de bienes, inversión directa, remesas de la diáspora. |
+| **4. Visibilidad mediática y relevancia pública** | Cuánta presencia tiene la relación bilateral en la cobertura periodística de ambos países, y con qué clima. |
+
+## Cuál es el tipo de índice que se está construyendo {#sec-formativo}
+
+Antes de operacionalizar hay que dejar establecido un punto conceptual que
+determina cómo se interpretan casi todas las pruebas estadísticas de la sección 7.
+Existen dos maneras muy distintas de que un conjunto de variables forme un índice.
+
+::: {.callout-note}
+## En palabras simples: dos tipos de índice
+
+**Índice reflectivo.** Las variables son *síntomas* de algo que no se puede medir
+directamente. Por ejemplo, un test de ansiedad: las preguntas sobre insomnio,
+sudoración y preocupación son manifestaciones distintas de una misma condición
+subyacente. Como todas reflejan lo mismo, **deben estar correlacionadas entre sí**,
+y si no lo están, el test está mal construido.
+
+**Índice formativo.** Las variables son *componentes* que definen el concepto por
+construcción. El ejemplo clásico es el Índice de Desarrollo Humano, que combina
+salud, educación e ingreso. Nadie espera que la esperanza de vida de un país esté
+correlacionada con sus años de escolaridad: son partes distintas del desarrollo,
+y el índice las suma precisamente porque son distintas. En un índice formativo,
+**la baja correlación entre componentes no es un defecto**.
+
+El US-PY Engagement Index es **formativo**. El comercio bilateral y la ayuda
+oficial no son dos síntomas de una misma causa oculta: son dos formas distintas y
+complementarias en que la relación se manifiesta. Esta distinción tiene tres
+consecuencias prácticas que aparecen más adelante: (a) el alfa de Cronbach no es
+un criterio de validez aquí (sección 7.2); (b) no se pueden derivar los pesos de
+los datos con componentes principales (sección 4.10); y (c) los sub-índices por
+dimensión son más informativos que el agregado (sección 8).
 :::
+
+## Tabla de operacionalización
+
+"Operacionalizar" significa pasar de un concepto abstracto —"compromiso
+financiero oficial"— a un número concreto que se pueda calcular todos los
+trimestres. La siguiente tabla es el puente entre ambos: para cada variable
+indica qué mide exactamente, de dónde sale el dato, en qué unidad está, y cómo
+debe interpretarse un aumento.
+
+```{python}
+#| label: tbl-operacionalizacion
+#| tbl-cap: "Operacionalización de las diez variables del índice"
+#| echo: false
+
+operacionalizacion = pd.DataFrame([
+    dict(dim="1", variable="fa_gov_obligaciones",
+         mide="Fondos que el gobierno de EE.UU. comprometió formalmente para Paraguay en el año fiscal (aún no necesariamente desembolsados)",
+         fuente="ForeignAssistance.gov (Departamento de Estado / USAID)",
+         unidad="USD", frecuencia="Anual, repetida en los 4 trimestres",
+         sube="Mayor compromiso presupuestario de EE.UU. con Paraguay"),
+    dict(dim="1", variable="fa_gov_desembolsos",
+         mide="Fondos efectivamente pagados a Paraguay en el año fiscal, que pueden corresponder a compromisos de años anteriores",
+         fuente="ForeignAssistance.gov (Departamento de Estado / USAID)",
+         unidad="USD", frecuencia="Anual, repetida en los 4 trimestres",
+         sube="Mayor ejecución real de la ayuda comprometida"),
+    dict(dim="1", variable="usaspending_obligaciones",
+         mide="Obligaciones de gasto federal estadounidense en contratos y asistencia cuyo lugar de ejecución es Paraguay",
+         fuente="USAspending.gov (Departamento del Tesoro de EE.UU.)",
+         unidad="USD", frecuencia="Trimestral, por fecha de cada transacción",
+         sube="Mayor actividad contractual del Estado estadounidense en territorio paraguayo"),
+    dict(dim="3", variable="exportaciones",
+         mide="Valor de los bienes que Paraguay exportó a Estados Unidos",
+         fuente="Boletín de Comercio Exterior, Banco Central del Paraguay",
+         unidad="USD", frecuencia="Trimestral nativa",
+         sube="Mayor volumen de venta paraguaya al mercado estadounidense"),
+    dict(dim="3", variable="importaciones",
+         mide="Valor de los bienes que Paraguay importó desde Estados Unidos",
+         fuente="Boletín de Comercio Exterior, Banco Central del Paraguay",
+         unidad="USD", frecuencia="Trimestral nativa",
+         sube="Mayor volumen de compra paraguaya al mercado estadounidense"),
+    dict(dim="3", variable="remesas",
+         mide="Divisas ingresadas a Paraguay desde Estados Unidos por transferencias de personas",
+         fuente="Remesas Familiares, Banco Central del Paraguay",
+         unidad="USD", frecuencia="Mensual, sumada a trimestre",
+         sube="Mayor vínculo económico de la diáspora paraguaya en EE.UU."),
+    dict(dim="4", variable="gdelt_proxy_articles_py",
+         mide="Cantidad de artículos de medios paraguayos que mencionan conjuntamente a Paraguay y EE.UU. en contexto institucional",
+         fuente="GDELT 2.1 (regla proxy B, ver limitaciones)",
+         unidad="Cantidad", frecuencia="Mensual, sumada a trimestre",
+         sube="Mayor atención de la prensa paraguaya a la relación bilateral"),
+    dict(dim="4", variable="gdelt_proxy_articles_us",
+         mide="Lo mismo, pero en medios estadounidenses",
+         fuente="GDELT 2.1 (regla proxy B, ver limitaciones)",
+         unidad="Cantidad", frecuencia="Mensual, sumada a trimestre",
+         sube="Mayor atención de la prensa estadounidense a la relación bilateral"),
+    dict(dim="4", variable="gdelt_tone_promedio_py",
+         mide="Tono promedio de esos artículos paraguayos, en la escala de sentimiento de GDELT",
+         fuente="GDELT 2.1 (regla proxy B, ver limitaciones)",
+         unidad="Índice", frecuencia="Mensual, promediada a trimestre",
+         sube="Cobertura paraguaya menos negativa (ver decisión 9)"),
+    dict(dim="4", variable="gdelt_tone_promedio_us",
+         mide="Lo mismo, pero en medios estadounidenses",
+         fuente="GDELT 2.1 (regla proxy B, ver limitaciones)",
+         unidad="Índice", frecuencia="Mensual, promediada a trimestre",
+         sube="Cobertura estadounidense menos negativa (ver decisión 9)"),
+])
+
+operacionalizacion.rename(columns={
+    "dim": "Dim.", "variable": "Variable", "mide": "Qué mide exactamente",
+    "fuente": "Fuente", "unidad": "Unidad", "frecuencia": "Frecuencia original",
+    "sube": "Qué significa que suba",
+})
+```
+
+## Qué del marco quedó fuera del índice {#sec-cobertura-marco}
+
+Esta es una pregunta que debe responderse antes de mostrar cualquier resultado:
+¿el índice mide lo que el marco prometió medir? La respuesta honesta es que lo
+hace parcialmente, y conviene ser preciso sobre en qué medida.
+
+El proyecto tiene hoy veintiuna variables procesadas y disponibles. El índice usa
+diez. La tabla siguiente detalla qué quedó fuera y por qué.
+
+| Dimensión | En el índice | Fuera del índice | Motivo |
+|---|---|---|---|
+| **1. Financiero oficial** | 3 de 7 | Comprometido de la DFC; autorizado del EXIM; proyectos aprobados del BID y del Banco Mundial | Las dos primeras tienen cobertura muy escasa (la DFC registra apenas cuatro proyectos históricos en Paraguay). Las dos multilaterales traen el **monto total del proyecto**, no la porción atribuible a Estados Unidos según su participación accionaria en cada banco: incorporarlas hoy le atribuiría a EE.UU. dinero que no es suyo. |
+| **2. Gubernamental y diplomática** | 0 de 3 | Proyectos del Congreso que mencionan a Paraguay; hitos del Consejo de Comercio e Inversión; tratados TIAS vigentes | Las tres son conteos de eventos muy poco frecuentes: los hitos del Consejo aparecen en 5 trimestres de 45, y los tratados en 3. Una serie que vale cero en el 90% de los trimestres no aporta variación utilizable y sí introduce ruido. **Esta ausencia es la limitación más importante del índice actual.** |
+| **3. Económico privado** | 3 de 5 | Inversión directa medida por el BCP; posición de inversión directa medida por el BEA | Ambas miden inversión extranjera directa desde ángulos distintos y con problemas conocidos: la del BCP tiene trimestres negativos frecuentes (desinversión), y la del BEA es anual y con datos suprimidos por confidencialidad en varios años. |
+| **4. Visibilidad mediática** | 4 de 6 | Las variantes agregadas de artículos y tono | Se excluyen a propósito porque son la **suma** de las variantes paraguaya y estadounidense que sí están incluidas. Incorporarlas contaría los mismos artículos dos veces. |
+
+::: {.callout-important}
+## Decisión 1: alcance declarado del índice
+
+**El índice se publica explícitamente como un índice de tres dimensiones, no de
+cuatro.** No se rellena la dimensión ausente con proxies ni se redistribuyen sus
+pesos en silencio. Cualquier presentación del resultado debe indicar que la
+dimensión gubernamental y diplomática no está incorporada.
+
+*Alternativa descartada:* incluir las tres variables de la dimensión 2 aun con su
+escasa cobertura. Se descartó porque una serie que es cero en la mayoría de los
+trimestres, al normalizarse, produce saltos enormes en los pocos trimestres en
+que registra un evento, y esos saltos se transmitirían al índice agregado como si
+fueran cambios de nivel de la relación bilateral.
+:::
+
+# La convención metodológica que se sigue {#sec-convencion}
+
+## El manual de referencia
+
+La construcción de indicadores compuestos tiene una referencia metodológica
+consolidada: el *Handbook on Constructing Composite Indicators: Methodology and
+User Guide*, publicado conjuntamente por la OCDE y el Centro Común de
+Investigación de la Comisión Europea. Ese manual establece una secuencia de diez
+pasos que este documento sigue en orden. La tabla siguiente indica dónde se
+resuelve cada paso.
+
+| Paso del manual | Qué exige | Dónde se resuelve acá |
+|---|---|---|
+| 1. Marco teórico | Definir el fenómeno y sus dimensiones antes de mirar datos | Sección 1.1 |
+| 2. Selección de datos | Elegir indicadores y justificar inclusiones y exclusiones | Secciones 1.3 y 1.4 |
+| 3. Imputación de faltantes | Decidir qué hacer con los datos ausentes | Sección 4.1 (decisión 2) |
+| 4. Análisis multivariado | Examinar la estructura de correlación entre indicadores | Secciones 4.10 y 7.2 |
+| 5. Normalización | Poner los indicadores en una escala común | Sección 4.3 y decisiones 5, 6 y 7 |
+| 6. Ponderación y agregación | Definir el peso de cada componente y cómo se combinan | Sección 4.10 (decisión 8) |
+| 7. Análisis de incertidumbre y sensibilidad | Probar si el resultado depende de las decisiones tomadas | Sección 7.3 |
+| 8. Vuelta a los datos | Verificar qué componentes explican el resultado | Sección 7.1 |
+| 9. Vínculo con otros indicadores | Contrastar el índice con medidas externas | Sección 9 (pendiente declarado) |
+| 10. Presentación y difusión | Definir cómo se comunica el resultado | Sección 8 |
+
+Dos elementos adicionales que el manual enfatiza y que suelen omitirse merecen
+mención explícita porque acá sí se abordan: el tratamiento de series en valores
+nominales frente a valores reales (sección 4.6) y la política de revisión del
+índice ante la llegada de datos nuevos (sección 7.4).
+
+## Qué implica que el índice sea formativo {#sec-implicancia-formativo}
+
+Como se estableció en la sección 1.2, este es un índice formativo. El manual de
+la OCDE es explícito en que las pruebas de consistencia interna —el alfa de
+Cronbach en particular— **solo son aplicables a modelos reflectivos**. En un
+índice formativo, encontrar componentes poco correlacionados es la situación
+esperada y no evidencia de un problema.
+
+Esto no significa que no haya nada que validar. Lo que se valida en un índice
+formativo es distinto: que cada componente aporte información no redundante
+(sección 7.1), que el resultado no dependa arbitrariamente del método elegido
+(sección 7.3), y que los valores publicados sean estables (sección 7.4).
+
+# Los datos {#sec-datos}
+
+## Origen del panel
+
+El panel no se vuelve a leer desde Google Drive en este documento: se importa
+ejecutando la etapa anterior del pipeline, que es la única responsable de esa
+lectura. De este modo existe una sola versión del código que baja los datos, y
+cualquier cambio en la estructura de carpetas se corrige en un solo lugar.
 
 ```{python}
 #| label: import-panel
 
-# la etapa 03 imprime su propio reporte de carga; acá se silencia para no
-# duplicarlo y se conserva por si hace falta auditarlo
+# la etapa 03 imprime su propio reporte de carga; se silencia acá para no
+# duplicarlo, pero se conserva por si hace falta auditarlo
 reporte_03 = io.StringIO()
 
 with contextlib.redirect_stdout(reporte_03):
     etapa_03 = runpy.run_path(str(SCRIPT_03))
 
-panel = etapa_03["limpias_largo"]          # 480 filas: 10 variables x 48 trimestres
-panel_ancho = etapa_03["limpias_ancho"]    # 48 x 10, la misma cosa pivoteada
-catalogo = etapa_03["catalogo_variables"]  # atributos de cada variable
+panel = etapa_03["limpias_largo"]
+panel_ancho = etapa_03["limpias_ancho"]
+catalogo = etapa_03["catalogo_variables"]
 trimestres_panel = etapa_03["trimestres_panel"]
 
 VARIABLES = list(catalogo["variable"])
 DIMENSIONES = list(catalogo["dimension"].unique())
-
-# orden cronologico de los trimestres, para los ejes
 ORDEN_TRIMESTRES = list(trimestres_panel["trimestre"])
+UNIDAD_DE = catalogo.set_index("variable")["unidad"].to_dict()
+DIMENSION_DE = catalogo.set_index("variable")["dimension"].to_dict()
 
-print(f"panel: {panel.shape[0]} filas x {panel.shape[1]} columnas")
-print(f"{len(VARIABLES)} variables, {len(DIMENSIONES)} dimensiones, "
-      f"{len(ORDEN_TRIMESTRES)} trimestres ({ORDEN_TRIMESTRES[0]} a {ORDEN_TRIMESTRES[-1]})")
-print(f"trimestres en NA: {int((~panel['en_fuente']).sum())}")
+print(f"Panel: {panel.shape[0]} filas ({len(VARIABLES)} variables × "
+      f"{len(ORDEN_TRIMESTRES)} trimestres)")
+print(f"Rango: {ORDEN_TRIMESTRES[0]} a {ORDEN_TRIMESTRES[-1]}")
+print(f"Celdas sin dato: {int((~panel['en_fuente']).sum())}")
 ```
 
 ```{python}
-#| label: tbl-catalogo
-#| tbl-cap: "Las diez variables del panel, con la corrida de processing de la que salieron"
+#| label: tbl-archivos
+#| tbl-cap: "Archivos exactos usados en esta corrida, para trazabilidad"
+#| echo: false
 
-(
-    catalogo
-    .assign(dim=lambda d: d["dimension"].str.split("_").str[0])
-    [["dim", "variable", "unidad", "grano_temporal", "agregacion", "archivo_origen"]]
-)
+catalogo.assign(dim=lambda d: d["dimension"].str.split("_").str[0])[
+    ["dim", "variable", "unidad", "archivo_origen"]
+]
 ```
 
-# 2. Análisis de las series
+# Diagnóstico de las series {#sec-diagnostico}
 
-Un índice compuesto es un promedio. Antes de promediar diez series hay que
-saber si se pueden promediar, y la respuesta acá es "no todavía": hay siete
-problemas concretos, y cada sub-sección aísla uno, lo mide y cierra con la
-decisión que se toma al respecto. La sección 3 no vuelve a discutir nada de
-esto, solo aplica lo decidido.
+Esta sección examina las series antes de combinarlas. Cada bloque sigue la misma
+estructura: qué se está mirando, por qué importa para un índice, qué se encontró
+en estos datos concretos, y qué se decide en consecuencia.
 
-## 2.1. Forma del panel y ventana de análisis
+## Cobertura del panel y ventana de análisis {#sec-cobertura}
 
-El panel es rectangular por construcción (48 trimestres × 10 variables), pero
-eso no significa que esté completo: 19 celdas están en `NA` porque la fuente
-todavía no publicó ese trimestre. Y no están repartidas al azar — son todas de
-cola, y cada dimensión corta en un trimestre distinto.
+**Qué se mira.** Qué trimestres tiene efectivamente cada variable y cuáles le
+faltan.
+
+**Por qué importa.** Un índice compuesto necesita todos sus componentes presentes
+en el mismo trimestre. Si a un trimestre le falta una variable, el promedio de ese
+trimestre estaría calculado con nueve series y no con diez, y por lo tanto no
+sería comparable con los demás.
 
 ```{python}
 #| label: fig-cobertura
-#| fig-cap: "Cobertura del panel. Cada celda es un trimestre de una variable; el color identifica la dimensión y el gris es 'la fuente no publicó ese trimestre' (que no es cero)."
+#| fig-cap: "Cobertura del panel. Cada celda es un trimestre de una variable. El color identifica la dimensión y el gris indica que la fuente todavía no publicó ese trimestre, lo cual es distinto de un valor cero."
 #| fig-height: 3.6
 
 fig, ax = plt.subplots(figsize=(9, 3.6))
 
 posicion_x = {t: i for i, t in enumerate(ORDEN_TRIMESTRES)}
-orden_y = VARIABLES[::-1]  # la primera variable arriba
+orden_y = VARIABLES[::-1]
 
 for fila, variable in enumerate(orden_y):
 
     datos = panel[panel["variable"] == variable]
-    dimension = catalogo.loc[catalogo["variable"] == variable, "dimension"].iloc[0]
+    color = COLOR_DIMENSION[DIMENSION_DE[variable]]
 
     con_dato = datos[datos["en_fuente"]]["trimestre"].map(posicion_x)
     sin_dato = datos[~datos["en_fuente"]]["trimestre"].map(posicion_x)
 
     ax.scatter(con_dato, [fila] * len(con_dato), marker="s", s=26,
-               color=COLOR_DIMENSION[dimension], linewidths=0)
+               color=color, linewidths=0)
     ax.scatter(sin_dato, [fila] * len(sin_dato), marker="s", s=26,
-               color=NEUTRO, edgecolors="#dedcd6", linewidths=0.5)
+               color=NEUTRO, edgecolors=BORDE, linewidths=0.5)
 
 ax.set_yticks(range(len(orden_y)))
 ax.set_yticklabels(orden_y, fontsize=8)
 
-marcas = [i for i, t in enumerate(ORDEN_TRIMESTRES) if t.endswith("Q1")]
-ax.set_xticks(marcas)
-ax.set_xticklabels([ORDEN_TRIMESTRES[i][:4] for i in marcas])
-
+posiciones, etiquetas = marcas_anuales(ORDEN_TRIMESTRES)
+ax.set_xticks(posiciones)
+ax.set_xticklabels(etiquetas)
 ax.set_xlim(-1, len(ORDEN_TRIMESTRES))
 ax.set_ylim(-0.8, len(orden_y) - 0.2)
 ax.grid(visible=False)
 ax.set_title("Qué trimestres tiene cada variable")
 
-# leyenda: identidad por dimension + el estado "sin dato"
 manijas = [
     plt.Line2D([], [], marker="s", linestyle="", markersize=6,
                color=COLOR_DIMENSION[d], label=ETIQUETA_DIMENSION[d])
     for d in DIMENSIONES
 ]
-manijas.append(
-    plt.Line2D([], [], marker="s", linestyle="", markersize=6,
-               color=NEUTRO, markeredgecolor="#dedcd6", label="sin dato (NA)")
-)
+manijas.append(plt.Line2D([], [], marker="s", linestyle="", markersize=6,
+                          color=NEUTRO, markeredgecolor=BORDE, label="sin dato"))
 ax.legend(handles=manijas, loc="upper left", bbox_to_anchor=(0, -0.22), ncol=4)
 
 plt.show()
 ```
 
-```{python}
-#| label: tbl-cola
-#| tbl-cap: "Los NA del panel: todos de cola, ninguno intercalado en el medio de una serie"
-
-(
-    panel[~panel["en_fuente"]]
-    .groupby("variable")
-    .agg(trimestres_en_na=("trimestre", "size"),
-         desde=("trimestre", "min"),
-         hasta=("trimestre", "max"))
-    .sort_values("trimestres_en_na", ascending=False)
-)
-```
-
-**Qué implica.** Un índice compuesto necesita todos sus componentes en el mismo
-trimestre: si a un trimestre le falta una variable, el promedio de ese trimestre
-no es comparable con el de los demás (estaría hecho con nueve variables en vez de
-diez). Hay dos salidas: imputar los faltantes, o recortar la ventana.
-
-::: {.callout-important appearance="simple"}
-**Decisión 1 — la ventana del índice es 2015-Q1 a 2026-Q1 (45 trimestres) y no se
-imputa nada.** Los `NA` son de cola: la fuente todavía no publicó, no es un dato
-perdido. Imputar un trimestre que no existe sería inventar el dato más nuevo del
-índice, que es justo el que más se mira. Los tres trimestres restantes de 2026 se
-reportan como incompletos y entran solos cuando las fuentes publiquen.
-:::
+**Qué se encontró.** Faltan 19 celdas de 480, y todas son de cola: corresponden a
+trimestres recientes que las fuentes todavía no publicaron. Ninguna serie tiene
+huecos en el medio, lo que descarta problemas de procesamiento. Cada dimensión
+corta en un trimestre distinto porque cada fuente tiene su propio calendario de
+publicación.
 
 ```{python}
 #| label: ventana
 
-# el ultimo trimestre con las diez variables presentes
-cobertura_trimestre = panel.pivot_table(index="trimestre", columns="variable",
-                                        values="en_fuente", aggfunc="sum", fill_value=0)
-cobertura_trimestre = cobertura_trimestre.reindex(ORDEN_TRIMESTRES)
+cobertura_trimestre = panel.pivot_table(
+    index="trimestre", columns="variable", values="en_fuente",
+    aggfunc="sum", fill_value=0,
+).reindex(ORDEN_TRIMESTRES)
 
-trimestres_completos = cobertura_trimestre[(cobertura_trimestre > 0).all(axis=1)].index
-VENTANA = list(trimestres_completos)
+VENTANA = list(cobertura_trimestre[(cobertura_trimestre > 0).all(axis=1)].index)
 
-# el panel de trabajo del resto del documento: rectangular y sin NA
-X = panel_ancho.loc[VENTANA, VARIABLES]
+# panel de trabajo: rectangular, sin celdas vacías
+X_nominal = panel_ancho.loc[VENTANA, VARIABLES]
 
-print(f"ventana: {len(VENTANA)} trimestres, {VENTANA[0]} a {VENTANA[-1]}")
-print(f"celdas en NA dentro de la ventana: {int(X.isna().sum().sum())}")
+print(f"Ventana de análisis: {len(VENTANA)} trimestres, de {VENTANA[0]} a {VENTANA[-1]}")
+print(f"Celdas sin dato dentro de la ventana: {int(X_nominal.isna().sum().sum())}")
 ```
 
-## 2.2. Las diez series en su escala nativa
+::: {.callout-important}
+## Decisión 2: recortar la ventana en vez de imputar
 
-Antes de cualquier estadístico, mirarlas. Son diez paneles con **escala vertical
-libre**: la forma de cada serie es lo que interesa acá, no su tamaño relativo
-(eso es 2.3). Nunca se ponen dos de estas series en un mismo gráfico con dos ejes
-verticales: la alineación entre dos escalas es arbitraria y fabrica una
-correlación que no está en los datos.
+**La ventana de análisis va del primer trimestre de 2015 al primer trimestre de
+2026, y no se imputa ningún valor faltante.**
+
+*Por qué.* Los valores ausentes no son datos perdidos: son trimestres que la
+fuente todavía no publicó. Imputarlos equivaldría a inventar precisamente el dato
+más reciente del índice, que es el que más se mira y sobre el que se toman
+decisiones.
+
+*Alternativa descartada:* imputar los faltantes por extrapolación o por el último
+valor conocido. Se descartó porque cualquier método de imputación en el extremo
+final de una serie es, en la práctica, un pronóstico, y un pronóstico no debe
+presentarse como si fuera una medición.
+:::
+
+## Las diez series en su escala original
+
+**Qué se mira.** La forma de cada serie a lo largo del tiempo, antes de cualquier
+transformación.
+
+**Por qué importa.** Antes de calcular cualquier estadístico conviene mirar los
+datos. Muchos problemas —escalones, saltos, quiebres— son visibles a simple vista
+y no aparecen en un resumen numérico.
+
+Cada panel del gráfico tiene su propia escala vertical, porque acá interesa la
+forma de cada serie y no su tamaño relativo. Deliberadamente **no** se superponen
+dos series en un mismo gráfico con dos ejes verticales distintos: la alineación
+entre dos escalas independientes es arbitraria y crea la apariencia de una
+relación que puede no existir en los datos.
 
 ```{python}
 #| label: fig-series
-#| fig-cap: "Las diez series, escala vertical libre. El color identifica la dimensión. Las dos primeras son escalones: ese es el hallazgo de 2.4."
+#| fig-cap: "Las diez series en sus unidades originales, con escala vertical libre en cada panel. El color identifica la dimensión."
 #| fig-height: 6.2
 
 fig, axes = plt.subplots(2, 5, figsize=(9.2, 6.2), sharex=True)
+posiciones_anuales, etiquetas_anuales = marcas_anuales(ORDEN_TRIMESTRES)
 
 for ax, variable in zip(axes.flat, VARIABLES):
 
-    fila = catalogo[catalogo["variable"] == variable].iloc[0]
     serie = panel_ancho[variable].reindex(ORDEN_TRIMESTRES)
 
     ax.plot(range(len(serie)), serie.values,
-            color=COLOR_DIMENSION[fila["dimension"]], linewidth=1.6)
+            color=COLOR_DIMENSION[DIMENSION_DE[variable]], linewidth=1.6)
 
-    ax.set_title(f"{variable}\n{fila['unidad']}", fontsize=8, color=TINTA)
+    ax.set_title(f"{variable}\n{UNIDAD_DE[variable]}", fontsize=8, color=TINTA)
     ax.yaxis.set_major_formatter(EJE_COMPACTO)
     ax.tick_params(labelsize=7)
     solo_grilla_y(ax)
+    ax.set_xticks(posiciones_anuales[::2])
+    ax.set_xticklabels([e[2:] for e in etiquetas_anuales[::2]], fontsize=7)
 
-    ax.set_xticks(marcas[::2])
-    ax.set_xticklabels([ORDEN_TRIMESTRES[i][2:4] for i in marcas[::2]], fontsize=7)
+    if UNIDAD_DE[variable] == "indice":
+        ax.axhline(0, color=BORDE, linewidth=0.8)
 
-    if fila["unidad"] == "indice":
-        ax.axhline(0, color="#dedcd6", linewidth=0.8)
-
-fig.suptitle("Las diez series del panel, 2015-Q1 a 2026-Q4", x=0.005, ha="left",
-             fontsize=10, color=TINTA)
+fig.suptitle("Las diez series del panel", x=0.005, ha="left", fontsize=10, color=TINTA)
 fig.tight_layout(rect=(0, 0, 1, 0.97))
 plt.show()
 ```
 
-**Lo que se ve de entrada.** `fa_gov_obligaciones` y `fa_gov_desembolsos` son
-escaleras planas dentro de cada año. `usaspending_obligaciones` tiene un pico que
-achata todo el resto de su panel. `exportaciones` e `importaciones` crecen con un
-diente de sierra regular. El tono vive casi siempre por debajo de cero.
+**Qué se encontró.** Cuatro cosas visibles a simple vista, que las secciones
+siguientes cuantifican: las dos primeras series avanzan por escalones planos en
+vez de variar trimestre a trimestre; la tercera tiene un pico que aplasta todo el
+resto de su panel; las de comercio crecen con un patrón regular de diente de
+sierra; y las dos de tono viven casi siempre por debajo de cero.
 
-## 2.3. Las escalas no son comparables
+## Las escalas no son comparables entre sí
 
-Las diez variables comparten el esquema (`valor`) pero no la unidad: seis en USD
-sin escalar, dos en cantidad de artículos, dos en índice de tono. La distancia
-entre la más chica y la más grande es de siete órdenes de magnitud.
+**Qué se mira.** El orden de magnitud de cada variable.
+
+**Por qué importa.** Un promedio simple entre variables medidas en unidades
+distintas no es un promedio: es una suma dominada por la variable que casualmente
+tiene los números más grandes.
 
 ```{python}
 #| label: fig-escalas
-#| fig-cap: "Rango de cada variable en escala logarítmica (mínimo–máximo, con la mediana marcada). Las dos variables de tono no pueden dibujarse acá: son negativas y el logaritmo no las admite."
+#| fig-cap: "Rango de cada variable en escala logarítmica, con la mediana marcada. Las dos variables de tono no pueden representarse en este gráfico porque son negativas, y el logaritmo no admite valores negativos: esa imposibilidad es en sí misma parte del diagnóstico."
 #| fig-height: 3.4
 
-# el eje log solo admite valores positivos: las de tono quedan afuera y eso
-# es parte del hallazgo, no un problema del grafico
-positivas = [v for v in VARIABLES if X[v].min() > 0]
+positivas = [v for v in VARIABLES if X_nominal[v].min() > 0]
 
 fig, ax = plt.subplots(figsize=(9, 3.4))
 
 for fila, variable in enumerate(positivas[::-1]):
 
-    dimension = catalogo.loc[catalogo["variable"] == variable, "dimension"].iloc[0]
-    color = COLOR_DIMENSION[dimension]
-    serie = X[variable]
+    color = COLOR_DIMENSION[DIMENSION_DE[variable]]
+    serie = X_nominal[variable]
 
     ax.plot([serie.min(), serie.max()], [fila, fila], color=color, linewidth=2.4,
             solid_capstyle="round", alpha=0.45)
     ax.plot([serie.median()], [fila], marker="o", markersize=7, color=color,
             markeredgecolor=SUPERFICIE, markeredgewidth=1.6)
-
-    ax.annotate(formato_compacto(serie.median()),
-                xy=(serie.median(), fila), xytext=(0, 9),
-                textcoords="offset points", ha="center", fontsize=7, color=TINTA_SUAVE)
+    ax.annotate(formato_compacto(serie.median()), xy=(serie.median(), fila),
+                xytext=(0, 9), textcoords="offset points", ha="center",
+                fontsize=7, color=TINTA_SUAVE)
 
 ax.set_xscale("log")
 ax.set_yticks(range(len(positivas)))
@@ -416,130 +767,397 @@ ax.xaxis.set_major_formatter(EJE_COMPACTO)
 ax.set_xlabel("escala logarítmica")
 ax.grid(axis="x")
 ax.grid(axis="y", visible=False)
-ax.set_title("Ocho de las diez variables, de 3 artículos a 449 millones de USD")
-
-manijas = [
-    plt.Line2D([], [], marker="o", linestyle="", markersize=6,
-               color=COLOR_DIMENSION[d], label=ETIQUETA_DIMENSION[d])
-    for d in DIMENSIONES
-]
-ax.legend(handles=manijas, loc="lower right")
+ax.set_title("De 3 artículos a 449 millones de dólares en el mismo panel")
+leyenda_dimensiones(ax, loc="lower right")
 
 plt.tight_layout()
 plt.show()
 ```
 
+**Qué se encontró.** La mediana de las importaciones es de 249 millones de
+dólares; la de los artículos en prensa estadounidense es de 22 artículos. Hay ocho
+órdenes de magnitud entre ambas. Si se promediaran directamente, el índice sería,
+en la práctica, la serie de importaciones con una perturbación insignificante
+encima. Esto hace que la normalización no sea una opción estilística sino un
+requisito aritmético.
+
+## Dos series avanzan por escalones anuales {#sec-escalon}
+
+**Qué se mira.** Si cada trimestre de una serie contiene información propia, o si
+la fuente en realidad publica un dato anual que se repitió cuatro veces.
+
+**Por qué importa.** Una serie que repite el mismo valor durante cuatro trimestres
+no aporta ninguna información sobre qué pasó dentro del año. El índice puede
+tener frecuencia trimestral en su presentación pero menos resolución real de la
+que esa frecuencia sugiere.
+
+```{python}
+#| label: tbl-grano
+#| tbl-cap: "Cantidad promedio de valores distintos que tiene cada variable dentro de un mismo año. Un valor de 1.00 significa que los cuatro trimestres son idénticos."
+
+con_dato = panel[panel["en_fuente"]]
+
+grano = (
+    con_dato.groupby(["variable", "anio"])["valor"].nunique()
+    .groupby("variable").mean()
+    .to_frame("valores_distintos_por_año")
+    .join(catalogo.set_index("variable")[["grano_temporal"]])
+    .loc[VARIABLES].round(2)
+)
+
+grano
+```
+
+**Qué se encontró.** Las dos series de ForeignAssistance.gov tienen exactamente
+1.00 valores distintos por año: son escalones perfectos. La razón es que la
+fuente publica su información por año fiscal y no por trimestre, y la etapa de
+limpieza repitió el total anual en los cuatro trimestres. No es un error de
+procesamiento sino una característica de la fuente, y no tiene solución con estos
+datos.
+
+::: {.callout-important}
+## Decisión 3: mantener las series anuales, prohibiendo su suma
+
+**Las dos series de grano anual se incorporan al índice, pero queda establecido
+que el índice mide un nivel y nunca puede sumarse a lo largo del tiempo.**
+
+*Por qué se pueden incorporar.* El índice es un promedio de posiciones relativas,
+no una suma de montos. Un valor anual repetido cuatro veces indica correctamente
+el nivel de esa variable en cada trimestre del año; lo que no permite es
+distinguir movimientos dentro del año.
+
+*Qué queda prohibido.* Sumar los cuatro trimestres de estas series daría cuatro
+veces el valor anual real. Por eso el panel arrastra una columna que marca, fila
+por fila, qué tipo de agregación admite cada variable.
+
+*Consecuencia para la lectura.* Los movimientos trimestre a trimestre del índice
+provienen de las otras ocho series. Estas dos mueven el nivel una vez por año.
+:::
+
+## El año fiscal en curso llega incompleto {#sec-parcial}
+
+**Qué se mira.** Si el último año de las series anuales es comparable con los
+anteriores.
+
+**Por qué importa.** Este es el hallazgo con más consecuencias prácticas de todo
+el diagnóstico, porque afecta exactamente al dato más reciente, que es el que se
+cita.
+
+```{python}
+#| label: tbl-anio-parcial
+#| tbl-cap: "Total anual de las dos series de grano anual, en millones de dólares"
+
+anual = (
+    con_dato[con_dato["grano_temporal"] == "anio repetido"]
+    .groupby(["variable", "anio"])["valor"].first()
+    .unstack("variable").div(1e6).round(2)
+)
+
+anual
+```
+
+```{python}
+#| label: deteccion-parcial
+
+# Regla de deteccion: en una serie de grano anual, un año cuyo total queda por
+# debajo de la mitad del minimo historico previo es sospechoso de estar
+# incompleto. No es una prueba concluyente, pero combinada con el hecho de ser
+# el año en curso, la explicacion de dato parcial es la unica compatible.
+FACTOR_SOSPECHA = 0.5
+
+anios_provisionales = set()
+
+for variable in anual.columns:
+
+    serie = anual[variable].dropna()
+    ultimo_anio = serie.index.max()
+    historia = serie.drop(index=ultimo_anio)
+
+    if serie.loc[ultimo_anio] < historia.min() * FACTOR_SOSPECHA:
+        anios_provisionales.add(int(ultimo_anio))
+        print(f"{variable}: el año {ultimo_anio} registra {serie.loc[ultimo_anio]:.2f} "
+              f"millones, por debajo del mínimo histórico previo "
+              f"({historia.min():.2f} millones en {historia.idxmin()}).")
+
+ANIOS_PROVISIONALES = anios_provisionales
+VENTANA_FIRME = [t for t in VENTANA if int(t[:4]) not in ANIOS_PROVISIONALES]
+VENTANA_PROVISIONAL = [t for t in VENTANA if int(t[:4]) in ANIOS_PROVISIONALES]
+
+print(f"\nVentana firme: {len(VENTANA_FIRME)} trimestres "
+      f"({VENTANA_FIRME[0]} a {VENTANA_FIRME[-1]})")
+print(f"Ventana provisional: {', '.join(VENTANA_PROVISIONAL) or 'ninguna'}")
+
+
+def marcar_provisional(ax, n_firme):
+    """Señala en un grafico donde arranca el tramo provisional, para que ninguna
+    figura muestre datos parciales sin advertirlo."""
+
+    if not VENTANA_PROVISIONAL:
+        return
+
+    ax.axvline(n_firme - 0.5, color=BORDE, linewidth=1)
+    ax.annotate("provisional →", xy=(n_firme - 0.5, ax.get_ylim()[1]), xytext=(3, -8),
+                textcoords="offset points", fontsize=7, color=TINTA_SUAVE, va="top")
+```
+
+**Qué se encontró.** El año 2026 registra 1.48 millones de dólares en obligaciones
+y 3.15 millones en desembolsos, cuando el rango de los once años anteriores va de
+11.2 a 39.3 millones y de 14.0 a 34.2 millones respectivamente. La explicación no
+es un colapso de la cooperación estadounidense: ForeignAssistance.gov publica el
+año fiscal en curso con lo acumulado hasta la fecha de consulta, y el proceso de
+extracción del proyecto congela ese valor parcial. Como estas dos series pesan una
+porción relevante del índice, un dato parcial de esa magnitud arrastra hacia abajo
+todos los trimestres del año en curso.
+
+::: {.callout-important}
+## Decisión 4: separar el año en curso del período de referencia
+
+**El índice se calcula para toda la ventana, pero los parámetros que definen su
+escala se estiman únicamente con los trimestres firmes. El año en curso se reporta
+marcado como provisional.**
+
+*Por qué.* Si un dato parcial participara en el cálculo de la escala,
+redefiniría la referencia contra la cual se compara toda la serie histórica. Al
+excluirlo del cálculo pero calcularlo con esos parámetros, el trimestre
+provisional puede quedar fuera del rango histórico, y esa salida de rango
+funciona como una señal automática de que el dato no es comparable.
+
+*Cuándo deja de ser provisional.* Cuando la fuente cierre el año fiscal, el
+trimestre pasa a firme sin necesidad de recalcular nada.
+:::
+
+## Los valores están en dólares corrientes, no constantes {#sec-deflacion}
+
+**Qué se mira.** Si el crecimiento observado en las series monetarias representa
+más actividad real o simplemente precios más altos.
+
+**Por qué importa.** Seis de las diez variables están expresadas en dólares. Entre
+2015 y 2026 el dólar perdió poder adquisitivo, de modo que una cifra idéntica en
+ambos extremos del período representa menos actividad real al final que al
+principio. Un índice que no corrija esto confundiría inflación con mayor
+compromiso bilateral.
+
+::: {.callout-note}
+## En palabras simples: qué significa deflactar
+
+Si en 2015 una exportación valía 100 millones de dólares y en 2025 vale 140
+millones, la cifra creció un 40%. Pero si en ese mismo período los precios en
+Estados Unidos subieron un 39%, entonces esos 140 millones de 2025 compran
+prácticamente lo mismo que los 100 millones de 2015: en términos reales casi no
+hubo crecimiento. Deflactar consiste en dividir cada valor por un índice de
+precios para expresar toda la serie en dólares de un mismo momento, y así poder
+compararlos.
+:::
+
+Para deflactar hace falta una serie de precios que el pipeline no producía. Se
+incorpora el Índice de Precios al Consumidor de Estados Unidos publicado por la
+Oficina de Estadísticas Laborales, que es la fuente oficial estadounidense para
+esta medición y resulta consistente con el resto de fuentes del proyecto. Se usa
+la serie de todos los ítems, para el promedio de ciudades de Estados Unidos, sin
+ajuste estacional.
+
+```{python}
+#| label: deflactor
+
+SERIE_IPC = "CUUR0000SA0"   # IPC-U, todos los items, promedio de ciudades de EE.UU.
+TRIMESTRE_BASE_PRECIOS = "2015-Q1"
+
+
+def pedir_ipc(desde, hasta):
+    """La API publica de BLS acepta rangos de hasta diez años por pedido."""
+
+    respuesta = requests.post(
+        "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+        json={"seriesid": [SERIE_IPC], "startyear": str(desde), "endyear": str(hasta)},
+        headers={"Content-type": "application/json"},
+        timeout=60,
+    )
+    contenido = respuesta.json()
+
+    if contenido.get("status") != "REQUEST_SUCCEEDED":
+        raise SystemExit(
+            f"La API de BLS no respondió correctamente: {contenido.get('status')} "
+            f"{contenido.get('message')}. Sin índice de precios no se puede deflactar."
+        )
+
+    return contenido["Results"]["series"][0]["data"]
+
+
+observaciones = []
+meses_sin_dato = []
+
+for registro in pedir_ipc(2015, 2024) + pedir_ipc(2025, 2026):
+
+    if not registro["period"].startswith("M"):
+        continue
+
+    anio, mes = int(registro["year"]), int(registro["period"][1:])
+
+    try:
+        observaciones.append({"anio": anio, "mes": mes, "ipc": float(registro["value"])})
+    except ValueError:
+        # BLS devuelve "-" cuando el dato no existe, con la razon en las notas
+        nota = (registro.get("footnotes") or [{}])[0].get("text", "sin detalle")
+        meses_sin_dato.append((anio, mes, nota))
+
+ipc_mensual = pd.DataFrame(observaciones)
+ipc_mensual["trimestre"] = (
+    ipc_mensual["anio"].astype(str) + "-Q" + (((ipc_mensual["mes"] - 1) // 3) + 1).astype(str)
+)
+
+ipc_trimestral = ipc_mensual.groupby("trimestre")["ipc"].agg(ipc="mean", meses="size")
+DEFLACTOR = (ipc_trimestral["ipc"] / ipc_trimestral.loc[TRIMESTRE_BASE_PRECIOS, "ipc"]).reindex(VENTANA)
+
+if meses_sin_dato:
+    print("Meses sin dato en la fuente de precios:")
+    for anio, mes, nota in meses_sin_dato:
+        print(f"  {anio}-{mes:02d}: {nota}")
+
+incompletos = ipc_trimestral.reindex(VENTANA).query("meses != 3")
+if len(incompletos):
+    print(f"\nTrimestres calculados con menos de tres meses: {list(incompletos.index)}")
+
+print(f"\nInflación acumulada {TRIMESTRE_BASE_PRECIOS} → {VENTANA[-1]}: "
+      f"{100 * (DEFLACTOR.iloc[-1] - 1):.1f}%")
+```
+
+::: {.callout-warning}
+## Una interrupción real en la fuente de precios
+
+El índice de precios de **octubre de 2025 no existe**. La Oficina de Estadísticas
+Laborales lo marca con la nota *"Data unavailable due to the 2025 lapse in
+appropriations"*: la interrupción del financiamiento del gobierno federal
+estadounidense de 2025 impidió la recolección de ese mes. En consecuencia, el
+deflactor del cuarto trimestre de 2025 se calcula con el promedio de noviembre y
+diciembre en lugar de tres meses.
+
+El efecto sobre el resultado es marginal, porque el índice de precios se mueve
+menos de medio punto porcentual entre meses consecutivos. Se documenta igualmente
+porque el trimestre afectado es precisamente el que se reporta como titular del
+índice.
+:::
+
+```{python}
+#| label: deflactar-series
+
+MONETARIAS = [v for v in VARIABLES if UNIDAD_DE[v] == "USD"]
+
+X = X_nominal.copy()
+for variable in MONETARIAS:
+    X[variable] = X_nominal[variable] / DEFLACTOR
+
+
+def promedio_periodo(datos, variable, desde, hasta):
+    trimestres = [t for t in datos.index if desde <= int(t[:4]) <= hasta]
+    return datos.loc[trimestres, variable].mean()
+
+
+comparacion_precios = pd.DataFrame({
+    "crecimiento_nominal": {
+        v: promedio_periodo(X_nominal, v, 2023, 2025) / promedio_periodo(X_nominal, v, 2015, 2017)
+        for v in MONETARIAS},
+    "crecimiento_real": {
+        v: promedio_periodo(X, v, 2023, 2025) / promedio_periodo(X, v, 2015, 2017)
+        for v in MONETARIAS},
+})
+comparacion_precios["sobreestimacion_%"] = (
+    100 * (comparacion_precios["crecimiento_nominal"] / comparacion_precios["crecimiento_real"] - 1)
+)
+
+comparacion_precios.round(2)
+```
+
+```{python}
+#| label: fig-deflacion
+#| fig-cap: "Efecto de la deflación en las series de comercio y remesas. La línea clara es la serie en dólares corrientes, tal como la publica la fuente; la línea sólida es la misma serie en dólares constantes del primer trimestre de 2015. La distancia entre ambas es inflación, no actividad."
+#| fig-height: 3.4
+
+fig, axes = plt.subplots(1, 3, figsize=(9.2, 3.4), sharex=True)
+
+for ax, variable in zip(axes, ["exportaciones", "importaciones", "remesas"]):
+
+    color = COLOR_DIMENSION[DIMENSION_DE[variable]]
+
+    ax.plot(range(len(VENTANA)), X_nominal[variable].values, color=color,
+            linewidth=1.2, alpha=0.35, label="dólares corrientes")
+    ax.plot(range(len(VENTANA)), X[variable].values, color=color,
+            linewidth=1.8, label="dólares constantes de 2015")
+
+    ax.set_title(variable, fontsize=8.5)
+    ax.yaxis.set_major_formatter(EJE_COMPACTO)
+    solo_grilla_y(ax)
+    posiciones, etiquetas = marcas_anuales(VENTANA)
+    ax.set_xticks(posiciones[::3])
+    ax.set_xticklabels([e for e in etiquetas[::3]], fontsize=7)
+
+axes[0].legend(loc="upper left", fontsize=7.5)
+fig.tight_layout()
+plt.show()
+```
+
+**Qué se encontró.** El efecto es grande y sistemático. Las exportaciones crecen
+3.14 veces en dólares corrientes pero 2.39 veces en dólares constantes: casi un
+cuarto del crecimiento aparente era inflación. El patrón se repite en las seis
+series monetarias, con sobreestimaciones de entre 22% y 24%. La sección 7.3
+muestra que la diferencia entre el índice nominal y el real no es cosmética: las
+dos versiones se apartan lo suficiente como para cambiar no solo el nivel sino
+también parte del ordenamiento de los trimestres.
+
+::: {.callout-important}
+## Decisión 5: deflactar todas las series monetarias
+
+**Las seis variables expresadas en dólares se convierten a dólares constantes del
+primer trimestre de 2015 dividiéndolas por el índice de precios al consumidor de
+Estados Unidos. Las variables de cantidad y de índice no se tocan.**
+
+*Por qué el IPC de Estados Unidos y no el de Paraguay.* Las seis series están
+denominadas en dólares —ayuda estadounidense, gasto federal estadounidense,
+comercio y remesas facturados en dólares—, de modo que lo que corresponde
+descontar es la pérdida de poder adquisitivo del dólar.
+
+*Alternativa descartada:* usar el deflactor del producto interno bruto en lugar
+del índice de precios al consumidor. Ambos son defendibles; se eligió el segundo
+por disponibilidad mensual, lo que permite construir un deflactor trimestral
+propio en vez de repetir un valor anual.
+
+*Limitación reconocida:* deflactar por un índice general de precios no es lo mismo
+que deflactar cada flujo por el índice de precios de su propia canasta. Un
+deflactor de comercio específico sería preferible para las series de exportaciones
+e importaciones, y queda anotado en la agenda de la sección 9.
+:::
+
+## Colas largas y un valor extremo que domina su serie
+
+**Qué se mira.** Si alguna serie tiene valores tan extremos que, al normalizar,
+absorberían todo el rango de la variable.
+
+**Por qué importa.** Las variables de dinero suelen tener distribuciones muy
+asimétricas: muchos trimestres modestos y unos pocos enormes. Si se normaliza de
+forma lineal, esos pocos trimestres definen la escala y todos los demás quedan
+comprimidos contra el piso, con lo que la variable deja de discriminar entre
+situaciones distintas.
+
 ```{python}
 #| label: tbl-descriptivos
-#| tbl-cap: "Descriptivos dentro de la ventana. `asimetria` mide cuánto se estira la cola derecha; `max/p50` cuánto más grande es el trimestre máximo que el típico."
+#| tbl-cap: "Estadísticos descriptivos dentro de la ventana, con las series monetarias ya deflactadas. La asimetría mide cuánto se estira la cola derecha de la distribución; el cociente entre máximo y mediana indica cuántas veces más grande es el trimestre extremo que el típico."
 
 descriptivos = pd.DataFrame({
-    "unidad": catalogo.set_index("variable")["unidad"],
-    "min": X.min(),
+    "unidad": pd.Series(UNIDAD_DE),
+    "mínimo": X.min(),
     "mediana": X.median(),
-    "max": X.max(),
-    "sd": X.std(),
-    "cv": (X.std() / X.mean()).abs(),
-    "asimetria": X.skew(),
-    "max/p50": X.max() / X.median(),
+    "máximo": X.max(),
+    "desvío": X.std(),
+    "asimetría": X.skew(),
+    "máx/mediana": X.max() / X.median(),
     "negativos": (X < 0).sum(),
 }).loc[VARIABLES].round(2)
 
 descriptivos
 ```
 
-**Qué implica.** Promediar estas columnas tal cual daría un índice que es, en la
-práctica, la serie de `importaciones` con ruido encima: su magnitud (cientos de
-millones) domina cualquier promedio sobre el tono (unidades) por un factor de
-10⁸. Cualquier índice compuesto **necesita** normalizar antes de agregar. El
-segundo detalle es que dos variables son negativas, así que el logaritmo —la
-transformación natural para montos— no se puede aplicar a todo el panel por igual.
-
-## 2.4. Grano temporal: dos variables son escalones, no series trimestrales
-
-`fa_gov_*` viene de ForeignAssistance.gov, que no publica nada más fino que el año
-fiscal. La etapa 02 repitió el total anual en los cuatro trimestres, y eso quedó
-marcado en `grano_temporal`. La consecuencia se mide directamente: cuántos valores
-distintos tiene cada variable dentro de un año.
-
-```{python}
-#| label: tbl-grano
-#| tbl-cap: "Valores distintos por año. Un 1.00 significa que la variable no aporta ninguna variación dentro del año: el trimestre no informa nada."
-
-con_dato = panel[panel["en_fuente"]]
-
-grano = (
-    con_dato
-    .groupby(["variable", "anio"])["valor"].nunique()
-    .groupby("variable").mean()
-    .to_frame("valores_distintos_por_anio")
-    .join(catalogo.set_index("variable")[["grano_temporal", "agregacion"]])
-    .loc[VARIABLES]
-    .round(2)
-)
-
-grano
-```
-
-```{python}
-#| label: fig-escalera
-#| fig-cap: "La misma dimensión, dos granos distintos. A la izquierda el total del año fiscal repetido cuatro veces; a la derecha transacciones con fecha propia. Las dos entran al índice como si fueran trimestrales."
-#| fig-height: 3.2
-
-fig, axes = plt.subplots(1, 2, figsize=(9, 3.2), sharex=True)
-
-for ax, variable in zip(axes, ["fa_gov_obligaciones", "usaspending_obligaciones"]):
-
-    fila = catalogo[catalogo["variable"] == variable].iloc[0]
-    serie = X[variable]
-
-    ax.plot(range(len(serie)), serie.values,
-            color=COLOR_DIMENSION[fila["dimension"]], linewidth=1.8)
-
-    ax.set_title(f"{variable}\n{fila['grano_temporal']} · {fila['agregacion']}", fontsize=8)
-    ax.yaxis.set_major_formatter(EJE_COMPACTO)
-    solo_grilla_y(ax)
-
-    ubic = [i for i, t in enumerate(VENTANA) if t.endswith("Q1")][::2]
-    ax.set_xticks(ubic)
-    ax.set_xticklabels([VENTANA[i][:4] for i in ubic], fontsize=7)
-
-fig.tight_layout()
-plt.show()
-```
-
-::: {.callout-note appearance="simple"}
-Este grano anual tiene una segunda consecuencia, más peligrosa que la falta de
-resolución: el año fiscal **en curso** se publica incompleto. Se trata en
-[2.11](#el-ano-en-curso-de-las-fuentes-anuales-viene-incompleto).
-:::
-
-**Qué implica.** Es una limitación de la fuente, no un error, y no tiene arreglo
-en el dato: ForeignAssistance.gov no publica trimestres. Pero cambia cómo se lee
-el índice. Dos de diez componentes son constantes dentro del año, así que **el
-índice trimestral tiene menos resolución real que su frecuencia sugiere**: los
-movimientos trimestre a trimestre vienen de las otras ocho variables, y estas dos
-solo mueven el nivel una vez por año. Lo que **no** se puede hacer es sumar los
-cuatro trimestres de estas dos para obtener un total anual: daría cuatro veces el
-valor real. Por eso la columna `agregacion` dice `"no sumar"`.
-
-::: {.callout-important appearance="simple"}
-**Decisión 2 — las dos series de grano anual entran al índice, pero el índice se
-interpreta como una medida de nivel trimestral, nunca como un flujo que se pueda
-acumular.** El índice compuesto es un promedio de posiciones relativas, no una
-suma de montos, así que la repetición anual no lo rompe; sí rompería cualquier
-agregación por suma, y eso queda prohibido por diseño.
-:::
-
-## 2.5. Colas largas y un outlier que domina su propia serie
-
-La asimetría de la tabla 2.3 no es un detalle técnico: `usaspending_obligaciones`
-tiene un trimestre 39 veces más grande que su mediana. Con normalización lineal,
-ese único trimestre se comería el rango completo de la variable.
-
 ```{python}
 #| label: fig-outlier
-#| fig-cap: "El pico de usaspending. Con una normalización lineal, este trimestre define el 100% de la escala y los otros 44 quedan aplastados contra el piso."
+#| fig-cap: "El trimestre extremo de las obligaciones de USAspending. Con una normalización lineal, ese único trimestre definiría el 100% de la escala de la variable y los otros 44 quedarían comprimidos contra el piso."
 #| fig-height: 3.2
 
 serie = X["usaspending_obligaciones"]
@@ -551,84 +1169,88 @@ fig, ax = plt.subplots(figsize=(9, 3.2))
 ax.plot(range(len(serie)), serie.values, color=color_d1, linewidth=1.6)
 ax.plot([VENTANA.index(pico)], [serie.max()], marker="o", markersize=8,
         color=color_d1, markeredgecolor=SUPERFICIE, markeredgewidth=1.8)
-
-# etiqueta directa solo en el punto que importa
-ax.annotate(f"{pico}: {formato_compacto(serie.max())} USD\n"
-            f"{serie.max() / serie.median():.0f}× la mediana",
+ax.annotate(f"{pico}: {formato_compacto(serie.max())} USD constantes\n"
+            f"{serie.max() / serie.median():.0f} veces la mediana",
             xy=(VENTANA.index(pico), serie.max()), xytext=(14, -14),
             textcoords="offset points", fontsize=8, color=TINTA)
 
-ax.axhline(serie.median(), color="#dedcd6", linewidth=1)
-ax.annotate(f"mediana {formato_compacto(serie.median())}",
+ax.axhline(serie.median(), color=BORDE, linewidth=1)
+ax.annotate(f"mediana: {formato_compacto(serie.median())}",
             xy=(len(serie) - 1, serie.median()), xytext=(-4, 6),
             textcoords="offset points", ha="right", fontsize=7.5, color=TINTA_SUAVE)
 
 ax.yaxis.set_major_formatter(EJE_COMPACTO)
 solo_grilla_y(ax)
-ubic = [i for i, t in enumerate(VENTANA) if t.endswith("Q1")]
-ax.set_xticks(ubic)
-ax.set_xticklabels([VENTANA[i][:4] for i in ubic])
-ax.set_title("usaspending_obligaciones · un trimestre define la escala")
+posiciones, etiquetas = marcas_anuales(VENTANA)
+ax.set_xticks(posiciones)
+ax.set_xticklabels(etiquetas)
+ax.set_title("Obligaciones de USAspending: un trimestre define la escala")
 
 plt.tight_layout()
 plt.show()
 ```
 
-**Qué implica.** Hay tres respuestas posibles y conviene decir por qué se elige
-una. *Recortar* el outlier (winsorizar) descarta información real: ese trimestre
-existió y es exactamente el tipo de evento que un índice de compromiso debería
-registrar. *Normalizar por rango* (min–max) lo conserva pero le entrega toda la
-escala. *Tomar logaritmo* conserva el evento y lo pone en proporción: pasa a ser
-"un trimestre 39 veces mayor", no "el trimestre que define el eje".
+**Qué se encontró.** Las obligaciones de USAspending tienen un trimestre 39 veces
+mayor que su mediana y una asimetría de 6.3, muy por encima del resto. Las
+exportaciones y los artículos en prensa estadounidense también tienen colas
+marcadas, aunque menos extremas.
 
-::: {.callout-important appearance="simple"}
-**Decisión 3 — logaritmo en las variables de monto y de conteo, ninguna
-transformación en el tono.** La regla se declara por tipo de unidad, no por umbral
-de asimetría: el dinero y los conteos son multiplicativos (importa el cambio
-porcentual, no el absoluto) y son estrictamente positivos en todo el panel; el
-tono ya es un índice acotado y además negativo, así que no admite logaritmo ni lo
-necesita. Definirlo por tipo de unidad —y no ajustando un umbral a estos datos—
-mantiene el método estable cuando el panel se actualice.
+::: {.callout-important}
+## Decisión 6: transformar por logaritmo las variables de dinero y de conteo
+
+**A las seis variables monetarias y a las dos de cantidad de artículos se les
+aplica logaritmo antes de normalizar. A las dos variables de tono no.**
+
+*Por qué el logaritmo y no otra solución.* Hay tres respuestas posibles ante un
+valor extremo. Recortarlo descarta información real: ese trimestre existió y es
+precisamente el tipo de evento que un índice de compromiso debería registrar.
+Normalizar por rango lo conserva pero le entrega toda la escala. El logaritmo lo
+conserva y lo pone en proporción: el trimestre extremo pasa a ser "39 veces mayor"
+en vez de "el trimestre que define el eje". Además, el logaritmo corresponde a
+cómo se interpretan naturalmente estas magnitudes: lo relevante en dinero y en
+conteos es el cambio porcentual, no el absoluto.
+
+*Por qué la regla se define por tipo de unidad y no por un umbral estadístico.* Se
+consideró aplicar el logaritmo solo a las variables cuya asimetría superara cierto
+valor. Se descartó porque un umbral ajustado a los datos actuales haría que el
+método cambiara solo por actualizar el panel. Definirlo por tipo de unidad
+mantiene el procedimiento estable en el tiempo.
+
+*Por qué el tono queda excluido.* Es negativo en la enorme mayoría de los
+trimestres, y el logaritmo no admite valores negativos. Tampoco lo necesita: ya es
+un índice acotado y aproximadamente simétrico.
 :::
 
-## 2.6. Estacionalidad
+## Estacionalidad
 
-Si una variable tiene un patrón fijo por trimestre, el índice va a subir y bajar
-todos los años por calendario y no por un cambio real en la relación bilateral.
-Se mide como la media de cada trimestre dividida por la media general: 1.00 es
-"este trimestre es igual al promedio".
+**Qué se mira.** Si alguna variable tiene un patrón fijo según el trimestre del
+año.
+
+**Por qué importa.** Si el índice hereda un patrón estacional, subirá y bajará
+todos los años por razones de calendario y no por cambios en la relación
+bilateral, y quien lo lea podría interpretar como una tendencia lo que es una
+repetición.
 
 ```{python}
 #| label: fig-estacionalidad
-#| fig-cap: "Estacionalidad por variable: media del trimestre sobre la media general. Azul = por debajo del promedio, rojo = por encima, gris = sin patrón. Escala divergente porque lo que importa es el signo del desvío."
+#| fig-cap: "Estacionalidad por variable: promedio de cada trimestre dividido por el promedio general de la serie. Un valor de 1.00, en gris, significa que ese trimestre no se aparta del promedio. El azul indica trimestres sistemáticamente por debajo y el rojo por encima."
 #| fig-height: 3.8
 
-# Solo anios COMPLETOS (los cuatro trimestres en la ventana). Con un anio a
-# medias, el trimestre que ese anio si aporta queda comparado contra una media
-# que los otros tres no comparten, y el perfil estacional sale sesgado por
-# cuales anios aportan cuales trimestres - no por estacionalidad real.
-anios_completos = [
-    anio for anio, cuantos in pd.Series([t[:4] for t in X.index]).value_counts().items()
-    if cuantos == 4
-]
+# Solo se usan años completos. Con un año a medias, el trimestre que ese año sí
+# aporta se compara contra un promedio que los otros tres no comparten, y el
+# perfil estacional saldria sesgado por cuales años aportan cuales trimestres.
+conteo_por_anio = pd.Series([t[:4] for t in X.index]).value_counts()
+anios_completos = sorted(conteo_por_anio[conteo_por_anio == 4].index)
 X_anios_completos = X.loc[[t for t in X.index if t[:4] in anios_completos]]
 
 media_por_trimestre = X_anios_completos.groupby(
-    [t[-1] for t in X_anios_completos.index]
-).mean()
-
+    [t[-1] for t in X_anios_completos.index]).mean()
 estacionalidad = (media_por_trimestre / X_anios_completos.mean()).T.loc[VARIABLES]
 estacionalidad.columns = [f"Q{c}" for c in estacionalidad.columns]
 
-print(f"anios completos usados: {min(anios_completos)}-{max(anios_completos)} "
-      f"({len(anios_completos)} anios, {len(X_anios_completos)} trimestres)")
-
 fig, ax = plt.subplots(figsize=(6.4, 3.8))
 
-# limites simetricos alrededor de 1.0, para que el gris caiga exactamente en
-# "igual al promedio" y no en un punto arbitrario
 desvio_max = float(np.abs(estacionalidad - 1).max().max())
-
 imagen = ax.imshow(estacionalidad.values, cmap=DIVERGENTE, aspect="auto",
                    vmin=1 - desvio_max, vmax=1 + desvio_max)
 
@@ -637,7 +1259,7 @@ ax.set_xticklabels(estacionalidad.columns)
 ax.set_yticks(range(len(VARIABLES)))
 ax.set_yticklabels(VARIABLES, fontsize=8)
 ax.grid(visible=False)
-ax.set_title("Media del trimestre / media general")
+ax.set_title(f"Perfil estacional, años completos {min(anios_completos)}-{max(anios_completos)}")
 
 for i in range(estacionalidad.shape[0]):
     for j in range(estacionalidad.shape[1]):
@@ -647,98 +1269,115 @@ for i in range(estacionalidad.shape[0]):
 
 barra = fig.colorbar(imagen, ax=ax, shrink=0.8)
 barra.outline.set_visible(False)
-barra.ax.tick_params(labelsize=7, color=TINTA_SUAVE)
+barra.ax.tick_params(labelsize=7)
 
 plt.tight_layout()
 plt.show()
 ```
 
-**Qué implica.** Hay dos patrones reales. `exportaciones` tiene un Q4 más de 20%
-por encima de su media (y su autocorrelación a cuatro trimestres es 0.89, ver
-2.7): estacionalidad agrícola clara. `usaspending_obligaciones` es más extremo
-—Q1 cerca del doble de su media, Q2 y Q4 por debajo de la mitad— pero eso es en
-buena parte el outlier de 2.5 empujando un trimestre, más el calendario fiscal de
-EE.UU. (el año fiscal arranca el 1 de octubre). Las `fa_gov_*` marcan 1.00 exacto
-en los cuatro trimestres, que es la firma aritmética del escalón de 2.4: **si esa
-fila no diera exactamente 1.00, sería señal de que algún año entró incompleto al
-cálculo** — y es justamente por eso que este bloque usa solo años completos.
+**Qué se encontró.** Hay dos patrones estacionales reales. Las exportaciones tienen
+un cuarto trimestre casi 30% por encima de su promedio, coherente con el
+calendario agrícola paraguayo. Las obligaciones de USAspending muestran un primer
+trimestre cercano al doble de su promedio y un segundo y cuarto por debajo de la
+mitad, lo que combina el efecto del valor extremo ya identificado con el
+calendario fiscal estadounidense, que comienza el primero de octubre. Las dos
+series de ForeignAssistance.gov marcan exactamente 1.00 en los cuatro trimestres,
+que es la firma aritmética del escalón anual: **si esa fila no diera exactamente
+1.00, sería señal de que algún año entró incompleto al cálculo**.
 
-::: {.callout-important appearance="simple"}
-**Decisión 4 — no se desestacionaliza.** Con 45 trimestres, ajustar un patrón
-estacional por variable consume grados de libertad y mete un modelo (y sus
-supuestos) en medio de un índice que hoy es transparente. La estacionalidad se
-declara como límite de lectura: **el índice se compara año contra año o con su
-propia media móvil de cuatro trimestres, no trimestre contra trimestre
-inmediato.** Si más adelante el índice se usa para señales trimestrales finas,
-desestacionalizar pasa a ser obligatorio.
+::: {.callout-important}
+## Decisión 7: no desestacionalizar, y fijar en cambio la forma de lectura
+
+**No se aplica ningún ajuste estacional. En su lugar, se establece que el índice
+se lee suavizado con un promedio móvil de cuatro trimestres y se compara año
+contra año, nunca trimestre contra trimestre inmediato.**
+
+*Por qué.* Con 44 trimestres de historia, estimar un patrón estacional por
+variable consume una porción considerable de la información disponible e
+introduce un modelo estadístico —con sus supuestos y sus posibles errores— en el
+medio de un índice que hoy es enteramente transparente y auditable.
+
+*Por qué el promedio móvil de cuatro trimestres resuelve el problema.* Un promedio
+que siempre abarca los cuatro trimestres del año incluye una vez cada estación, de
+modo que el patrón estacional se cancela por construcción, sin estimar nada.
+
+*Cuándo habría que revisar esta decisión.* Si en el futuro el índice se usara para
+detectar señales trimestrales finas —por ejemplo, para alertar sobre un cambio en
+un trimestre puntual—, la desestacionalización pasaría a ser obligatoria.
 :::
 
-## 2.7. Persistencia: ¿son series o son ruido?
+## Persistencia: distinguir señal de ruido
 
-Cuánto se parece un trimestre al anterior (lag 1) y al del mismo trimestre del año
-anterior (lag 4). Una serie sin persistencia no aporta señal a un índice de nivel:
-aporta ruido, y el promedio lo diluye pero no lo elimina.
+**Qué se mira.** Cuánto se parece cada trimestre al anterior, y cuánto se parece
+al mismo trimestre del año anterior.
+
+**Por qué importa.** Una serie con memoria se comporta como un nivel que evoluciona
+gradualmente, que es lo que un índice de compromiso pretende medir. Una serie sin
+memoria, donde cada trimestre es independiente del anterior, aporta sobre todo
+ruido; no es motivo para excluirla, pero sí para no interpretar cada oscilación
+del índice como un cambio real.
 
 ```{python}
 #| label: fig-persistencia
-#| fig-cap: "Autocorrelación a 1 y a 4 trimestres. Arriba-derecha: series con memoria. Cerca del origen: ruido trimestral sin estructura."
+#| fig-cap: "Persistencia de cada serie. El eje horizontal mide el parecido con el trimestre anterior y el vertical con el mismo trimestre del año previo. Las series cercanas al origen no tienen memoria: cada trimestre es independiente del anterior."
 #| fig-height: 4.2
 
 persistencia = pd.DataFrame({
     "lag1": [X[v].autocorr(1) for v in VARIABLES],
     "lag4": [X[v].autocorr(4) for v in VARIABLES],
-}, index=VARIABLES).join(catalogo.set_index("variable")["dimension"])
+}, index=VARIABLES)
 
 fig, ax = plt.subplots(figsize=(6.6, 4.2))
 
-for dimension, grupo in persistencia.groupby("dimension"):
-    ax.scatter(grupo["lag1"], grupo["lag4"], s=70,
-               color=COLOR_DIMENSION[dimension], alpha=0.9,
-               edgecolors=SUPERFICIE, linewidths=1.6,
-               label=ETIQUETA_DIMENSION[dimension])
+for variable in VARIABLES:
+    fila = persistencia.loc[variable]
+    ax.scatter(fila["lag1"], fila["lag4"], s=70,
+               color=COLOR_DIMENSION[DIMENSION_DE[variable]], alpha=0.9,
+               edgecolors=SUPERFICIE, linewidths=1.6)
 
-ax.axhline(0, color="#dedcd6", linewidth=0.9)
-ax.axvline(0, color="#dedcd6", linewidth=0.9)
+ax.axhline(0, color=BORDE, linewidth=0.9)
+ax.axvline(0, color=BORDE, linewidth=0.9)
 
-# etiquetas directas solo en los casos que se comentan en el texto
 for variable in ("exportaciones", "usaspending_obligaciones", "gdelt_tone_promedio_us"):
     fila = persistencia.loc[variable]
     ax.annotate(variable, xy=(fila["lag1"], fila["lag4"]), xytext=(8, 4),
                 textcoords="offset points", fontsize=7.5, color=TINTA)
 
-ax.set_xlabel("autocorrelación lag 1 (trimestre anterior)")
-ax.set_ylabel("autocorrelación lag 4 (mismo trimestre, año anterior)")
-ax.set_title("Persistencia de cada serie")
+ax.set_xlabel("parecido con el trimestre anterior")
+ax.set_ylabel("parecido con el mismo trimestre del año anterior")
+ax.set_title("Cuánta memoria tiene cada serie")
 ax.grid(axis="both")
-ax.legend(loc="lower right")
+leyenda_dimensiones(ax, loc="lower right")
 
 plt.tight_layout()
 plt.show()
 ```
 
-**Qué implica.** Ocho de las diez series tienen memoria (lag 1 entre 0.27 y 0.75):
-se comportan como niveles que se mueven despacio, que es lo que un índice de
-compromiso quiere medir. La excepción es `usaspending_obligaciones`, con lag 1 y
-lag 4 prácticamente en cero: es ruido trimestral puro, cada trimestre
-independiente del anterior. No se la saca —mide compromiso real, con fecha real—
-pero explica por qué el índice conviene leerlo suavizado (decisión 4).
+**Qué se encontró.** Ocho de las diez series tienen memoria apreciable. Las
+exportaciones destacan por su parecido con el mismo trimestre del año anterior
+(0.89), que es la firma estadística de la estacionalidad identificada en el bloque
+previo. La excepción son las obligaciones de USAspending, con valores cercanos a
+cero en ambos ejes: cada trimestre es esencialmente independiente del anterior.
+Esto refuerza la decisión 7 de leer el índice suavizado.
 
-## 2.8. Redundancia: ¿estamos contando lo mismo dos veces?
+## Redundancia y estructura de correlación {#sec-redundancia}
 
-Si dos variables están muy correlacionadas, incluir las dos con el mismo peso
-duplica ese constructo dentro del índice. Se usa correlación de Spearman (por
-rangos) porque es robusta a las colas de 2.5.
+**Qué se mira.** Si hay variables que se mueven tan parecido que incluir ambas
+equivale a contar lo mismo dos veces.
+
+**Por qué importa.** En un índice que promedia componentes, dos variables muy
+correlacionadas actúan como una sola con doble peso, sin que eso se haya decidido
+en ningún momento.
 
 ```{python}
 #| label: fig-correlacion
-#| fig-cap: "Correlación de Spearman entre las diez variables. Se etiquetan solo los pares con |ρ| ≥ 0.30; el resto lo lleva la escala de color. Gris en el centro = sin relación."
+#| fig-cap: "Correlación de Spearman entre las diez variables. Solo se etiquetan los pares con correlación de al menos 0.30 en valor absoluto; el resto lo comunica la escala de color. El gris central indica ausencia de relación."
 #| fig-height: 5.4
 
 correlaciones = X.corr(method="spearman").loc[VARIABLES, VARIABLES]
 
-# triangulo superior y diagonal tapados: la matriz es simetrica (dibujarla
-# completa duplica la tinta) y la diagonal siempre vale 1, asi que solo aporta
-# diez celdas rojas que se roban la atencion
+# Se tapan el triangulo superior y la diagonal: la matriz es simetrica, y la
+# diagonal siempre vale 1, de modo que solo agregarian tinta sin informacion.
 mascara = np.triu(np.ones_like(correlaciones, dtype=bool), k=0)
 visible = correlaciones.mask(mascara)
 
@@ -751,7 +1390,7 @@ ax.set_xticklabels(VARIABLES, rotation=45, ha="right", fontsize=7.5)
 ax.set_yticks(range(len(VARIABLES)))
 ax.set_yticklabels(VARIABLES, fontsize=7.5)
 ax.grid(visible=False)
-ax.set_title("Spearman, 45 trimestres")
+ax.set_title(f"Correlación entre variables, {len(VENTANA)} trimestres")
 
 for i in range(len(VARIABLES)):
     for j in range(len(VARIABLES)):
@@ -770,280 +1409,310 @@ plt.show()
 
 ```{python}
 #| label: tbl-pares
-#| tbl-cap: "Los pares con relación más fuerte (|ρ| ≥ 0.40)"
+#| tbl-cap: "Pares de variables con la relación más fuerte"
 
 pares = (
     correlaciones
     .where(np.triu(np.ones(correlaciones.shape), k=1).astype(bool))
-
-    # el indice y las columnas de la matriz se llaman los dos "variable"
-    # (vienen del pivot de la etapa 03), asi que hay que renombrarlos antes
-    # de apilar: si no, reset_index() intenta crear dos columnas con el
-    # mismo nombre y falla
     .rename_axis(index="variable_a", columns="variable_b")
-    .stack()
-    .rename("rho")
-    .reset_index()
+    .stack().rename("correlación").reset_index()
 )
 
-pares[pares["rho"].abs() >= 0.40].sort_values("rho", key=abs, ascending=False).round(2)
+pares[pares["correlación"].abs() >= 0.40].sort_values(
+    "correlación", key=abs, ascending=False).round(2)
 ```
 
-**Qué implica.** Solo un par pasa 0.60: `gdelt_proxy_articles_py` con
-`gdelt_tone_promedio_py` (ρ = 0.76). Tiene sentido mecánico —el tono se calcula
-sobre esos mismos artículos y con más volumen el promedio se estabiliza— y es
-redundancia real dentro de la dimensión 4. El resto del panel está poco
-correlacionado: casi todos los pares por debajo de |0.30|. Eso es una buena
-noticia conceptual (las dimensiones miden cosas distintas, no hay tres versiones
-del mismo dato) y una advertencia técnica: no hay un "factor común" fuerte que un
-índice pueda extraer.
+**Qué se encontró.** Solo un par supera 0.60: la cantidad de artículos en prensa
+paraguaya y el tono de esos mismos artículos, con 0.76. La explicación es
+mecánica: el tono se calcula como promedio sobre esos mismos artículos, así que
+con más volumen el promedio se estabiliza. Es redundancia genuina dentro de la
+dimensión 4 y hay que tratarla. El resto del panel está poco correlacionado, con
+la mayoría de los pares por debajo de 0.30 en valor absoluto.
 
-## 2.9. ¿Existe un factor común? (y por qué eso decide los pesos)
+### ¿Existe un factor común que justifique pesos derivados de los datos?
 
-Si las diez variables se movieran juntas, la primera componente principal
-explicaría la mayor parte de la varianza y usarla como ponderador sería
-defendible. Vale la pena medirlo antes de elegir pesos.
+Una alternativa a asignar pesos por criterio es derivarlos de la propia estructura
+de los datos mediante componentes principales. Esa opción solo tiene sentido si
+las variables comparten un patrón común fuerte.
 
 ```{python}
 #| label: fig-pca
-#| fig-cap: "Varianza explicada por componente principal, sobre las diez variables estandarizadas. Si la primera barra no domina, no hay un factor común que justifique pesos derivados de los datos."
+#| fig-cap: "Porcentaje de la variación total que explica cada componente principal. Si la primera barra dominara, existiría un factor común que podría usarse para derivar los pesos del índice."
 #| fig-height: 3.4
 
 Z_para_pca = (X - X.mean()) / X.std()
-matriz_corr = np.corrcoef(Z_para_pca.T.values)
-
-autovalores = np.sort(np.linalg.eigvalsh(matriz_corr))[::-1]
+autovalores = np.sort(np.linalg.eigvalsh(np.corrcoef(Z_para_pca.T.values)))[::-1]
 varianza = autovalores / autovalores.sum() * 100
 acumulada = np.cumsum(varianza)
 
 fig, ax = plt.subplots(figsize=(7, 3.4))
-
 posiciones = np.arange(1, len(varianza) + 1)
 
 ax.bar(posiciones, varianza, width=0.62,
        color=COLOR_DIMENSION["1_Compromiso_financiero_oficial_limpias"],
-       label="varianza de la componente")
+       label="variación explicada por la componente")
 ax.plot(posiciones, acumulada, marker="o", markersize=5,
         color=COLOR_DIMENSION["3_Compromiso_economico_privado_limpias"],
-        markeredgecolor=SUPERFICIE, markeredgewidth=1.4,
-        label="acumulada")
+        markeredgecolor=SUPERFICIE, markeredgewidth=1.4, label="acumulado")
 
-ax.annotate(f"PC1: {varianza[0]:.0f}%", xy=(1, varianza[0]), xytext=(6, 8),
-            textcoords="offset points", fontsize=8, color=TINTA)
+ax.annotate(f"primera componente: {varianza[0]:.0f}%", xy=(1, varianza[0]),
+            xytext=(6, 8), textcoords="offset points", fontsize=8, color=TINTA)
 
 ax.set_xticks(posiciones)
 ax.set_xlabel("componente")
-ax.set_ylabel("% de varianza")
+ax.set_ylabel("% de la variación total")
 solo_grilla_y(ax)
-ax.set_title("Las diez variables no comparten un factor dominante")
+ax.set_title("No hay un factor común dominante entre las diez variables")
 ax.legend(loc="center right")
 
 plt.tight_layout()
 plt.show()
 ```
 
-**Qué implica.** La primera componente explica alrededor de un cuarto de la
-varianza y hacen falta varias para llegar al 80%: no hay un factor latente
-dominante. Con esa estructura, pesos derivados de los datos (PCA, análisis
-factorial) serían inestables — cambiarían con cada actualización del panel y
-serían imposibles de explicar a un lector. Pesos iguales es la opción defendible,
-y además hay que decidir *iguales entre qué*.
+**Qué se encontró.** La primera componente explica alrededor de una cuarta parte
+de la variación total, y hacen falta cinco o seis componentes para superar el 80%.
+No hay un factor latente dominante. Esto es exactamente lo esperable en un índice
+formativo (sección 1.2) y confirma que los pesos deben asignarse por criterio
+explícito y no derivarse de los datos: unos pesos calculados por componentes
+principales sobre esta estructura cambiarían con cada actualización del panel y
+serían imposibles de explicar.
 
-::: {.callout-important appearance="simple"}
-**Decisión 5 — ponderación jerárquica con pesos iguales: cada dimensión pesa 1/3,
-y dentro de cada dimensión sus variables pesan igual.** Pesos iguales *por
-variable* le darían a la dimensión 4 el 40% del índice sólo porque aporta cuatro
-series en vez de tres — el índice mediría, sin decirlo, sobre todo cobertura
-mediática. La jerarquía además absorbe la redundancia de 2.8: dentro de la
-dimensión 4 las cuatro variables se agrupan primero en dos bloques
-(**visibilidad** = artículos, **clima** = tono), así el par correlacionado no
-cuenta doble.
+::: {.callout-important}
+## Decisión 8: ponderación jerárquica por construcciones, con pesos iguales
+
+**Cada dimensión pesa un tercio del índice. Dentro de cada dimensión, las
+variables se agrupan primero en bloques que representan una misma construcción, y
+cada bloque pesa lo mismo que los demás de su dimensión.**
+
+La estructura resultante es simétrica: cada dimensión tiene exactamente dos
+bloques.
+
+| Dimensión | Bloque | Variables | Peso en el índice |
+|---|---|---|---|
+| 1 | Asistencia oficial | obligaciones y desembolsos de ForeignAssistance.gov | 1/6 |
+| 1 | Gasto federal ejecutado | obligaciones de USAspending | 1/6 |
+| 3 | Comercio bilateral | exportaciones e importaciones | 1/6 |
+| 3 | Remesas | remesas | 1/6 |
+| 4 | Visibilidad | artículos en prensa paraguaya y estadounidense | 1/6 |
+| 4 | Clima | tono en prensa paraguaya y estadounidense | 1/6 |
+
+*Por qué pesos iguales por dimensión y no por variable.* Si las diez variables
+pesaran lo mismo, la dimensión 4 se llevaría el 40% del índice únicamente porque
+aporta cuatro series en vez de tres. El índice mediría, sin declararlo, sobre todo
+cobertura mediática.
+
+*Por qué existe el nivel intermedio de bloques.* Sin él, dos problemas quedarían
+sin resolver. Primero, ForeignAssistance.gov se llevaría dos tercios de la
+dimensión 1 solo porque publica dos medidas —lo comprometido y lo pagado— del
+mismo programa. Segundo, el comercio se llevaría dos tercios de la dimensión 3
+solo porque se registra en dos direcciones. Agrupar por construcción hace que el
+peso responda al concepto y no a cuántas columnas publica cada fuente. Y de paso
+resuelve la redundancia detectada entre artículos y tono, que quedan en bloques
+separados en vez de sumar peso conjunto.
+
+*Alternativa descartada:* pesos derivados por componentes principales, por las
+razones expuestas arriba. La sección 7.3 cuantifica cuánto cambiaría el índice si
+se usara la ponderación plana en vez de la jerárquica.
 :::
 
-## 2.10. Polaridad: qué significa "más"
+## El caso del comercio: por qué exportaciones e importaciones, y no la balanza {#sec-balanza}
 
-Un índice suma cosas que apuntan en la misma dirección. Ocho variables son
-inequívocas: más plata, más comercio, más remesas y más artículos son más
-relación bilateral. Las dos de tono no lo son.
+**Qué se mira.** Si conviene usar las exportaciones y las importaciones como dos
+series separadas, o combinarlas en una sola medida.
+
+**Por qué importa.** Es una pregunta razonable y merece una respuesta explícita,
+porque de esas dos series se pueden derivar dos indicadores muy distintos y solo
+uno de ellos sirve para este índice.
+
+::: {.callout-note}
+## En palabras simples: suma y resta significan cosas opuestas
+
+A partir de exportaciones e importaciones se pueden construir dos indicadores:
+
+- **El comercio total** (exportaciones **más** importaciones) mide *cuánto*
+  intercambio hay entre los dos países. Es una medida de intensidad de la
+  relación: sube cuando hay más actividad comercial en cualquier dirección.
+- **La balanza comercial** (exportaciones **menos** importaciones) mide *hacia qué
+  lado* se inclina ese intercambio. Es una medida de asimetría: puede ser negativa,
+  y su signo indica quién le vende más a quién.
+
+Para un índice de intensidad de la relación bilateral, la medida correcta es la
+primera. La balanza mide otra cosa.
+:::
+
+```{python}
+#| label: fig-balanza
+#| fig-cap: "Comercio total frente a balanza comercial, en dólares constantes. El comercio total mide la intensidad del intercambio y crece de forma sostenida. La balanza mide la asimetría, es negativa en casi todos los trimestres, y su interpretación como componente de un índice de compromiso sería ambigua."
+#| fig-height: 3.6
+
+comercio_total = X["exportaciones"] + X["importaciones"]
+balanza = X["exportaciones"] - X["importaciones"]
+color_d3 = COLOR_DIMENSION["3_Compromiso_economico_privado_limpias"]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.2, 3.6), sharex=True)
+
+ax1.plot(range(len(VENTANA)), comercio_total.values, color=color_d3, linewidth=1.8)
+ax1.set_title("Comercio total (exportaciones + importaciones)", fontsize=8.5)
+ax1.yaxis.set_major_formatter(EJE_COMPACTO)
+solo_grilla_y(ax1)
+
+ax2.plot(range(len(VENTANA)), balanza.values, color=color_d3, linewidth=1.8)
+ax2.axhline(0, color=BORDE, linewidth=1)
+ax2.annotate(f"negativa en {int((balanza < 0).sum())} de {len(balanza)} trimestres",
+             xy=(1, 0), xytext=(4, -14), textcoords="offset points",
+             fontsize=7.5, color=TINTA_SUAVE)
+ax2.set_title("Balanza comercial (exportaciones − importaciones)", fontsize=8.5)
+ax2.yaxis.set_major_formatter(EJE_COMPACTO)
+solo_grilla_y(ax2)
+
+posiciones, etiquetas = marcas_anuales(VENTANA)
+for ax in (ax1, ax2):
+    ax.set_xticks(posiciones[::2])
+    ax.set_xticklabels(etiquetas[::2], fontsize=7.5)
+
+fig.tight_layout()
+plt.show()
+```
+
+**Qué se encontró.** La balanza comercial es negativa en 44 de los 45 trimestres:
+Paraguay compra sistemáticamente mucho más a Estados Unidos de lo que le vende. Su
+promedio ronda los 160 millones de dólares constantes en contra. Usarla como
+componente del índice tendría un problema de interpretación insalvable: un déficit
+mayor no significa menos relación bilateral, sino más importaciones, es decir más
+actividad. El signo del indicador apuntaría en dirección contraria a lo que el
+índice pretende medir.
+
+::: {.callout-important}
+## Decisión 9: el comercio entra como bloque de intensidad, no como saldo
+
+**Las exportaciones y las importaciones se conservan como dos series separadas,
+pero se agrupan en un único bloque de "comercio bilateral" que pesa un sexto del
+índice. La balanza comercial no forma parte del índice y se reporta, cuando
+corresponda, como indicador de contexto.**
+
+*Por qué conservarlas separadas en vez de sumarlas en una sola variable.* Mantener
+las dos series permite seguir viendo cada flujo por separado en el diagnóstico y
+en el panel, y el agrupamiento en bloque ya resuelve el problema de peso. Además,
+crear una variable derivada nueva en esta etapa rompería la correspondencia con la
+etapa anterior del pipeline, que es la que define el catálogo de variables.
+
+*Qué se gana.* El comercio pasa de pesar dos tercios de la dimensión 3 a pesar la
+mitad, que es lo que corresponde a una de las dos construcciones que esa dimensión
+mide.
+:::
+
+## Polaridad: qué significa que una variable suba {#sec-polaridad}
+
+**Qué se mira.** Si un aumento en cada variable corresponde inequívocamente a más
+relación bilateral.
+
+**Por qué importa.** Un índice suma componentes que apuntan en la misma dirección.
+Una variable con la polaridad invertida es el error más silencioso que puede tener
+un índice compuesto, porque el resultado sigue pareciendo razonable.
 
 ```{python}
 #| label: tbl-tono
-#| tbl-cap: "El tono de GDELT dentro de la ventana: casi siempre negativo, en las dos direcciones"
+#| tbl-cap: "Las dos variables de tono dentro de la ventana"
 
-(
-    pd.DataFrame({
-        "trimestres": X[["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]].count(),
-        "trimestres_negativos": (X[["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]] < 0).sum(),
-        "min": X[["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]].min(),
-        "mediana": X[["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]].median(),
-        "max": X[["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]].max(),
-    })
-    .round(2)
-)
+variables_tono = ["gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]
+
+pd.DataFrame({
+    "trimestres": X[variables_tono].count(),
+    "trimestres_negativos": (X[variables_tono] < 0).sum(),
+    "mínimo": X[variables_tono].min(),
+    "mediana": X[variables_tono].median(),
+    "máximo": X[variables_tono].max(),
+}).round(2)
 ```
 
-**El problema conceptual.** El tono mide *sentimiento* de la cobertura, no
-*intensidad* de la relación. Una crisis bilateral genera muchísima cobertura con
-tono muy negativo: intensidad alta, tono bajo. Si el tono entra al índice con
-polaridad positiva, ese episodio empuja el índice hacia abajo mientras la relación
-está, objetivamente, más activa que nunca. Y al revés: el índice puede subir
-simplemente porque los medios estuvieron menos negativos, sin que haya pasado nada
-en la relación.
+**Qué se encontró.** Ocho de las diez variables son inequívocas: más dinero, más
+comercio, más remesas y más artículos significan más relación bilateral. Las dos
+de tono no lo son. El tono mide el *sentimiento* de la cobertura, no la
+*intensidad* de la relación, y es negativo en 42 y 44 de los 45 trimestres
+respectivamente.
 
-::: {.callout-important appearance="simple"}
-**Decisión 6 — el tono entra, con polaridad positiva, pero pesa 1/6 del índice y
-se reporta siempre el índice sin tono al lado.** Entra porque la dimensión 4 es
-"visibilidad mediática **y relevancia pública**", y el clima de esa cobertura es
-parte de lo que la dimensión declara medir. Pesa poco por la jerarquía de la
-decisión 5 (1/3 de dimensión × 1/2 de bloque = 1/6). Y se acompaña de la variante
-sin tono porque la objeción de arriba es real: si las dos versiones se separan, lo
-que cambió es el clima mediático, no el compromiso. La sección 3.5 lo cuantifica.
+El problema conceptual es concreto: una crisis bilateral genera muchísima
+cobertura con tono muy negativo. En esa situación la intensidad de la relación es
+alta y el tono es bajo. Si el tono entra al índice con signo positivo, ese
+episodio empujaría el índice hacia abajo justo cuando la relación está más activa.
+Y a la inversa, el índice podría subir simplemente porque los medios estuvieron
+menos negativos, sin que ocurriera nada en la relación real.
+
+::: {.callout-important}
+## Decisión 10: el tono se incorpora con peso acotado y con reporte paralelo obligatorio
+
+**Las dos variables de tono entran al índice con signo positivo, conformando el
+bloque de "clima" que pesa un sexto del total. Junto a cualquier cifra del índice
+debe reportarse la variante calculada sin tono.**
+
+*Por qué se incorpora.* La dimensión 4 se define como "visibilidad mediática **y
+relevancia pública**", y el clima de esa cobertura es parte de lo que la dimensión
+declara medir. Excluirlo unilateralmente sería redefinir el marco.
+
+*Por qué con peso acotado.* La estructura jerárquica de la decisión 8 le asigna un
+sexto del índice, no un quinto como le correspondería por conteo de variables.
+
+*Por qué el reporte paralelo es obligatorio.* Porque la objeción conceptual es
+real y no se resuelve con el peso. Si la versión con tono y la versión sin tono se
+separan, la diferencia se debe al clima mediático y no al compromiso bilateral, y
+quien lea el índice necesita poder distinguirlo. La sección 7.3 cuantifica esa
+diferencia.
 :::
 
-## 2.11. El año en curso de las fuentes anuales viene incompleto
-
-Este es el hallazgo con más consecuencias para el número que se va a citar. Las
-dos variables de grano anual repiten el total del **año fiscal** en los cuatro
-trimestres — y ForeignAssistance.gov publica el año fiscal en curso con lo
-acumulado hasta la fecha, no con el total del año. La etapa de ingestion además
-congela ese valor parcial en la primera corrida del año. Resultado: el último año
-del panel entra con un total que no es comparable con los anteriores.
+# Las decisiones, en una sola tabla {#sec-decisiones}
 
 ```{python}
-#| label: tbl-anio-parcial
-#| tbl-cap: "Total anual de las dos variables de grano anual, en millones de USD. El último año no es un valor bajo: es un valor parcial."
+#| label: tbl-decisiones
+#| tbl-cap: "Las once decisiones que definen el índice"
+#| echo: false
 
-anual = (
-    con_dato[con_dato["grano_temporal"] == "anio repetido"]
-    .groupby(["variable", "anio"])["valor"].first()
-    .unstack("variable")
-    .div(1e6)
-    .round(2)
-)
+decisiones = pd.DataFrame([
+    ("1", "Alcance", "Publicar como índice de tres dimensiones, declarando la ausencia de la dimensión 2",
+     "Rellenar con las variables disponibles, que son casi siempre cero"),
+    ("2", "Datos faltantes", "Recortar la ventana; no imputar",
+     "Imputar el extremo final, lo que equivale a pronosticar"),
+    ("3", "Grano anual", "Incorporar las series anuales, prohibiendo su suma temporal",
+     "Excluirlas y perder la dimensión 1 casi entera"),
+    ("4", "Año en curso", "Estimar la escala solo con trimestres firmes; marcar el resto como provisional",
+     "Tratar el dato parcial como definitivo"),
+    ("5", "Precios", "Deflactar las series monetarias por el IPC de EE.UU.",
+     "Trabajar en dólares corrientes y confundir inflación con compromiso"),
+    ("6", "Distribuciones", "Logaritmo en dinero y conteos; nada en el tono",
+     "Recortar valores extremos, o normalizar linealmente"),
+    ("7", "Estacionalidad", "No desestacionalizar; leer con promedio móvil de 4 trimestres",
+     "Estimar y remover un patrón estacional por variable"),
+    ("8", "Ponderación", "Jerárquica: 1/3 por dimensión, bloques iguales dentro de cada una",
+     "Pesos iguales por variable, o derivados por componentes principales"),
+    ("9", "Comercio", "Exportaciones e importaciones en un bloque de intensidad",
+     "Usar la balanza comercial, que mide asimetría y no intensidad"),
+    ("10", "Tono", "Incorporar con 1/6 de peso y reporte paralelo sin tono",
+     "Excluirlo, o incorporarlo sin advertencia"),
+    ("11", "Escala y revisión", "Base fija 2015-2019 = 100, desvío 10; no se recalcula",
+     "Escala recalculada con toda la historia, que revisa el pasado"),
+], columns=["N.º", "Tema", "Qué se decidió", "Principal alternativa descartada"])
 
-anual
+decisiones
 ```
 
-```{python}
-#| label: deteccion-parcial
+# Construcción del índice {#sec-construccion}
 
-# Regla de deteccion: en una variable de grano anual, un anio cuyo total
-# queda por DEBAJO del minimo de todos los anios anteriores es sospechoso de
-# estar incompleto. No es una prueba (un anio puede ser genuinamente el mas
-# bajo de la serie), pero con una caida de este tamano y siendo el anio en
-# curso, la explicacion parcial es la unica que cierra.
-FACTOR_SOSPECHA = 0.5   # menos de la mitad del minimo historico previo
+## Parámetros
 
-anios_provisionales = set()
-
-for variable in anual.columns:
-
-    serie = anual[variable].dropna()
-    ultimo_anio = serie.index.max()
-    historia = serie.drop(index=ultimo_anio)
-
-    if serie.loc[ultimo_anio] < historia.min() * FACTOR_SOSPECHA:
-
-        anios_provisionales.add(int(ultimo_anio))
-
-        print(f"{variable}: {ultimo_anio} = {serie.loc[ultimo_anio]:.2f}M, "
-              f"por debajo del mínimo histórico previo "
-              f"({historia.min():.2f}M en {historia.idxmin()}) "
-              f"→ {ultimo_anio} marcado como provisional")
-
-ANIOS_PROVISIONALES = anios_provisionales
-
-# la ventana se parte en dos: la parte firme, que es la que define la escala
-# del indice, y la provisional, que se calcula pero se reporta aparte
-VENTANA_FIRME = [t for t in VENTANA if int(t[:4]) not in ANIOS_PROVISIONALES]
-VENTANA_PROVISIONAL = [t for t in VENTANA if int(t[:4]) in ANIOS_PROVISIONALES]
-
-print(f"\nventana firme:       {len(VENTANA_FIRME)} trimestres "
-      f"({VENTANA_FIRME[0]} a {VENTANA_FIRME[-1]})")
-print(f"ventana provisional: {len(VENTANA_PROVISIONAL)} trimestres "
-      f"({', '.join(VENTANA_PROVISIONAL) if VENTANA_PROVISIONAL else 'ninguno'})")
-
-
-def marcar_provisional(ax, n_firme):
-    """Marca en un grafico donde arranca el tramo provisional. Se usa en toda
-    la seccion 3 para que ninguna figura muestre el tramo parcial sin avisar."""
-
-    if not VENTANA_PROVISIONAL:
-        return
-
-    ax.axvline(n_firme - 0.5, color="#dedcd6", linewidth=1)
-    ax.annotate("parcial →", xy=(n_firme - 0.5, ax.get_ylim()[1]), xytext=(3, -8),
-                textcoords="offset points", fontsize=7, color=TINTA_SUAVE, va="top")
-```
-
-**Por qué esto no se puede ignorar.** Las dos variables pesan 2/9 del índice
-(dimensión 1 completa = 1/3, y son dos de sus tres series). Un valor parcial de
-esa magnitud —siete veces por debajo del mínimo histórico— arrastra el índice
-hacia abajo en todos los trimestres del año en curso, y como es el último año, es
-justo el número que alguien va a leer como "la relación bilateral se derrumbó". No
-se derrumbó: la fuente todavía no terminó de publicar el año.
-
-::: {.callout-important appearance="simple"}
-**Decisión 7 — el índice se calcula sobre toda la ventana, pero la escala se fija
-con la ventana firme y el año en curso se reporta como provisional.** Los
-parámetros de normalización (media y desvío de cada variable, mínimo y máximo del
-índice) se estiman **solo** con los trimestres firmes, y después se aplican tal
-cual a los provisionales — así un dato parcial no redefine la escala contra la que
-se compara toda la historia. El titular del índice es el último trimestre firme;
-el provisional se grafica en un tono más claro y se rotula como tal. Cuando la
-fuente cierre el año fiscal, el trimestre pasa a firme sin recalcular nada.
-:::
-
-## 2.12. Lo que el índice no va a poder decir
-
-Cuatro límites que no se resuelven con método porque están en los datos, y que
-tienen que viajar con el índice:
-
-| Límite | Por qué importa |
-|---|---|
-| **Falta la dimensión 2** (actividad gubernamental y diplomática) | El índice agregado cubre 3 de las 4 dimensiones del marco. No es "el" índice todavía: es el índice de las tres dimensiones con variables revisadas. |
-| **Series nominales, sin deflactar** | `exportaciones` se multiplica por 3.1 entre 2015-2017 y 2023-2025; parte de eso es precio, no volumen de relación. El índice hereda la inflación en dólares. |
-| **BID y Banco Mundial no están** (y cuando entren, sin ponderar) | Las dos variables multilaterales de la dimensión 1 quedaron fuera de este panel; cuando entren, hoy traen el monto **total** del proyecto, no la porción atribuible a EE.UU. según su cuota de capital. |
-| **GDELT es un proxy** | La regla "proxy B" es coocurrencia geográfica más señales temáticas, no noticias validadas una por una. Mide visibilidad aproximada, no cobertura certificada. |
-
-# 3. Construcción del índice
-
-Acá no se discute nada: se aplican las seis decisiones de la sección 2. El orden
-es el mismo siempre — declarar los parámetros, normalizar, agregar por dimensión,
-agregar al total, y probar que el resultado no dependa del método elegido.
-
-## 3.1. Parámetros
-
-Todo lo que decide el índice, en un solo lugar y explícito. Cambiar el índice es
-cambiar estas constantes, no el código de abajo.
+Todo lo que define el índice está reunido acá. Modificar el índice significa
+modificar estas constantes, no el código que viene después.
 
 ```{python}
-#| label: parametros-indice
+#| label: parametros
 
-# Decision 1: ventana sin imputacion (ya calculada en 2.1)
-# VENTANA / X
-
-# Decision 3: la transformacion se declara por tipo de unidad
-TRANSFORMACION_POR_UNIDAD = {
-    "USD": "log10",       # montos: multiplicativos y estrictamente positivos
-    "cantidad": "log10",  # conteos: idem
-    "indice": "ninguna",  # tono: acotado, con signo, no admite logaritmo
-}
-
-# Decision 6: todas las variables apuntan en la misma direccion (mas = mas
-# relacion bilateral). Se declara igual, explicito, porque una variable con
-# polaridad invertida es el error mas silencioso que puede tener un indice.
-POLARIDAD = {variable: +1 for variable in VARIABLES}
-
-# Decision 5: jerarquia de pesos iguales. Las dimensiones 1 y 3 son planas;
-# la 4 se agrupa en dos bloques para que el par correlacionado de 2.8 no
-# cuente doble.
+# Decision 8 y 9: estructura jerarquica de bloques
 BLOQUES = {
     "1_Compromiso_financiero_oficial_limpias": {
-        "financiero": ["fa_gov_obligaciones", "fa_gov_desembolsos", "usaspending_obligaciones"],
+        "asistencia_oficial": ["fa_gov_obligaciones", "fa_gov_desembolsos"],
+        "gasto_federal": ["usaspending_obligaciones"],
     },
     "3_Compromiso_economico_privado_limpias": {
-        "economico": ["exportaciones", "importaciones", "remesas"],
+        "comercio_bilateral": ["exportaciones", "importaciones"],
+        "remesas": ["remesas"],
     },
     "4_Visibilidad_mediatica_y_relevancia_publica_limpias": {
         "visibilidad": ["gdelt_proxy_articles_py", "gdelt_proxy_articles_us"],
@@ -1051,263 +1720,529 @@ BLOQUES = {
     },
 }
 
-# Decision 4: el indice se lee suavizado; 4 trimestres = un anio completo, que
-# neutraliza el patron estacional de 2.6 sin estimar ningun modelo
-VENTANA_SUAVIZADO = 4
+# Decision 6: la transformacion se declara por tipo de unidad
+TRANSFORMACION = {"USD": "log10", "cantidad": "log10", "indice": "ninguna"}
 
-# escala de presentacion del indice agregado
-BASE_MINIMA, BASE_MAXIMA = 0, 100
+# Decision 10: todas las variables apuntan en la misma direccion. Se declara de
+# forma explicita aunque hoy sean todas +1, porque una polaridad invertida es un
+# error que no se detecta mirando el resultado.
+POLARIDAD = {variable: +1 for variable in VARIABLES}
 
-print(f"ventana:         {VENTANA[0]} a {VENTANA[-1]} ({len(VENTANA)} trimestres)")
-print(f"  firme:         {VENTANA_FIRME[0]} a {VENTANA_FIRME[-1]} ({len(VENTANA_FIRME)}) <- fija la escala")
-print(f"  provisional:   {', '.join(VENTANA_PROVISIONAL) or 'ninguno'} (decision 7)")
-print(f"variables:       {len(VARIABLES)} en {len(BLOQUES)} dimensiones, "
-      f"{sum(len(b) for b in BLOQUES.values())} bloques")
-print(f"peso del tono:   1/{len(BLOQUES)} x 1/2 = {1 / len(BLOQUES) / 2:.3f}")
+# Decision 11: periodo base y escala
+ANIOS_BASE = (2015, 2019)
+PERIODO_BASE = [t for t in VENTANA_FIRME if ANIOS_BASE[0] <= int(t[:4]) <= ANIOS_BASE[1]]
+MEDIA_BASE, DESVIO_BASE = 100.0, 10.0
+
+# Decision 7: ventana del promedio movil de lectura
+SUAVIZADO = 4
+
+print(f"Período base: {PERIODO_BASE[0]} a {PERIODO_BASE[-1]} ({len(PERIODO_BASE)} trimestres)")
+print(f"Ventana firme: {VENTANA_FIRME[0]} a {VENTANA_FIRME[-1]} ({len(VENTANA_FIRME)} trimestres)")
+print(f"Estructura: {len(BLOQUES)} dimensiones, "
+      f"{sum(len(b) for b in BLOQUES.values())} bloques, {len(VARIABLES)} variables")
 ```
 
-## 3.2. Normalización
+## La escala: por qué base fija y no recalculada {#sec-base-fija}
 
-Dos pasos. Primero el logaritmo donde corresponde, que arregla las colas de 2.5.
-Después el z-score, que es lo que hace comparables series en unidades distintas:
-cada variable pasa a estar medida en desvíos estándar respecto de su propio
-promedio en la ventana. Un z de +1 significa "un desvío por encima de lo normal
-para esta variable", y eso sí se puede promediar entre variables.
+Esta es la decisión que más consecuencias prácticas tiene para quien use el índice
+de forma periódica, y responde a una pregunta directa: **¿cambian las cifras ya
+publicadas cuando se agregan años nuevos?**
+
+La respuesta depende enteramente de cómo se defina la escala. Hay dos caminos.
+
+**Escala recalculada.** Cada vez que llega un trimestre nuevo, se recalculan el
+promedio y el desvío de cada variable con toda la historia disponible. Aprovecha
+mejor la información, pero tiene una consecuencia grave: **toda la serie publicada
+cambia**. Si el año que entra contiene un mínimo histórico, la escala entera se
+recalibra y valores publicados hace años pasan a ser otros.
+
+**Escala de base fija.** Los parámetros se calculan una sola vez sobre un período
+de referencia declarado y no se vuelven a tocar. Los valores publicados nunca
+cambian. A cambio, un valor futuro puede quedar fuera del rango del período base,
+lo cual es informativo más que problemático: indica que la relación se movió a un
+territorio sin precedente en el período de referencia.
+
+La sección 7.4 mide empíricamente cuánto se revisaría la serie con cada opción. El
+resultado es contundente y motiva la decisión siguiente.
+
+::: {.callout-important}
+## Decisión 11: base fija en 2015-2019, escala de media 100 y desvío 10
+
+**El período base es el quinquenio 2015-2019. El índice se expresa en una escala
+donde el promedio de ese período vale 100 puntos y su desvío estándar vale 10
+puntos. Los parámetros no se recalculan al incorporar datos nuevos.**
+
+*Por qué ese quinquenio.* Son cinco años completos, con datos firmes en las diez
+variables, anteriores a la pandemia. Tomar como referencia un período que incluya
+la anomalía de 2020 distorsionaría la vara de comparación.
+
+*Por qué esta escala y no una de 0 a 100.* Una escala de 0 a 100 construida sobre
+el mínimo y el máximo observados obliga a recalcularse cada vez que se supera un
+extremo, y hace que los valores dependan de dos trimestres puntuales. La escala de
+media 100 y desvío 10 es la convención que usan las pruebas PISA y muchos índices
+compuestos: es interpretable de inmediato —110 es "un desvío por encima del nivel
+típico del período base"— y admite valores fuera del rango sin romperse.
+
+*Costo asumido.* Si la relación bilateral se desplazara de forma permanente a un
+nivel muy distinto, la base de 2015-2019 quedaría desactualizada como referencia.
+La práctica estándar en índices de este tipo es re-basar cada cierta cantidad de
+años, publicando ambas series durante la transición.
+:::
+
+## Normalización y agregación
+
+El cálculo tiene cuatro pasos encadenados: transformar, normalizar contra el
+período base, promediar dentro de cada bloque y dimensión, y expresar el resultado
+en la escala final.
 
 ```{python}
-#| label: normalizacion
+#| label: construccion
 
-unidad_de = catalogo.set_index("variable")["unidad"].to_dict()
+def construir_indice(datos, periodo_base, bloques=BLOQUES, variables=None):
+    """Construye el indice completo. Devuelve el agregado, los sub-indices por
+    dimension y los puntajes z de cada variable, todos en la escala final.
 
-# guarda: el logaritmo exige valores estrictamente positivos. Si una
-# actualizacion futura trae un cero o un negativo en una variable de monto
-# (una desobligacion neta, por ejemplo), esto tiene que detenerse y no
-# producir un -inf silencioso.
-for variable in VARIABLES:
+    Se parametriza por `variables` para poder recalcularlo dejando alguna fuera,
+    que es lo que necesita la prueba de utilidad de la seccion 7.1."""
 
-    if TRANSFORMACION_POR_UNIDAD[unidad_de[variable]] == "log10" and X[variable].min() <= 0:
+    variables = variables if variables is not None else VARIABLES
 
-        raise SystemExit(
-            f"'{variable}' tiene valores <= 0 y esta declarada para log10. "
-            "Revisar la decision 3 antes de seguir."
-        )
+    # Paso 1 y 2: transformar y normalizar contra el periodo base
+    puntajes = {}
+
+    for variable in variables:
+
+        serie = datos[variable]
+
+        if TRANSFORMACION[UNIDAD_DE[variable]] == "log10":
+
+            if serie.min() <= 0:
+                raise SystemExit(
+                    f"'{variable}' tiene valores menores o iguales a cero y está "
+                    "declarada para transformación logarítmica. Revisar la decisión 6."
+                )
+
+            serie = np.log10(serie)
+
+        referencia = serie.loc[periodo_base]
+        puntajes[variable] = POLARIDAD[variable] * (serie - referencia.mean()) / referencia.std()
+
+    Z = pd.DataFrame(puntajes, index=datos.index)
+
+    # Paso 3: promediar dentro de cada bloque, y los bloques dentro de la dimension
+    sub_indices = {}
+
+    for dimension, bloques_dimension in bloques.items():
+
+        promedios = [
+            Z[[v for v in miembros if v in variables]].mean(axis=1)
+            for miembros in bloques_dimension.values()
+            if any(v in variables for v in miembros)
+        ]
+
+        if promedios:
+            sub_indices[dimension] = pd.concat(promedios, axis=1).mean(axis=1)
+
+    sub_indices = pd.DataFrame(sub_indices, index=datos.index)
+    agregado = sub_indices.mean(axis=1)
+
+    # Paso 4: llevar a la escala de media 100 y desvio 10 en el periodo base
+    def a_escala(serie):
+        referencia = serie.loc[periodo_base]
+        return MEDIA_BASE + DESVIO_BASE * (serie - referencia.mean()) / referencia.std()
+
+    return a_escala(agregado), sub_indices.apply(a_escala), Z
 
 
-def transformar(serie, variable):
-    """Aplica la transformacion declarada para la unidad de esa variable."""
+indice, sub_indices, Z = construir_indice(X, PERIODO_BASE)
 
-    if TRANSFORMACION_POR_UNIDAD[unidad_de[variable]] == "log10":
-        return np.log10(serie)
+indice = indice.to_frame("indice")
+indice["suavizado"] = indice["indice"].rolling(SUAVIZADO).mean()
+indice["provisional"] = [t in VENTANA_PROVISIONAL for t in indice.index]
 
-    return serie
+ultimo_firme = VENTANA_FIRME[-1]
+firme = indice.loc[VENTANA_FIRME]
 
+print(f"Verificación de la escala en el período base: "
+      f"media {indice.loc[PERIODO_BASE, 'indice'].mean():.2f}, "
+      f"desvío {indice.loc[PERIODO_BASE, 'indice'].std():.2f}")
+print()
+print(f"Último trimestre firme ({ultimo_firme}): {indice.loc[ultimo_firme, 'indice']:.1f} puntos")
+print(f"  lectura suavizada: {indice.loc[ultimo_firme, 'suavizado']:.1f}")
+print(f"Máximo de la serie firme: {firme['indice'].idxmax()} ({firme['indice'].max():.1f})")
+print(f"Mínimo de la serie firme: {firme['indice'].idxmin()} ({firme['indice'].min():.1f})")
 
-X_transformado = pd.DataFrame(
-    {v: transformar(X[v], v) for v in VARIABLES}, index=X.index
-)
-
-# z-score con la polaridad declarada aplicada al final. La media y el desvio
-# de cada variable se estiman SOLO con la ventana firme (decision 7) y se
-# aplican despues a toda la ventana: un total anual parcial no puede correr el
-# centro contra el que se compara la historia completa.
-REFERENCIA = X_transformado.loc[VENTANA_FIRME]
-
-Z = pd.DataFrame(
-    {
-        v: POLARIDAD[v] * (X_transformado[v] - REFERENCIA[v].mean()) / REFERENCIA[v].std()
-        for v in VARIABLES
-    },
-    index=X.index,
-)
-
-comparacion_asimetria = pd.DataFrame({
-    "unidad": [unidad_de[v] for v in VARIABLES],
-    "transformacion": [TRANSFORMACION_POR_UNIDAD[unidad_de[v]] for v in VARIABLES],
-    "asimetria_antes": [X[v].skew() for v in VARIABLES],
-    "asimetria_despues": [Z[v].skew() for v in VARIABLES],
-}, index=VARIABLES).round(2)
-
-comparacion_asimetria
+for trimestre in VENTANA_PROVISIONAL:
+    print(f"\nProvisional — {trimestre}: {indice.loc[trimestre, 'indice']:.1f} puntos "
+          "(no comparable, ver sección 4.5)")
 ```
 
 ```{python}
 #| label: fig-normalizacion
-#| fig-cap: "Las diez variables después de normalizar. Todas centradas en 0 con desvío 1: recién acá se pueden promediar. Cada punto es un trimestre."
+#| fig-cap: "Las diez variables después de transformar y normalizar. Todas quedan expresadas en desvíos respecto del promedio del período base, que es la condición para poder promediarlas. Cada punto es un trimestre."
 #| fig-height: 3.8
 
 fig, ax = plt.subplots(figsize=(9, 3.8))
-
-generador = np.random.default_rng(42)  # jitter reproducible
+generador = np.random.default_rng(42)
 
 for fila, variable in enumerate(VARIABLES[::-1]):
 
-    dimension = catalogo.loc[catalogo["variable"] == variable, "dimension"].iloc[0]
     valores = Z[variable].values
     desplazamiento = generador.uniform(-0.16, 0.16, size=len(valores))
-
     ax.scatter(valores, np.full(len(valores), fila) + desplazamiento, s=14,
-               color=COLOR_DIMENSION[dimension], alpha=0.55, linewidths=0)
+               color=COLOR_DIMENSION[DIMENSION_DE[variable]], alpha=0.55, linewidths=0)
 
-ax.axvline(0, color="#dedcd6", linewidth=1)
+ax.axvline(0, color=BORDE, linewidth=1)
 ax.set_yticks(range(len(VARIABLES)))
 ax.set_yticklabels(VARIABLES[::-1], fontsize=8)
-ax.set_xlabel("z-score (desvíos estándar respecto del promedio de la propia variable)")
+ax.set_xlabel("desvíos respecto del promedio del período base 2015-2019")
 ax.grid(axis="x")
 ax.grid(axis="y", visible=False)
-ax.set_title("Después de log + z-score: una sola escala para las diez")
-
-manijas = [
-    plt.Line2D([], [], marker="o", linestyle="", markersize=6,
-               color=COLOR_DIMENSION[d], label=ETIQUETA_DIMENSION[d])
-    for d in DIMENSIONES
-]
-ax.legend(handles=manijas, loc="lower right")
+ax.set_title("Después de transformar y normalizar: una sola escala para las diez")
+leyenda_dimensiones(ax, loc="lower right")
 
 plt.tight_layout()
 plt.show()
 ```
 
-El logaritmo hizo su trabajo donde hacía falta: la asimetría de
-`usaspending_obligaciones` baja de 6.3 a un valor cercano a cero, y el pico de
-2015 sigue siendo el máximo de la serie pero ya no define el eje.
+# Validación {#sec-validacion}
 
-## 3.3. Sub-índices por dimensión
+## ¿Aporta algo cada variable? {#sec-utilidad}
 
-Se agrega en dos pasos, siguiendo la jerarquía de la decisión 5: primero el
-promedio de los z dentro de cada bloque, después el promedio de los bloques
-dentro de la dimensión.
+**La pregunta.** Si se quita una variable del índice, ¿cambia el resultado? Si no
+cambiara, esa variable no estaría aportando información y podría eliminarse.
+
+**Cómo se responde.** Se reconstruye el índice completo diez veces, cada una
+dejando fuera una variable distinta, y se compara con el índice original. Se
+reportan dos medidas: cuántos puntos cambia el índice en promedio, y si el
+ordenamiento temporal se mantiene.
 
 ```{python}
-#| label: subindices
+#| label: tbl-utilidad
+#| tbl-cap: "Prueba de utilidad de cada variable. La columna de cambio indica cuántos puntos del índice se mueven, en promedio y como máximo, si esa variable se excluye. La correlación mide si el ordenamiento de los trimestres se conserva."
 
-def indice_por_dimension(z):
-    """Promedia z-scores por bloque y despues los bloques por dimension.
-    Devuelve un DataFrame con una columna por dimension."""
+base_firme = indice.loc[VENTANA_FIRME, "indice"]
+utilidad = []
 
-    resultado = {}
+for variable in VARIABLES:
 
-    for dimension, bloques in BLOQUES.items():
+    resto = [v for v in VARIABLES if v != variable]
+    indice_sin, _, _ = construir_indice(X, PERIODO_BASE, variables=resto)
+    diferencia = (indice_sin.loc[VENTANA_FIRME] - base_firme).abs()
 
-        promedios_de_bloque = pd.DataFrame(
-            {nombre: z[variables].mean(axis=1) for nombre, variables in bloques.items()},
-            index=z.index,
-        )
+    utilidad.append({
+        "variable": variable,
+        "dimensión": DIMENSION_DE[variable].split("_")[0],
+        "cambio_medio_pts": diferencia.mean(),
+        "cambio_máximo_pts": diferencia.max(),
+        "correlación_sin_ella": indice_sin.loc[VENTANA_FIRME].rank().corr(base_firme.rank()),
+    })
 
-        resultado[dimension] = promedios_de_bloque.mean(axis=1)
+pd.DataFrame(utilidad).set_index("variable").sort_values(
+    "cambio_medio_pts", ascending=False).round(2)
+```
 
-    return pd.DataFrame(resultado, index=z.index)
+**Qué se encontró.** Ninguna variable es prescindible. Excluir la menos influyente
+mueve el índice `{python} f"{pd.DataFrame(utilidad)['cambio_medio_pts'].min():.1f}"`
+puntos en promedio, lo que es apreciable en una escala cuyo desvío estándar es
+diez puntos por construcción. Las dos más influyentes son las obligaciones de
+USAspending y las remesas, que son también las dos series con mayor variabilidad
+propia. Las cuatro variables de GDELT tienen individualmente menos influencia
+porque comparten dos bloques entre cuatro, pero su dimensión en conjunto sí es
+determinante, como muestra la sección 7.5.
+
+## Consistencia interna, y por qué acá no es un criterio de validez {#sec-alfa}
+
+**La pregunta.** ¿Se parecen entre sí las variables que componen el índice?
+
+**Cómo se responde.** Con el alfa de Cronbach, que resume en un número entre 0 y 1
+cuánta varianza comparten los componentes.
+
+```{python}
+#| label: tbl-alfa
+#| tbl-cap: "Alfa de Cronbach del conjunto y de cada dimensión, calculado sobre la ventana firme"
+
+def alfa_de_cronbach(puntajes):
+    """Formula estandar. Requiere al menos dos columnas."""
+
+    k = puntajes.shape[1]
+
+    if k < 2:
+        return np.nan
+
+    return k / (k - 1) * (1 - puntajes.var(ddof=1).sum() / puntajes.sum(axis=1).var(ddof=1))
 
 
-subindices = indice_por_dimension(Z)
+Z_firme = Z.loc[VENTANA_FIRME]
 
-subindices.describe().round(2)
+ALFA_TOTAL = alfa_de_cronbach(Z_firme)
+ALFA_POR_DIMENSION = {}
+
+filas_alfa = [{"conjunto": "Las diez variables", "variables": len(VARIABLES),
+               "alfa": ALFA_TOTAL}]
+
+for dimension, bloques_dimension in BLOQUES.items():
+    miembros = [v for b in bloques_dimension.values() for v in b]
+    ALFA_POR_DIMENSION[dimension] = alfa_de_cronbach(Z_firme[miembros])
+    filas_alfa.append({
+        "conjunto": ETIQUETA_DIMENSION[dimension],
+        "variables": len(miembros),
+        "alfa": ALFA_POR_DIMENSION[dimension],
+    })
+
+ALFA_DIM4 = ALFA_POR_DIMENSION["4_Visibilidad_mediatica_y_relevancia_publica_limpias"]
+
+pd.DataFrame(filas_alfa).set_index("conjunto").round(3)
+```
+
+**Qué se encontró.** El alfa del conjunto es de
+`{python} f"{ALFA_TOTAL:.2f}"`. Por dimensión, la 4 alcanza
+`{python} f"{ALFA_DIM4:.2f}"`, mientras que la 1 y la 3 quedan cerca de cero,
+esta última incluso ligeramente negativa.
+
+::: {.callout-note}
+## Cómo debe interpretarse este resultado
+
+En un índice **reflectivo** —un test psicométrico, por ejemplo— un alfa tan bajo
+sería motivo para rechazar el instrumento, porque significaría que las preguntas
+no están midiendo lo mismo. En un índice **formativo**, que es el caso acá
+(sección 1.2), el alfa no es un criterio de validez: sus componentes no son
+manifestaciones de un factor común sino partes constitutivas del concepto. El
+manual de la OCDE es explícito en este punto.
+
+De hecho, un alfa alto en este índice sería una señal de alarma: indicaría que las
+tres dimensiones son redundantes entre sí y que no hacía falta medirlas por
+separado.
+
+Que la dimensión 4 sea la única con un alfa apreciable es coherente y esperable:
+sus cuatro variables provienen de la misma fuente y del mismo fenómeno medido de
+cuatro maneras. Que la dimensión 3 sea cercana a cero indica que comercio y
+remesas se mueven por motores distintos, lo cual es sustantivamente correcto: las
+remesas dependen de la diáspora y del mercado laboral estadounidense, y el
+comercio de precios de materias primas y de demanda industrial.
+
+**La consecuencia real de este resultado no es que el índice sea inválido, sino
+que el agregado comunica menos que sus partes.** Promediar tres series que se
+mueven de forma independiente produce una serie más estable que cualquiera de
+ellas, y esa estabilidad puede esconder movimientos importantes en direcciones
+opuestas. Es exactamente lo que ocurre en 2025 y se detalla en la sección 8.
+:::
+
+## Sensibilidad: ¿el resultado depende del método elegido? {#sec-sensibilidad}
+
+**La pregunta.** Las decisiones de las secciones anteriores fueron razonadas, pero
+otras decisiones también habrían sido razonables. ¿Cuánto cambiaría el índice con
+esas otras opciones?
+
+**Cómo se responde.** Se construyen cuatro variantes que modifican una decisión
+cada una, y se comparan con el índice propuesto.
+
+```{python}
+#| label: sensibilidad
+
+BLOQUES_PLANOS = {
+    dimension: {"todas": [v for b in bloques.values() for v in b]}
+    for dimension, bloques in BLOQUES.items()
+}
+
+BLOQUES_SIN_TONO = {
+    dimension: {n: v for n, v in bloques.items() if n != "clima"}
+    for dimension, bloques in BLOQUES.items()
+}
+
+variantes = {"Propuesto": indice["indice"]}
+
+# Variante 1: sin deflactar (decision 5)
+variantes["Sin deflactar"], _, _ = construir_indice(X_nominal, PERIODO_BASE)
+
+# Variante 2: pesos iguales por variable, sin bloques (decision 8)
+variantes["Pesos planos"], _, _ = construir_indice(X, PERIODO_BASE, bloques=BLOQUES_PLANOS)
+
+# Variante 3: sin las variables de tono (decision 10)
+variantes["Sin tono"], _, _ = construir_indice(X, PERIODO_BASE, bloques=BLOQUES_SIN_TONO)
+
+# Variante 4: percentiles en vez de logaritmo y puntaje z (decision 6)
+X_rangos = X.rank(pct=True)
+_transformacion_original = dict(TRANSFORMACION)
+TRANSFORMACION.update({"USD": "ninguna", "cantidad": "ninguna"})
+variantes["Percentiles"], _, _ = construir_indice(X_rangos, PERIODO_BASE)
+TRANSFORMACION.update(_transformacion_original)
+
+variantes = pd.DataFrame(variantes)
+
+comparacion = pd.DataFrame({
+    "último firme": variantes.loc[ultimo_firme],
+    "promedio firme": variantes.loc[VENTANA_FIRME].mean(),
+    "desvío firme": variantes.loc[VENTANA_FIRME].std(),
+    "correlación con el propuesto": variantes.loc[VENTANA_FIRME].rank().corrwith(
+        variantes.loc[VENTANA_FIRME, "Propuesto"].rank()),
+})
+
+comparacion.round(2)
 ```
 
 ```{python}
-#| label: fig-subindices
-#| fig-cap: "Los tres sub-índices dimensionales, en desvíos estándar. La línea gruesa es la media móvil de 4 trimestres (cómo se debe leer, según la decisión 4); la fina es el dato trimestral. La escala se fija con la ventana firme, así que el desplome de la dimensión 1 en el tramo provisional se sale del gráfico: es el dato parcial de 2.11, no una caída."
+#| label: fig-sensibilidad
+#| fig-cap: "Las variantes del índice, todas suavizadas a cuatro trimestres. Las líneas que se superponen indican decisiones que no alteran la historia que cuenta el índice; las que se separan señalan dónde la decisión sí importa."
 #| fig-height: 4.4
 
 fig, ax = plt.subplots(figsize=(9, 4.4))
 
-posiciones = np.arange(len(subindices))
+estilos = {
+    "Propuesto": (COLOR_DIMENSION["1_Compromiso_financiero_oficial_limpias"], 2.4),
+    "Sin deflactar": (COLOR_DIMENSION["3_Compromiso_economico_privado_limpias"], 1.6),
+    "Sin tono": (COLOR_DIMENSION["4_Visibilidad_mediatica_y_relevancia_publica_limpias"], 1.6),
+}
 
-for dimension in DIMENSIONES:
+posiciones = np.arange(len(VENTANA_FIRME))
 
-    serie = subindices[dimension]
-    color = COLOR_DIMENSION[dimension]
+for nombre, (color, grosor) in estilos.items():
+    serie = variantes.loc[VENTANA_FIRME, nombre].rolling(SUAVIZADO).mean()
+    ax.plot(posiciones, serie.values, color=color, linewidth=grosor, label=nombre)
 
-    ax.plot(posiciones, serie.values, color=color, linewidth=0.9, alpha=0.35)
-    ax.plot(posiciones, serie.rolling(VENTANA_SUAVIZADO).mean().values,
-            color=color, linewidth=2.2, label=ETIQUETA_DIMENSION[dimension])
-
-    # etiqueta directa al final del tramo FIRME (no del panel): en el tramo
-    # provisional la dimension 1 se va de escala y la etiqueta caeria fuera
-    # del grafico, encima de los rotulos del eje
-    ultimo_firme_dim = serie.loc[VENTANA_FIRME].rolling(VENTANA_SUAVIZADO).mean().iloc[-1]
-    ax.annotate(ETIQUETA_DIMENSION[dimension].split(" · ")[0],
-                xy=(len(VENTANA_FIRME) - 1, ultimo_firme_dim), xytext=(7, 0),
-                textcoords="offset points", fontsize=8, color=color, va="center")
-
-ax.axhline(0, color="#dedcd6", linewidth=1)
-ubic = [i for i, t in enumerate(VENTANA) if t.endswith("Q1")]
-ax.set_xticks(ubic)
-ax.set_xticklabels([VENTANA[i][:4] for i in ubic])
-ax.set_xlim(-1, len(subindices) + 3)
-
-# la escala la fija la ventana firme: si la definiera el tramo provisional
-# (que baja a -5 desvios), el rango informativo quedaria aplastado en una
-# franja ilegible. El tramo parcial se sale del grafico a proposito
-limite_y = float(np.nanmax(np.abs(subindices.loc[VENTANA_FIRME].values))) * 1.2
-ax.set_ylim(-limite_y, limite_y)
-
-ax.set_ylabel("desvíos estándar")
+ax.axhline(MEDIA_BASE, color=BORDE, linewidth=1)
+posiciones_anuales, etiquetas_anuales = marcas_anuales(VENTANA_FIRME)
+ax.set_xticks(posiciones_anuales)
+ax.set_xticklabels(etiquetas_anuales)
+ax.set_ylabel("índice (base 100 = promedio 2015-2019)")
 solo_grilla_y(ax)
-ax.set_title("Sub-índices por dimensión, 2015-Q1 a 2026-Q1")
-ax.legend(loc="upper left", ncol=3)
-
-# el tramo final de la dimension 1 arrastra el dato parcial de 2.11
-marcar_provisional(ax, len(VENTANA_FIRME))
+ax.set_title("Efecto de las decisiones metodológicas sobre el resultado")
+ax.legend(loc="lower left", ncol=3)
 
 plt.tight_layout()
 plt.show()
 ```
 
-## 3.4. Índice agregado
+**Qué se encontró.** Las decisiones no pesan todas lo mismo, y conviene ser
+preciso sobre cuál importa.
 
-El promedio simple de los tres sub-índices (decisión 5: 1/3 cada uno). Se reporta
-en dos escalas: en desvíos estándar, que es la unidad en la que se construyó, y
-reescalado 0–100 sobre la ventana, que es la que se puede mostrar.
+- **Deflactar es la decisión que más cambia el resultado.** La versión sin
+  deflactar correlaciona
+  `{python} f"{comparacion.loc['Sin deflactar', 'correlación con el propuesto']:.2f}"`
+  con la propuesta: no solo desplaza el nivel —cierra 2025 casi veinte puntos más
+  arriba— sino que altera parte del ordenamiento entre trimestres. Esto confirma
+  que la decisión 5 era necesaria y no un refinamiento opcional.
+- **La estructura de bloques cambia poco el resultado pero corrige el peso.** La
+  versión de pesos planos correlaciona por encima de 0.97 con la propuesta. La
+  jerarquía no se adopta porque cambie la historia, sino porque hace que el peso
+  responda al concepto y no al número de columnas que publica cada fuente.
+- **Quitar el tono desplaza el índice de forma moderada y sistemática.** Esa
+  diferencia es precisamente lo que la decisión 10 obliga a reportar.
+- **El método de normalización no manda el resultado.** La versión por percentiles
+  —que no supone nada sobre la forma de las distribuciones y es inmune a los
+  valores extremos— cuenta la misma historia. Esta es la prueba más importante de
+  la sección: significa que el índice refleja los datos y no un artefacto de la
+  transformación elegida.
+
+## Estabilidad: ¿cambian las cifras cuando se agregan años? {#sec-revision}
+
+**La pregunta.** Si dentro de un año se recalcula el índice con cuatro trimestres
+más, ¿siguen valiendo los números publicados hoy?
+
+**Cómo se responde.** Se simula el paso del tiempo. Se construye el índice como si
+hoy fuera el final de 2019, luego de 2021, luego de 2023, y se compara cada una de
+esas versiones con el índice actual en los trimestres que ambos comparten. Esta
+prueba se hace dos veces: con la escala recalculada y con la escala de base fija.
 
 ```{python}
-#| label: indice-agregado
+#| label: tbl-revision
+#| tbl-cap: "Prueba de revisión. Mide cuántos puntos se moverían los valores ya publicados al incorporar años posteriores, bajo las dos políticas de escala."
 
-def escalar_0_100(serie):
-    """Min-max con el minimo y el maximo de la VENTANA FIRME (decision 7): un
-    trimestre provisional no puede redefinir la escala contra la que se lee
-    toda la historia. Como consecuencia, un valor provisional PUEDE caer
-    fuera de 0-100, y eso es correcto - avisa que esta fuera de rango
-    historico."""
+def indice_recalculado(datos, periodo):
+    """Version con escala recalculada: usa TODA la historia disponible en ese
+    momento como referencia, en vez de un periodo base fijo."""
 
-    referencia = serie.loc[VENTANA_FIRME]
-
-    return (
-        BASE_MINIMA
-        + (serie - referencia.min()) / (referencia.max() - referencia.min())
-        * (BASE_MAXIMA - BASE_MINIMA)
-    )
+    resultado, _, _ = construir_indice(datos.loc[periodo], periodo)
+    return resultado
 
 
-indice = pd.DataFrame({"indice_z": subindices.mean(axis=1)})
-indice["indice_0_100"] = escalar_0_100(indice["indice_z"])
-indice["indice_z_suavizado"] = indice["indice_z"].rolling(VENTANA_SUAVIZADO).mean()
-indice["indice_0_100_suavizado"] = indice["indice_0_100"].rolling(VENTANA_SUAVIZADO).mean()
-indice["provisional"] = [t in VENTANA_PROVISIONAL for t in indice.index]
+revisiones = []
 
-# el titular es el ultimo trimestre FIRME, no el ultimo del panel
-ultimo_firme = VENTANA_FIRME[-1]
-firme = indice.loc[VENTANA_FIRME]
+for corte in ("2019-Q4", "2021-Q4", "2023-Q4"):
 
-print(f"TITULAR - ultimo trimestre firme: {ultimo_firme}")
-print(f"  indice_z                {indice.loc[ultimo_firme, 'indice_z']:+.2f} desvios")
-print(f"  indice_0_100            {indice.loc[ultimo_firme, 'indice_0_100']:.1f}")
-print(f"  indice_0_100 suavizado  {indice.loc[ultimo_firme, 'indice_0_100_suavizado']:.1f} <- lectura recomendada")
-print()
-print(f"maximo de la ventana firme: {firme['indice_0_100'].idxmax()} "
-      f"({firme['indice_0_100'].max():.1f})")
-print(f"minimo de la ventana firme: {firme['indice_0_100'].idxmin()} "
-      f"({firme['indice_0_100'].min():.1f})")
+    hasta = [t for t in VENTANA_FIRME if t <= corte]
+    base_disponible = [t for t in PERIODO_BASE if t in hasta]
+    comunes = hasta
 
-if VENTANA_PROVISIONAL:
-    print()
-    print("PROVISIONAL (año fiscal en curso, no comparable - ver 2.11):")
-    for trimestre in VENTANA_PROVISIONAL:
-        print(f"  {trimestre}  indice_0_100 {indice.loc[trimestre, 'indice_0_100']:.1f}")
+    # politica A: base fija
+    fija, _, _ = construir_indice(X.loc[hasta], base_disponible)
+    dif_fija = (fija.loc[comunes] - indice.loc[comunes, "indice"]).abs()
+
+    # politica B: escala recalculada con toda la historia disponible
+    movil_corte = indice_recalculado(X, hasta)
+    movil_actual = indice_recalculado(X, VENTANA_FIRME)
+    dif_movil = (movil_corte.loc[comunes] - movil_actual.loc[comunes]).abs()
+
+    revisiones.append({
+        "vintage": f"datos hasta {corte}",
+        "trimestres": len(hasta),
+        "base_fija_media": dif_fija.mean(),
+        "base_fija_máxima": dif_fija.max(),
+        "recalculada_media": dif_movil.mean(),
+        "recalculada_máxima": dif_movil.max(),
+    })
+
+pd.DataFrame(revisiones).set_index("vintage").round(3)
 ```
+
+**Qué se encontró.** El contraste es categórico. Con la escala recalculada, un
+índice publicado a fines de 2019 se habría revisado
+`{python} f"{pd.DataFrame(revisiones)['recalculada_media'].iloc[0]:.1f}"`
+puntos en promedio al incorporar los años siguientes, con revisiones de hasta
+`{python} f"{pd.DataFrame(revisiones)['recalculada_máxima'].iloc[0]:.1f}"`
+puntos en algún trimestre. Sobre una escala cuyo desvío estándar es de diez
+puntos, eso significa que una parte sustancial de la historia publicada habría
+cambiado de lugar. El motivo es que 2020 introdujo un mínimo sin precedentes que
+recalibró toda la escala hacia atrás.
+
+Con la base fija de 2015-2019, la revisión es **exactamente cero**: los valores
+publicados no se mueven nunca. La única fuente de revisión que subsiste es la
+corrección de datos por parte de las fuentes originales, que es una revisión
+legítima y trazable.
+
+::: {.callout-tip}
+## Respuesta directa a la pregunta
+
+**Sí, las cifras cambiarían si la escala se recalculara con cada actualización, y
+cambiarían mucho.** Por eso el índice adopta base fija (decisión 11). Con el diseño
+propuesto, agregar años nuevos no altera ningún valor ya publicado.
+
+La contrapartida es que los valores futuros pueden alejarse del rango 90-110. Eso
+no es un defecto: significa que la relación bilateral se movió a un territorio
+distinto del que caracterizó al quinquenio de referencia, que es exactamente lo
+que un índice debería poder comunicar.
+:::
+
+## Qué dimensión gobierna el agregado
+
+```{python}
+#| label: tbl-gobierna
+#| tbl-cap: "Correlación de cada sub-índice dimensional con el índice agregado"
+
+pd.DataFrame({
+    "correlación con el agregado": {
+        ETIQUETA_DIMENSION[d]: sub_indices.loc[VENTANA_FIRME, d].rank().corr(base_firme.rank())
+        for d in sub_indices.columns},
+    "desvío propio (puntos)": {
+        ETIQUETA_DIMENSION[d]: sub_indices.loc[VENTANA_FIRME, d].std()
+        for d in sub_indices.columns},
+}).round(3)
+```
+
+**Qué se encontró.** Aunque las tres dimensiones tienen el mismo peso por diseño,
+la dimensión 4 gobierna el agregado en la práctica: es la que más correlaciona con
+el resultado final y la que tiene mayor variabilidad propia. La razón es
+aritmética: cuando se promedian tres series que se mueven de forma independiente,
+la que más se mueve domina el resultado. Es un dato que debe acompañar la lectura
+del índice, y refuerza la advertencia de reportar siempre los sub-índices.
+
+# Resultados {#sec-resultados}
+
+## La serie
 
 ```{python}
 #| label: fig-indice
-#| fig-cap: "US-PY Engagement Index, tres dimensiones, escala 0–100 fijada con la ventana firme. Línea fina: el trimestre. Línea gruesa: media móvil de 4 trimestres, la lectura recomendada. El tramo claro del final es el año fiscal en curso, con dato parcial (2.11) — no es una caída del índice."
+#| fig-cap: "US-PY Engagement Index. La línea fina es el valor trimestral y la gruesa el promedio móvil de cuatro trimestres, que es la lectura recomendada. El marcador hueco del final es el trimestre provisional, que no es comparable con el resto."
 #| fig-height: 4.8
 
 fig, ax = plt.subplots(figsize=(9, 4.8))
@@ -1316,56 +2251,39 @@ color_indice = COLOR_DIMENSION["1_Compromiso_financiero_oficial_limpias"]
 posiciones = np.arange(len(indice))
 n_firme = len(VENTANA_FIRME)
 
-# tramo firme: el trimestre en fino, la media movil en grueso
-ax.plot(posiciones[:n_firme], indice["indice_0_100"].values[:n_firme],
+ax.plot(posiciones[:n_firme], indice["indice"].values[:n_firme],
         color=color_indice, linewidth=0.9, alpha=0.35)
-ax.plot(posiciones[:n_firme], indice["indice_0_100_suavizado"].values[:n_firme],
-        color=color_indice, linewidth=2.6, label="índice, media móvil 4 trimestres")
+ax.plot(posiciones[:n_firme], indice["suavizado"].values[:n_firme],
+        color=color_indice, linewidth=2.6, label="índice (promedio móvil de 4 trimestres)")
 
-# tramo provisional: mismo color (es la misma serie), mucho mas claro y
-# rotulado - no puede leerse como parte de la serie comparable
 if VENTANA_PROVISIONAL:
-
     tramo = slice(n_firme - 1, len(indice))
-
-    ax.plot(posiciones[tramo], indice["indice_0_100"].values[tramo],
-            color=color_indice, linewidth=1.4, alpha=0.30,
-            label="año fiscal en curso · dato parcial, no comparable")
-    ax.scatter(posiciones[n_firme:], indice["indice_0_100"].values[n_firme:],
-               s=44, facecolor=SUPERFICIE, edgecolor=color_indice,
-               linewidths=1.6, zorder=3)
-
+    ax.plot(posiciones[tramo], indice["indice"].values[tramo], color=color_indice,
+            linewidth=1.4, alpha=0.30, label="año fiscal en curso (dato parcial)")
+    ax.scatter(posiciones[n_firme:], indice["indice"].values[n_firme:], s=44,
+               facecolor=SUPERFICIE, edgecolor=color_indice, linewidths=1.6, zorder=3)
     for posicion, trimestre in zip(posiciones[n_firme:], VENTANA_PROVISIONAL):
-        ax.annotate(f"{trimestre}\nparcial",
-                    xy=(posicion, indice.loc[trimestre, "indice_0_100"]),
-                    xytext=(9, 0), textcoords="offset points",
-                    fontsize=7.5, color=TINTA_SUAVE, va="center")
+        ax.annotate(f"{trimestre}\nprovisional",
+                    xy=(posicion, indice.loc[trimestre, "indice"]), xytext=(9, 0),
+                    textcoords="offset points", fontsize=7.5, color=TINTA_SUAVE, va="center")
 
-# referencia: el promedio de la ventana firme. El rotulo va en el margen
-# derecho que ya reserva el xlim - dentro del area de datos, con 45 trimestres
-# de serie, cualquier posicion termina cruzandose con la linea
-promedio_firme = firme["indice_0_100"].mean()
-ax.axhline(promedio_firme, color="#dedcd6", linewidth=1)
-ax.annotate(f"promedio\nfirme ({promedio_firme:.0f})",
-            xy=(len(indice) + 0.5, promedio_firme), xytext=(0, 0),
-            textcoords="offset points", ha="left", va="center",
+ax.axhline(MEDIA_BASE, color=BORDE, linewidth=1)
+ax.annotate("base 100 = promedio 2015-2019", xy=(len(indice) + 0.5, MEDIA_BASE),
+            xytext=(0, 0), textcoords="offset points", ha="left", va="center",
             fontsize=7.5, color=TINTA_SUAVE)
 
-# etiqueta directa en el titular: ultimo trimestre firme, valor suavizado
-y_titular = indice.loc[ultimo_firme, "indice_0_100_suavizado"]
+y_titular = indice.loc[ultimo_firme, "suavizado"]
 ax.plot([n_firme - 1], [y_titular], marker="o", markersize=8, color=color_indice,
         markeredgecolor=SUPERFICIE, markeredgewidth=1.8, zorder=4)
-ax.annotate(f"{ultimo_firme}\n{y_titular:.1f}",
-            xy=(n_firme - 1, y_titular), xytext=(-8, 12),
-            textcoords="offset points", ha="right", fontsize=8.5, color=TINTA)
+ax.annotate(f"{ultimo_firme}\n{y_titular:.1f}", xy=(n_firme - 1, y_titular),
+            xytext=(-8, 14), textcoords="offset points", ha="right",
+            fontsize=8.5, color=TINTA)
 
-ubic = [i for i, t in enumerate(VENTANA) if t.endswith("Q1")]
-ax.set_xticks(ubic)
-ax.set_xticklabels([VENTANA[i][:4] for i in ubic])
-ax.set_xlim(-1, len(indice) + 5)
-ax.set_ylim(min(-5, float(indice["indice_0_100"].min()) - 6),
-            max(105, float(indice["indice_0_100"].max()) + 6))
-ax.set_ylabel("índice (0–100 sobre la ventana firme)")
+posiciones_anuales, etiquetas_anuales = marcas_anuales(VENTANA)
+ax.set_xticks(posiciones_anuales)
+ax.set_xticklabels(etiquetas_anuales)
+ax.set_xlim(-1, len(indice) + 6)
+ax.set_ylabel("índice (base 100 = promedio 2015-2019)")
 solo_grilla_y(ax)
 ax.set_title("US-PY Engagement Index · dimensiones 1, 3 y 4")
 ax.legend(loc="upper left", bbox_to_anchor=(0, -0.14), ncol=2)
@@ -1374,174 +2292,168 @@ plt.tight_layout()
 plt.show()
 ```
 
-## 3.5. Sensibilidad: ¿el índice es un resultado o un artefacto del método?
-
-Un índice compuesto siempre es una elección entre varias razonables. La prueba de
-que el resultado no es un artefacto es reconstruirlo con métodos alternativos y ver
-si cuenta la misma historia. Tres variantes:
-
-- **rangos** — reemplaza log + z-score por percentiles dentro de la ventana. No
-  supone nada sobre la forma de las distribuciones y es inmune a los outliers.
-- **sin tono** — quita las dos variables de tono, según la objeción de la decisión 6.
-- **sin log** — z-score directo sobre los valores crudos, para aislar cuánto aporta
-  la transformación de la decisión 3.
-
 ```{python}
-#| label: sensibilidad
-
-# la sensibilidad se evalua sobre la ventana FIRME: es una comparacion entre
-# metodos, y el trimestre parcial de 2.11 solo agregaria ruido comun a los
-# cuatro sin decir nada sobre el metodo
-X_firme = X.loc[VENTANA_FIRME]
-
-# variante 1: percentiles en vez de log + z
-Z_rangos = pd.DataFrame(
-    {v: POLARIDAD[v] * X_firme[v].rank(pct=True) for v in VARIABLES},
-    index=X_firme.index,
-)
-Z_rangos = (Z_rangos - Z_rangos.mean()) / Z_rangos.std()
-
-# variante 2: sin las dos variables de tono
-BLOQUES_SIN_TONO = {
-    dimension: {n: v for n, v in bloques.items() if n != "clima"}
-    for dimension, bloques in BLOQUES.items()
-}
-
-# variante 3: z-score sin logaritmo previo
-Z_sin_log = pd.DataFrame(
-    {v: POLARIDAD[v] * (X_firme[v] - X_firme[v].mean()) / X_firme[v].std() for v in VARIABLES},
-    index=X_firme.index,
-)
-
-
-def agregar(z, bloques=None):
-    """Version parametrizable de indice_por_dimension + promedio final."""
-
-    bloques = bloques or BLOQUES
-
-    por_dimension = {}
-
-    for dimension, bloques_dim in bloques.items():
-
-        promedios = pd.DataFrame(
-            {n: z[variables].mean(axis=1) for n, variables in bloques_dim.items()},
-            index=z.index,
-        )
-        por_dimension[dimension] = promedios.mean(axis=1)
-
-    return pd.DataFrame(por_dimension, index=z.index).mean(axis=1)
-
-
-variantes = pd.DataFrame({
-    "base (log + z)": indice.loc[VENTANA_FIRME, "indice_z"],
-    "rangos": agregar(Z_rangos),
-    "sin tono": agregar(Z.loc[VENTANA_FIRME], BLOQUES_SIN_TONO),
-    "sin log": agregar(Z_sin_log),
-})
-
-correlacion_variantes = variantes.corr(method="spearman").round(3)
-correlacion_variantes
-```
-
-```{python}
-#| label: fig-sensibilidad
-#| fig-cap: "Las cuatro variantes del índice, todas suavizadas a 4 trimestres y reescaladas 0–100 para que sean comparables. Si contaran historias distintas, el índice sería un artefacto del método."
+#| label: fig-subindices
+#| fig-cap: "Los tres sub-índices dimensionales, en la misma escala que el agregado. La divergencia de 2025 entre la dimensión 1 y la dimensión 3 es el hallazgo principal del período reciente y desaparece al mirar solo el índice agregado."
 #| fig-height: 4.4
 
 fig, ax = plt.subplots(figsize=(9, 4.4))
 
-colores_variante = {
-    "base (log + z)": COLOR_DIMENSION["1_Compromiso_financiero_oficial_limpias"],
-    "rangos": COLOR_DIMENSION["3_Compromiso_economico_privado_limpias"],
-    "sin tono": COLOR_DIMENSION["4_Visibilidad_mediatica_y_relevancia_publica_limpias"],
-}
+for dimension in sub_indices.columns:
 
-posiciones = np.arange(len(variantes))
+    serie = sub_indices[dimension]
+    color = COLOR_DIMENSION[dimension]
 
-for nombre in ("base (log + z)", "rangos", "sin tono"):
+    ax.plot(posiciones, serie.values, color=color, linewidth=0.9, alpha=0.30)
+    ax.plot(posiciones, serie.rolling(SUAVIZADO).mean().values, color=color,
+            linewidth=2.2, label=ETIQUETA_DIMENSION[dimension])
 
-    serie = escalar_0_100(variantes[nombre]).rolling(VENTANA_SUAVIZADO).mean()
+    ultimo_valor = serie.loc[VENTANA_FIRME].rolling(SUAVIZADO).mean().iloc[-1]
+    ax.annotate(ETIQUETA_DIMENSION[dimension].split(" · ")[0],
+                xy=(n_firme - 1, ultimo_valor), xytext=(7, 0),
+                textcoords="offset points", fontsize=8, color=color, va="center")
 
-    ax.plot(posiciones, serie.values, color=colores_variante[nombre],
-            linewidth=2.2 if nombre == "base (log + z)" else 1.7, label=nombre)
+ax.axhline(MEDIA_BASE, color=BORDE, linewidth=1)
+ax.set_xticks(posiciones_anuales)
+ax.set_xticklabels(etiquetas_anuales)
+ax.set_xlim(-1, len(sub_indices) + 3)
 
-ubic_firme = [i for i, t in enumerate(VENTANA_FIRME) if t.endswith("Q1")]
-ax.set_xticks(ubic_firme)
-ax.set_xticklabels([VENTANA_FIRME[i][:4] for i in ubic_firme])
-ax.set_ylabel("índice (0–100)")
+limite = float(np.nanmax(np.abs(sub_indices.loc[VENTANA_FIRME].values - MEDIA_BASE))) * 1.25
+ax.set_ylim(MEDIA_BASE - limite, MEDIA_BASE + limite)
+
+ax.set_ylabel("índice (base 100 = promedio 2015-2019)")
 solo_grilla_y(ax)
-ax.set_title("Tres construcciones distintas del mismo índice · ventana firme")
-ax.legend(loc="upper left", ncol=3)
+ax.set_title("Sub-índices por dimensión")
+ax.legend(loc="lower left", ncol=3)
+marcar_provisional(ax, n_firme)
 
 plt.tight_layout()
 plt.show()
 ```
 
+## El índice en tablas
+
 ```{python}
-#| label: tbl-sensibilidad
-#| tbl-cap: "Cuánto se mueve el índice según el método, en la escala 0–100"
+#| label: tbl-anual
+#| tbl-cap: "Promedio anual del índice agregado y de cada sub-índice dimensional. El año 2026 se excluye por contener solo un trimestre y estar afectado por el dato parcial de la sección 4.5."
+
+tabla_anual = (
+    pd.concat([
+        indice.loc[VENTANA_FIRME, "indice"].rename("Agregado"),
+        sub_indices.loc[VENTANA_FIRME].rename(
+            columns=lambda c: "Dim. " + c.split("_")[0]),
+    ], axis=1)
+    .groupby([t[:4] for t in VENTANA_FIRME]).mean()
+    .rename_axis("año")
+)
+
+tabla_anual.round(1)
+```
+
+```{python}
+#| label: tbl-trimestral
+#| tbl-cap: "Últimos doce trimestres, con el detalle por dimensión"
 
 (
-    pd.DataFrame({
-        nombre: escalar_0_100(variantes[nombre]).describe()[["mean", "std", "min", "max"]]
-        for nombre in variantes.columns
-    })
-    .T
-    .round(1)
+    pd.concat([
+        sub_indices.rename(columns=lambda c: "Dim. " + c.split("_")[0]),
+        indice[["indice", "suavizado", "provisional"]].rename(
+            columns={"indice": "Agregado", "suavizado": "Suavizado"}),
+    ], axis=1)
+    .tail(12).round(1)
 )
 ```
 
-**Cómo leer esto.** La variante de **rangos** es la prueba dura: si el índice
-basado en rangos se mueve igual que el base, la forma de las distribuciones y los
-outliers no están manejando el resultado. La variante **sin tono** es la que
-responde a la objeción conceptual de la decisión 6: donde las dos curvas se
-separan, la diferencia es clima mediático, no compromiso — y ahí es donde hay que
-citar las dos cifras, no una. La variante **sin log** existe para mostrar cuánto
-pesaba la decisión 3; si es la que más se despega, confirma que la transformación
-era necesaria y no cosmética.
+## Lectura de los resultados
 
-## 3.6. El índice, en tabla
+**El período 2015-2019 fue estable.** Por construcción promedia 100, pero lo
+relevante es que ningún año se aparta más de tres puntos de esa referencia. Las
+tres dimensiones se movieron en un rango estrecho.
 
-```{python}
-#| label: tbl-indice-final
-#| tbl-cap: "Últimos doce trimestres del índice, con los tres sub-índices dimensionales"
+**2020 marca la caída más profunda de la serie.** El agregado promedia 67.9, más
+de tres desvíos por debajo del nivel de referencia. Las tres dimensiones caen a la
+vez, lo que la distingue de cualquier otro episodio del período: es el único
+momento en que el movimiento es común a todas.
 
-tabla_final = (
-    subindices
-    .rename(columns=lambda c: "dim_" + c.split("_")[0])
-    .join(indice[["indice_z", "indice_0_100", "indice_0_100_suavizado", "provisional"]])
-    .round(2)
-)
+**2021 y 2022 muestran una recuperación desigual.** El compromiso financiero
+oficial y el económico privado vuelven rápidamente a valores cercanos o superiores
+a 100, mientras la visibilidad mediática permanece deprimida en torno a 58-68. La
+relación siguió existiendo en los flujos, pero desapareció de la agenda pública.
 
-tabla_final.tail(12)
-```
+**2023 y 2024 devuelven el índice a su nivel de referencia**, con la visibilidad
+recuperada y el comercio en valores altos.
 
-```{python}
-#| label: tbl-indice-anual
-#| tbl-cap: "Promedio anual del índice (los cuatro trimestres de cada año; 2026 tiene solo Q1)"
+**2025 es el año que exige leer los sub-índices y no el agregado.** El índice
+cierra en 92.3, apenas ocho puntos por debajo de la referencia, un movimiento que
+por sí solo parecería menor. Pero ese número promedia dos movimientos opuestos y
+de gran magnitud: el compromiso económico privado alcanza **118.9**, el valor más
+alto de toda la serie, mientras el compromiso financiero oficial cae a **71.5**,
+el más bajo de toda la serie. Los separan más de cuatro desvíos estándar del
+período base: es la mayor divergencia entre dimensiones de todo el período
+analizado.
 
-(
-    tabla_final
-    .assign(anio=[t[:4] for t in tabla_final.index])
-    .groupby("anio")[["dim_1", "dim_3", "dim_4", "indice_0_100"]]
-    .agg(["mean", "size"])
-    .round(1)
-)
-```
+::: {.callout-warning}
+## Cómo citar este índice
 
-::: {.callout-warning appearance="simple"}
-**Cómo citar este índice.** Es el índice de **tres** de las cuatro dimensiones del
-marco (falta la 2, ver 2.12), sobre series nominales sin deflactar, con dos
-componentes de grano anual, y una escala 0–100 relativa al máximo y mínimo de la
-**ventana firme**. Se lee suavizado a cuatro trimestres y comparando años, no
-trimestres consecutivos. El titular es el último trimestre firme: los trimestres
-del año fiscal en curso están marcados `provisional = True` y **no se citan como
-si fueran comparables** (ver 2.11 — su caída es dato parcial de la fuente, no un
-cambio en la relación). Cuando se reporte una variación, va al lado la variante
-sin tono.
+Toda presentación del índice debe incluir: que cubre **tres de las cuatro
+dimensiones** del marco; que la escala es **base 100 = promedio 2015-2019**; que
+la lectura recomendada es la serie **suavizada a cuatro trimestres** y la
+comparación **año contra año**; que los trimestres marcados como **provisionales**
+no son comparables; y que junto a cualquier variación debe reportarse la
+**variante sin tono**.
+
+Y, sobre todo: cuando el agregado se mueva poco, hay que verificar los
+sub-índices antes de concluir que no pasó nada. El caso de 2025 muestra que un
+agregado estable puede esconder los dos movimientos más grandes de la serie.
 :::
 
-# Reproducibilidad
+# Limitaciones y agenda {#sec-limitaciones}
+
+## Limitaciones que hoy no tienen solución con estos datos
+
+**Falta una dimensión completa del marco.** La dimensión de actividad
+gubernamental y diplomática no está incorporada porque sus tres variables
+disponibles registran eventos demasiado infrecuentes. Mientras esto no se
+resuelva, el índice no es el índice completo que define el marco conceptual.
+
+**Dos de diez series no tienen resolución trimestral.** Las de
+ForeignAssistance.gov repiten su valor anual, de modo que los movimientos
+trimestrales del índice provienen de las otras ocho.
+
+**El componente mediático es una aproximación, no una medición.** La regla que
+selecciona artículos en GDELT se basa en coocurrencia geográfica y señales
+temáticas, no en una verificación individual de que cada artículo trate
+efectivamente de la relación bilateral.
+
+**El tono mide sentimiento, no intensidad.** Se incorpora con peso acotado y
+reporte paralelo, pero la ambigüedad conceptual señalada en la sección 4.11
+persiste por diseño de la fuente.
+
+**El deflactor es general y no específico por flujo.** Se descuenta la inflación
+general de Estados Unidos, cuando lo ideal sería descontar la variación de precios
+propia de cada flujo.
+
+## Agenda de mejoras, en orden de prioridad
+
+1. **Incorporar la dimensión 2.** Requiere identificar variables con frecuencia
+   suficiente. La vía más prometedora es reemplazar conteos de eventos raros por
+   medidas de intensidad continua.
+2. **Ponderar los proyectos multilaterales por la cuota de capital de Estados
+   Unidos** en el Banco Interamericano de Desarrollo y en el Banco Mundial, lo que
+   permitiría incorporar esas dos series a la dimensión 1.
+3. **Incorporar la inversión extranjera directa** a la dimensión 3, resolviendo
+   primero el tratamiento de los trimestres negativos y de los datos suprimidos por
+   confidencialidad.
+4. **Trasladar la descarga del índice de precios al pipeline de ingestión**, de
+   modo que el deflactor quede versionado en Drive como cualquier otra fuente en
+   vez de descargarse en tiempo de ejecución.
+5. **Contrastar el índice con indicadores externos** —el paso 9 del manual de la
+   OCDE— para verificar que se mueve de forma coherente con mediciones
+   independientes de la relación bilateral.
+6. **Definir la política de re-basificación**: cada cuántos años se actualiza el
+   período base de 2015-2019 y cómo se publica la transición.
+
+# Reproducibilidad {.unnumbered}
 
 ```{python}
 #| label: reproducibilidad
@@ -1550,14 +2462,23 @@ sin tono.
 import matplotlib
 import platform
 
-print(f"python      {platform.python_version()}")
-print(f"pandas      {pd.__version__}")
-print(f"numpy       {np.__version__}")
-print(f"matplotlib  {matplotlib.__version__}")
-print(f"repo        {RAIZ_REPO}")
-print(f"panel       {SCRIPT_03.relative_to(RAIZ_REPO)}")
+print("Entorno")
+print(f"  Python      {platform.python_version()}")
+print(f"  pandas      {pd.__version__}")
+print(f"  numpy       {np.__version__}")
+print(f"  matplotlib  {matplotlib.__version__}")
 print()
-print("CSV de 02_limpias usados en esta corrida:")
+print("Fuentes de datos de esta corrida")
+print(f"  Panel: {SCRIPT_03.relative_to(RAIZ_REPO)}")
+print(f"  Deflactor: BLS, serie {SERIE_IPC}, base {TRIMESTRE_BASE_PRECIOS}")
+print()
+print("Archivos de 02_limpias utilizados")
 for fila in catalogo.itertuples():
     print(f"  {fila.variable:<26} {fila.archivo_origen}")
+print()
+print("Parámetros del índice")
+print(f"  Período base:  {PERIODO_BASE[0]} a {PERIODO_BASE[-1]}")
+print(f"  Escala:        media {MEDIA_BASE:.0f}, desvío {DESVIO_BASE:.0f}")
+print(f"  Ventana firme: {VENTANA_FIRME[0]} a {VENTANA_FIRME[-1]}")
+print(f"  Suavizado:     {SUAVIZADO} trimestres")
 ```

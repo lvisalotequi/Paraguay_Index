@@ -26,19 +26,39 @@ seguridad previa).
 ## 2. Arquitectura del pipeline
 
 ```
-src/ingestion/{fuente}.py    →  Drive: 2.Datos_recolectados/01_crudas/{dimensión}/{fuente}/          (archivos crudos)
-                    │                              │
-                    │                              ▼
-                    │          src/processing/{dimensión}.py  →  Drive: 02_limpias/{dimensión}_limpias/{variable}/  (1 CSV por variable)
-                    ▼
-     run_pipeline.py → pestaña pipeline_log        run_processing.py → pestaña processing_log
-     (ambos en el Sheet, solo auditoria)
+ETAPA 01 · src/ingestion/{fuente}.py   →  Drive: 01_crudas/{dimensión}_crudas/{fuente}/   (archivos crudos)
+              │                                        │
+              │  run_pipeline.py → pipeline_log        ▼
+              │  (automatizado en GitHub Actions)
+              │
+ETAPA 02 · dos implementaciones que hacen LO MISMO (ver aviso abajo):
+              │   src/processing/{dimensión}.py        → módulos con run(), orquestados por run_processing.py
+              │   src/02_cleaning/02_clean_{dim}.py    → script lineal, se corre a mano en Positron
+              │                                        │
+              │                                        ▼
+              │                          Drive: 02_limpias/{dimensión}_limpias/{variable}/  (1 CSV por variable)
+              ▼
+ETAPA 03 · src/03_integration/03_integration.py   →  panel trimestral cuadrado, SOLO en memoria
+              │                                       (480 filas = 10 variables × 48 trimestres)
+              ▼
+ETAPA 04 · src/04_analysis_index/04_analysis_index.qmd  →  documento Quarto: diagnóstico + índice
+                                                            (no escribe nada a Drive todavía)
 ```
 
 La carpeta de Drive tiene 3 etapas (`01_crudas`, `02_limpias`, `03_final`).
-`01_crudas` (ingestion) y `02_limpias` (processing) ya existen y tienen
-codigo (ver sección 6). `03_final` todavía no tiene ningún script que la
-llene (ver sección 7, pendiente #4).
+`01_crudas` y `02_limpias` ya existen y tienen datos. **`03_final` sigue
+vacía**: las etapas 03 y 04 existen como código pero no escriben nada a
+Drive — sus resultados viven en memoria y en el HTML renderizado.
+
+> ⚠️ **Duplicación conocida de la etapa 02 (2026-09-09).** La dimensión 1
+> está implementada dos veces: como módulo (`src/processing/
+> compromiso_financiero_oficial.py`, que `run_processing.py` autodescubre) y
+> como script lineal (`src/02_cleaning/02_clean_compromiso_financiero_oficial.py`,
+> con `SUBIR_A_DRIVE = False`). Las dos suben a las MISMAS carpetas de
+> variable, y `subir_variable()` es idempotente **por día**: si se corren
+> las dos el mismo día, gana la primera y la segunda se saltea en silencio.
+> Hay que decidir cuál queda antes de activar la subida del script lineal.
+> Las dimensiones 2, 3 y 4 siguen existiendo solo como módulo.
 
 **Regla central: los scripts de `src/ingestion/` SOLO extraen datos y los
 suben a Drive.** No escriben nada a disco local, no limpian, no transforman,
@@ -174,9 +194,83 @@ no automatizada todavía.
   `os.environ["GOOGLE_APPLICATION_CREDENTIALS"]` (ver `src/sheets.py` y
   `src/drive.py`) y `os.environ["SHEET_ID"]` (solo `src/sheets.py`).
 
+### Estilo de las etapas 02 en adelante (política 2026-09-08/09)
+
+A partir de `src/02_cleaning/`, el usuario pidió un estilo distinto al de
+`src/ingestion/` y `src/processing/`. Las etapas nuevas **no son módulos con
+`run()`**: son scripts lineales pensados para correrse por bloques en la
+consola de Positron, dejando los objetos intermedios vivos para inspección.
+
+- Cajón de encabezado con proyecto, responsable, fecha de creación, detalle,
+  qué corre antes y cuál es la salida.
+- Secciones numeradas (`# 0. SETUP`, `## 0.1. Entorno`, `## 0.2. Rutas y
+  credenciales`, `## 0.3. Parametros configurables`, `#=== 1. ... ===#`).
+- **Todos los parámetros en `0.3`**, nunca dispersos en el código: cambiar el
+  comportamiento debe ser cambiar constantes.
+- Objetos intermedios con nombre y sufijo que indique la etapa
+  (`*_raw`, `*_limpiando`, `*_clean`, `*_limpia`), porque se abren de a uno
+  en el panel de Variables de Positron.
+- Validaciones impresas al cierre de cada bloque, y un interruptor tipo
+  `SUBIR_A_DRIVE` para poder correr todo sin escribir nada mientras se revisa.
+- Comentarios sin tildes (igual que el resto del repo, por encoding de
+  consola); la prosa de los documentos Quarto sí lleva tildes.
+
+### Estándar de documentación de la etapa 04 (política 2026-09-09)
+
+El usuario rechazó un primer borrador del documento de análisis por dar por
+sabido demasiado. El estándar acordado es **"calidad de paper, compartible
+con el cliente"**, y en concreto exige:
+
+- Nada de jerga sin explicar. Cada término técnico se define en lenguaje
+  llano la primera vez que aparece, y hay un glosario desplegable.
+- **Tabla de operacionalización** obligatoria: qué mide exactamente cada
+  variable, fuente, unidad, y qué significa que suba.
+- Cada decisión metodológica se escribe con: qué se decidió, **por qué**,
+  **qué alternativa se descartó** y a qué costo.
+- Declarar explícitamente qué del marco prometido **no** está en el
+  resultado.
+- Convención metodológica citada (OCDE/JRC) y mapeada paso por paso.
+- Las cifras que aparecen en la prosa se calculan **en línea** (`` `{python}
+  ...` ``) desde los mismos objetos que producen las tablas, para que no se
+  desincronicen al reprocesar. Esto ya pasó una vez: cuatro cifras del texto
+  quedaron desfasadas de la corrida final.
+
 ## 5. Entorno
 
-- Python 3.11 (versión fijada en el workflow de GitHub Actions).
+- Python 3.11 (versión fijada en el workflow de GitHub Actions). **En local
+  hoy se corre con Python 3.14.7** (verificado 2026-09-09): todas las
+  dependencias tienen wheels para 3.14, incluidas `curl_cffi` y `lxml`, así
+  que no hace falta instalar 3.11 para trabajar localmente.
+- **`pandas` está fijado en `>=2.2,<3` (2026-09-09).** Sin ese techo, pip
+  con Python 3.14 resuelve pandas 3.0.x, que cambia el dtype por defecto de
+  los strings y hace obligatorio copy-on-write. Nada de este repo está
+  probado con la serie 3.x. Subir el techo es una decisión aparte, con su
+  propia verificación de las 4 dimensiones.
+- **Entorno virtual local**: `.venv/` en la raíz del repo. Ojo: **`.venv/`
+  NO está en `.gitignore`** (solo lo está `gdelt_extraction/.venv/`), así
+  que aparece como untracked — conviene agregarlo.
+  ```
+  py -m venv .venv
+  ./.venv/Scripts/python.exe -m pip install -r requirements.txt "pandas<3"
+  ```
+- **Positron es el IDE que usa el usuario** (no VS Code, no RStudio). Dos
+  cosas de su configuración cambian los pasos: `python.createEnvironment.trigger`
+  está en `"off"` (no ofrece crear el venv solo) y `python.languageServer`
+  en `"None"` (sin autocompletado). Tras crear el venv hay que recargar la
+  ventana (`Developer: Reload Window`) para que Positron lo detecte, y
+  elegirlo en el selector de intérprete del panel de Consola.
+- **Quarto** (necesario para la etapa 04) no se instala con pip: es un
+  binario aparte. Positron ya lo trae en
+  `resources/app/quarto/bin/`. **Usar `quarto.exe`, NO `quarto.cmd`** — el
+  `.cmd` devuelve exit 0, no imprime nada y no genera el HTML (verificado
+  2026-09-09, costó un rato descubrirlo). Para renderizar:
+  ```powershell
+  $env:QUARTO_PYTHON = "<repo>\.venv\Scripts\python.exe"
+  & "<Positron>\resources\app\quarto\bin\quarto.exe" render "src\04_analysis_index\04_analysis_index.qmd" --to html
+  ```
+  El puente jupyter de Quarto necesita `pyyaml`, `ipykernel`, `nbclient` y
+  `nbformat` en el venv; sin `pyyaml` el render falla con
+  `ModuleNotFoundError` sin explicar por qué.
 - Google Cloud: proyecto `us-py-engagement-idx`, cuenta de servicio en
   `config/credential_cloud.json` (**no está en git**, cubierta por
   `.gitignore`). Mismo archivo de credenciales para Sheets y para Drive —
@@ -594,6 +688,106 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     tiene muchos más artículos de un país que del otro, el tono de BOTH
     queda mucho más cerca del tono de ese país que de un promedio 50/50.
 
+- **`src/02_cleaning/` — etapa 02 en formato script (2026-09-08/09).** Una
+  reescritura de `src/processing/compromiso_financiero_oficial.py` en el
+  estilo de script lineal que prefiere el usuario: cajón de encabezado con
+  responsable y fecha, secciones numeradas (`0. SETUP`, `1. IMPORTAR DATA
+  CRUDA`, `2. LIMPIEZA`, `3. EXPORTAR CLEAN`), objetos intermedios con
+  nombre (`*_limpiando`, `*_clean`) que quedan vivos en la consola de
+  Positron, y validaciones impresas al final de cada bloque. Tiene un
+  interruptor `SUBIR_A_DRIVE` (hoy en `False`) para poder correrlo entero
+  sin escribir nada mientras se revisa. **Solo cubre la dimensión 1** — ver
+  el aviso de duplicación en la sección 2.
+- **`src/03_integration/03_integration.py` (2026-09-09).** Lee de Drive el
+  último CSV de cada variable limpia y arma **un panel trimestral cuadrado**:
+  480 filas = 10 variables × 48 trimestres (2015-Q1 a 2026-Q4), con `NA`
+  donde la fuente todavía no publicó. Puntos de diseño que hay que respetar
+  si se lo modifica:
+  - La grilla se arma primero (producto cartesiano variables × trimestres) y
+    los valores se pegan encima con un left join, para que **el tamaño del
+    panel no dependa de hasta dónde llegó cada fuente**.
+  - `ANIO_MINIMO`/`ANIO_MAXIMO` son constantes declaradas, no deducidas de
+    los datos. Hay una validación que cuenta las filas de los CSV que caen
+    fuera del rango (hoy 0) para que el panel no las tire en silencio.
+  - Columna `en_fuente` (bool): distingue "la fuente no publica ese
+    trimestre" de "había fila con valor nulo". Hoy los 10 CSV vienen sin
+    nulos, así que los 19 `NA` son todos de cola.
+  - Columnas `grano_temporal` y `agregacion` se **declaran acá**, no vienen
+    del CSV (el contrato de `02_limpias` son 5 columnas fijas). `agregacion`
+    distingue `suma` / `no sumar` / `promedio ponderado` — el caso que la
+    hace necesaria es el tono de GDELT, que es "trimestre real" y aun así no
+    se puede sumar.
+  - Expone `limpias_largo` (480 × 11) y `limpias_ancho` (48 × 10), más
+    `catalogo_variables` y `trimestres_panel`. La etapa 04 los importa con
+    `runpy.run_path()` en vez de releer Drive.
+  - Las 10 variables del panel son 3 de la dimensión 1 (fa_gov ob/des,
+    usaspending), 3 de la 3 (exportaciones, importaciones, remesas) y 4 de
+    la 4 (gdelt articles/tone × py/us). **No se traen las variantes BOTH de
+    GDELT a propósito**: BOTH = PY + US, incluirlas contaría los mismos
+    artículos dos veces.
+- **`src/04_analysis_index/04_analysis_index.qmd` (2026-09-09).** Documento
+  Quarto (chunks `{python}`) que hace el diagnóstico de las series y
+  construye el índice. Reescrito por completo el 2026-09-09 a pedido del
+  usuario, que rechazó el primer borrador por dar por sabido demasiado; el
+  estándar acordado quedó fijado en "calidad de paper, compartible con el
+  cliente" (ver sección 4). Sigue los 10 pasos del *Handbook on Constructing
+  Composite Indicators* de la OCDE/JRC, con una tabla que mapea cada paso a
+  su sección.
+
+  **Las 11 decisiones que definen el índice** (cada una documentada en el
+  .qmd con su alternativa descartada):
+
+  | # | Tema | Decisión |
+  |---|---|---|
+  | 1 | Alcance | Se publica como índice de **3 de las 4 dimensiones**; la 2 no entra |
+  | 2 | Faltantes | Recortar la ventana, no imputar |
+  | 3 | Grano anual | fa_gov entra, pero el índice nunca se suma en el tiempo |
+  | 4 | Año en curso | Escala estimada solo con trimestres firmes |
+  | 5 | Precios | **Deflactar** por IPC de EE.UU. (BLS `CUUR0000SA0`) |
+  | 6 | Distribuciones | log10 en dinero y conteos; nada en tono |
+  | 7 | Estacionalidad | No desestacionalizar; leer con media móvil de 4T |
+  | 8 | Ponderación | Jerárquica: 1/3 por dimensión, 2 bloques por dimensión, 1/6 cada bloque |
+  | 9 | Comercio | Exportaciones+importaciones en un bloque; **la balanza NO entra** |
+  | 10 | Tono | Entra con 1/6 de peso + reporte paralelo sin tono obligatorio |
+  | 11 | Escala | **Base fija 2015-2019 = 100, desvío 10**; no se recalcula |
+
+  **Hallazgos que hay que conocer antes de tocar nada:**
+  - **El año fiscal en curso llega incompleto y contamina el último dato.**
+    fa_gov 2026 registra 1.48 M (obligaciones) y 3.15 M (desembolsos) contra
+    un rango histórico de 11-39 M: es el año fiscal en curso que
+    ForeignAssistance.gov publica parcial y que ingestion congela. Sin
+    tratarlo, el índice se desploma a 51 en 2026-Q1. Hay detección
+    automática (un año por debajo de la mitad del mínimo histórico previo se
+    marca provisional).
+  - **Deflactar cambia el índice de verdad**: entre 22% y 24% del
+    crecimiento aparente de las 6 series monetarias era inflación. La
+    versión sin deflactar correlaciona 0.80 con la propuesta.
+  - **La base fija resuelve las revisiones.** Con escala recalculada, un
+    índice publicado a fines de 2019 se habría revisado 4.6 puntos en
+    promedio (hasta 8.1) al entrar los años siguientes, porque 2020
+    recalibraba toda la escala. Con base fija la revisión es **0.000**.
+  - **Alfa de Cronbach = 0.34** (dim 1: 0.10, dim 3: −0.03, dim 4: 0.71). No
+    invalida el índice porque es **formativo** y no reflectivo (el manual de
+    la OCDE es explícito en que el alfa solo aplica a modelos reflectivos),
+    pero sí implica que **el agregado comunica menos que sus partes**.
+  - **La balanza comercial es negativa en 44 de 45 trimestres** — por eso el
+    comercio entra como intensidad (X+M) y no como saldo.
+  - **Ninguna de las 10 variables es prescindible**: sacar la menos
+    influyente mueve el índice 2.7 puntos (escala de desvío 10).
+  - **La dimensión 4 gobierna el agregado** (correlación 0.74) pese a pesar
+    un tercio, porque es la que más se mueve.
+
+  **Resultado actual**: 2015-2019 ≈ 100 (base), 2020 = 67.9, 2021-22 = 82-85,
+  2023-24 = 97-103, 2025 = 92.3. El hallazgo del período es que 2025 esconde
+  una divergencia de más de 4 desvíos: **dimensión 3 en 118.9 (máximo de la
+  serie) contra dimensión 1 en 71.5 (mínimo de la serie)**.
+
+  **Dependencia externa nueva**: el deflactor se descarga **en tiempo de
+  render** desde la API pública de BLS (sin key). El IPC de **octubre 2025 no
+  existe** — BLS lo marca "Data unavailable due to the 2025 lapse in
+  appropriations" —, así que el deflactor de 2025-Q4 se calcula con dos
+  meses. Trasladar esa descarga a `src/ingestion/` es un pendiente.
+
 ## 7. Pendientes
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
@@ -617,9 +811,11 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
    Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
    específico o confirmar si esta variable existe como dataset en otro lado.
-4. Diseñar la etapa `03_final` que lea los CSV de `02_limpias` y arme lo
-   que finalmente va al Sheet. **`02_limpias` ya cubre las 4 dimensiones
-   (2026-09-02/03)**, ver sección 6 — falta `03_final`.
+4. **Materializar `03_final` en Drive.** Las etapas 03 (panel) y 04 (índice)
+   ya existen como código (ver sección 6) pero **no escriben nada**: el panel
+   vive en memoria y el índice solo en el HTML renderizado. Falta decidir qué
+   se persiste (¿el panel cuadrado? ¿la serie del índice? ¿los sub-índices?)
+   y escribirlo a `03_final` y/o al Sheet.
 5. **Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
    EE.UU.** — `compromiso_financiero_oficial.py` (processing, dimensión 1)
    hoy suma el monto TOTAL aprobado de cada proyecto multilateral, no la
@@ -627,6 +823,35 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    banco. Es una cifra de "actividad multilateral" general, no una cifra
    de compromiso de EE.UU. propiamente dicha — el cálculo de ponderación
    queda pendiente.
+
+6. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
+   Hay dos implementaciones de la dimensión 1 que suben a las mismas
+   carpetas de Drive y compiten por el idempotente-por-día. Si el script
+   lineal reemplaza al módulo, hay que sacar
+   `src/processing/compromiso_financiero_oficial.py` de la carpeta que
+   `run_processing.py` autodescubre, y decidir si las dimensiones 2, 3 y 4
+   se reescriben en el mismo estilo.
+7. **Incorporar la dimensión 2 al índice** — es la limitación más importante
+   del índice actual, que hoy cubre 3 de 4 dimensiones. Sus tres variables
+   existen y están limpias, pero son conteos de eventos demasiado raros
+   (los hitos de USTR aparecen en 5 trimestres de 45, los TIAS en 3) y al
+   normalizarse producirían saltos enormes. La vía más prometedora es
+   reemplazar conteos de eventos raros por alguna medida de intensidad
+   continua.
+8. **Mover la descarga del IPC a `src/ingestion/`.** Hoy la etapa 04 baja la
+   serie de BLS en tiempo de render, lo que hace que el documento dependa de
+   una API externa para poder compilarse. Debería ser un módulo de ingestion
+   más, con su archivo versionado en Drive.
+9. **Contrastar el índice con indicadores externos** — es el paso 9 del
+   manual de la OCDE y el único de los diez que hoy no se cumple.
+10. **Definir la política de re-basificación**: cada cuántos años se
+    actualiza el período base 2015-2019 del índice y cómo se publica la
+    transición (la práctica estándar es publicar ambas series durante un
+    tiempo).
+11. **Higiene del repo**: `.env.example` está borrado en el working tree
+    (es la plantilla versionada que el README y la sección 5 citan para que
+    otra persona pueda correr el proyecto), y `.venv/` no está en
+    `.gitignore` (solo lo está `gdelt_extraction/.venv/`).
 
 *(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
 con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret
