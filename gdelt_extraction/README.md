@@ -1,6 +1,6 @@
 # gdelt_extraction — extractor de cobertura mediática Paraguay-EE.UU.
 
-Actualizado: 2026-09-08. Único documento de referencia de esta carpeta —
+Actualizado: 2026-09-10. Único documento de referencia de esta carpeta —
 reemplaza a `CONTEXTO_PORTABLE_PROXY_B.md`, `EJECUCION_PORTABLE.md` y
 `WORKFLOW_EXTRACCION.md` (archivados fuera del repo, ver `CLAUDE.md`).
 Solo tiene lo necesario para correr y entender el código; el detalle
@@ -13,6 +13,63 @@ Paraguay-EE.UU. para la dimensión `4_Visibilidad_mediatica_y_relevancia_publica
 del proyecto. Corre a mano, en local (no en GitHub Actions — ver por qué en
 `src/ingestion/gdelt_proxy_b.py`, el módulo que sube lo que esto produce al
 resto del pipeline).
+
+### ¿Recolecta noticias, o solo la cantidad?
+
+**Solo la cantidad (y estadísticas agregadas) — nunca artículos individuales,
+URLs, ni texto.** La consulta que usa la extracción de producción
+(`build_proxy_b_metrics_query` en `gdelt_queries.py`, perfil
+`proxy_b_metrics` — el que fija `historical_workflow_config.json`) calcula
+todo **del lado de BigQuery**: cuenta artículos (`COUNT(*)`), cuenta
+dominios únicos, y promedia el tono (`AVG(tone)`) — agrupado por (mes, país
+de fuente). Ningún artículo individual, URL, ni texto sale de BigQuery ni
+se descarga en ningún momento de este flujo.
+
+*(Nota técnica: el código sí tiene OTRO perfil, `candidates_themes`, que sí
+devuelve filas por artículo — con URL, dominio, tono individual — usado
+durante el diseño/validación de la regla "proxy B" en agosto de 2026. Pero
+ese perfil no es el que usa la extracción real que alimenta el proyecto
+hoy, y sus salidas quedan en `gdelt_extraction/output/`, que está excluido
+de git y nunca se sube a Drive.)*
+
+Lo que sí se sube a Drive son los agregados mensuales: los CSV
+`monthly_*.csv` que sube `src/ingestion/gdelt_proxy_b.py` tienen una fila
+por (mes, país de fuente) con columnas como `proxy_articles` (cantidad) y
+`tone_mean` (promedio) — nunca una fila por artículo.
+
+### ¿Cómo se calcula el tono? ¿Tiene sustento metodológico?
+
+El tono **no lo calcula este proyecto** — es un campo que GDELT ya computa
+para cada documento, y el proyecto solo lo lee (`V2Tone` de la tabla
+`gdelt-bq.gdeltv2.gkg_partitioned`) y lo promedia. La metodología está
+documentada oficialmente por GDELT en el **GKG Data Format Codebook v2.1**
+(`data.gdeltproject.org/documentation/GDELT-Global_Knowledge_Graph_Codebook-V2.1.pdf`),
+textual:
+
+> *"Tone. (floating point number) This is the average 'tone' of the
+> document as a whole. The score ranges from -100 (extremely negative) to
+> +100 (extremely positive). Common values range between -10 and +10, with
+> 0 indicating neutral. **This is calculated as Positive Score minus
+> Negative Score.**"*
+> *"Positive Score. This is the percentage of all words in the article
+> that were found to have a positive emotional connotation."*
+> *"Negative Score. This is the percentage of all words in the article
+> that were found to have a negative emotional connotation."*
+
+Es decir: **Tono = % de palabras positivas − % de palabras negativas**,
+según un diccionario de sentimiento aplicado sobre el texto completo del
+artículo (conteo léxico clásico, no IA/LLM). Es el mismo mecanismo,
+documentado y estable desde 2015 (el propio codebook dice que el formato
+"is now stabilized and will not change"), que usan cientos de estudios
+académicos que trabajan con GDELT — **el sustento es el de GDELT como
+fuente**, no algo que este proyecto haya inventado ni validado por su
+cuenta.
+
+Lo que sí hace este proyecto con ese dato (en
+`src/processing/visibilidad_mediatica_y_relevancia_publica.py`): agrupa el
+tono mensual en trimestres, ponderado por cantidad de artículos de cada mes
+(`Σ(tono_mes × artículos_mes) / Σartículos_mes`), para no pesar igual un
+mes con 2 artículos que uno con 200.
 
 ## Metodología ("proxy B", congelada 2026-08-27)
 
