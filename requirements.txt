@@ -9,5 +9,22 @@ beautifulsoup4>=4.12   # parseo de HTML (bcp_comercio_exterior.py, dfc_proyectos
 curl_cffi>=0.7          # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, state.gov)
 ddgs>=9.0                # busqueda en DuckDuckGo (state_gov_tias_paraguay.py - state.gov no tiene indice navegable de TIAS)
 openpyxl>=3.1            # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
-pandas>=2.2              # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/)
+pandas>=2.2,<3           # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/, src/02_cleaning/, src/03_integration/, src/04_analysis_index/)
 requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
+
+# Techo de pandas en <3 (2026-09-09): con Python 3.14, pip resuelve pandas 3.0.x,
+# que trae cambios de comportamiento (dtype de strings por defecto, copy-on-write
+# obligatorio) con los que NADA de este repo esta probado. Todo se escribio y se
+# corrio con la serie 2.x (hoy 2.3.3). Subir el techo es una decision aparte, con
+# su propia corrida de verificacion de las 4 dimensiones.
+
+# src/04_analysis_index (documento Quarto 04_analysis_index.qmd)
+matplotlib>=3.8    # graficos del analisis y del indice
+ipykernel>=6.29     # kernel de Python que usa Quarto para ejecutar los chunks {python}
+nbclient>=0.10       # ejecuta el notebook intermedio que arma Quarto
+nbformat>=5.10        # lee/escribe ese notebook intermedio
+pyyaml>=6.0            # lo usa el puente jupyter de Quarto: sin esto el render falla con ModuleNotFoundError
+
+# Quarto no se instala con pip: es un binario aparte. Positron ya lo trae en
+# resources/app/quarto/bin/ (usar quarto.exe, no quarto.cmd - el .cmd se traga la
+# salida y no renderiza). Tambien sirve el Quarto CLI instalado por separado.
