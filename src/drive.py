@@ -81,7 +81,9 @@ VARIABLE_FOLDER_IDS = {
     ("1_Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
     ("1_Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
     ("1_Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_aprobados"): "1vpfBqS9csMIuJn17G_GcaPOQxrKpvkxQ",
-    ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",  # retirada 2026-09-10, ver src/processing/actividad_gubernamental_y_diplomatica.py
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_relevantes_paraguay"): "1hMlEqdFxJFrjWh9dKwgcP1BuNKe3JA3B",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_menciones_totales_paraguay"): "1Z_nmQz66XJGVRYrBVzJGZucUb3IHxaGr",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "ustr_hitos_consejo_comercio_inversion"): "1JGXXrWqPA7gYHzOuhaVcDPnJyFKCj-dx",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "state_gov_tias_vigentes"): "1JvNvfSbalrOv0TfpxKQbCCn9-jGXR0mW",
     ("3_Compromiso_economico_privado_limpias", "exportaciones"): "1R7RGu_NJ4pzo_0Y56lADLNUn3O6J1KOx",

@@ -28,20 +28,43 @@ GovInfo devuelve una fila por cada VERSION publicada de un mismo proyecto
 "cuantos proyectos mencionan a Paraguay", no cuantas veces se republico cada
 uno.
 
-Cada fila incluye ademas `extracto_mencion_paraguay`: un fragmento real del
-texto del proyecto centrado en la primera mencion de "Paraguay", sacado del
-mismo documento que GovInfo ya encontro que la contiene (endpoint de
-contenido `/packages/{packageId}/htm`, no un snippet inventado). Es para
-poder verificar de un vistazo, sin abrir el proyecto entero, que el hit es
-real y en que contexto aparece Paraguay (ver el limite de busqueda de texto
-completo mas abajo).
+Cada fila incluye ademas `cantidad_menciones_paraguay` y
+`extractos_menciones_paraguay` (politica 2026-09-10, a pedido del usuario -
+antes solo se guardaba un extracto de la PRIMERA mencion, ver mas abajo):
+cuantas veces aparece "Paraguay" en el texto completo del proyecto, y un
+fragmento real (+-150 caracteres) alrededor de CADA una de esas menciones,
+unidos por " ||| " - para poder verificar cada mencion contada sin volver a
+abrir el documento entero. Se sacan del mismo documento que GovInfo ya
+encontro que contiene "Paraguay" (endpoint de contenido
+`/packages/{packageId}/htm`, no un snippet inventado).
 
-Limite importante: es busqueda de texto completo, no un filtro tematico. Un
-proyecto puede aparecer solo porque menciona a Paraguay de paso (ej. un
-listado de paises de la region en una resolucion sobre Venezuela) y no
-porque trate especificamente sobre la relacion bilateral. No asumir que
-"aparece en este archivo" equivale a "proyecto sobre Paraguay" sin revisar
-el titulo/ultima_accion de cada fila.
+**Por que contar menciones, y no solo detectar si aparece (2026-09-10):** es
+un proxy de que tan central es Paraguay en el proyecto, no de si la mencion
+es positiva o negativa - la misma logica que la "saliency theory" del
+Comparative Manifestos Project en ciencia politica (mide la atencion a un
+tema por la proporcion de texto dedicada a mencionarlo, sin juzgar el
+contenido de cada mencion) y el "expressed agenda model" de Grimmer (2013,
+"Text as Data") para medir atencion legislativa a un tema por frecuencia.
+Probado con un piloto real (2026-09-10, 3 años: 2020, 2021, 2024): los
+proyectos con "Paraguay" en el titulo (inequivocamente sobre Paraguay)
+promediaron 12.0 menciones en el texto contra 1.14 de los que lo mencionan
+de paso - separacion clara. **Limite explicito, ya reconocido en la
+literatura**: la frecuencia no mide intensidad ("one strongly worded
+sentence potentially eclipsing a dozen milder mentions") - contar menciones
+dice cuanto se habla de Paraguay, no si el tono de esas menciones es
+favorable o critico. Ir mas alla de eso (clasificar el tono/contenido de
+cada mencion) requeriria NLP/LLM, lo cual rompe el principio del proyecto
+de que todo corra de forma determinística y sin depender de un servicio
+externo - se decidio explicitamente no hacerlo.
+
+Limite importante (el que ya existia, sigue aplicando igual): es busqueda
+de texto completo, no un filtro tematico. Un proyecto puede aparecer solo
+porque menciona a Paraguay de paso (ej. un listado de paises de la region
+en una resolucion sobre Venezuela) y no porque trate especificamente sobre
+la relacion bilateral - por eso el conteo de menciones, no solo la
+presencia/ausencia. No asumir que "aparece en este archivo" equivale a
+"proyecto sobre Paraguay" sin revisar `cantidad_menciones_paraguay`/
+`titulo`/`ultima_accion` de cada fila.
 
 Requiere la variable de entorno CONGRESS_API_KEY (gratuita, se genera en
 https://api.congress.gov/sign-up/ - la misma key sirve para GovInfo, ambas
@@ -63,7 +86,8 @@ URL_GOVINFO_SEARCH = "https://api.govinfo.gov/search"
 URL_GOVINFO_TEXTO = "https://api.govinfo.gov/packages/{package_id}/htm"
 URL_CONGRESS_BILL = "https://api.congress.gov/v3/bill/{congreso}/{tipo}/{numero}"
 
-RADIO_EXTRACTO = 150  # caracteres a cada lado de "Paraguay" en el extracto
+RADIO_EXTRACTO = 150  # caracteres a cada lado de "Paraguay" en cada extracto
+SEPARADOR_EXTRACTOS = " ||| "  # entre extractos de distintas menciones
 
 # Coleccion BILLS de GovInfo = todo tipo de proyecto/resolucion del Congreso.
 QUERY_GOVINFO = "Paraguay AND collection:BILLS"
@@ -140,12 +164,14 @@ def _proyectos_unicos(hits):
     return proyectos
 
 
-def _extracto_mencion_paraguay(package_id):
+def _menciones_paraguay(package_id):
     """Descarga el texto de una version del proyecto que GovInfo ya encontro
-    que menciona a Paraguay, y devuelve un extracto real centrado en la
-    primera mencion - para poder verificar el hit sin abrir el documento
-    entero. "" si por algun motivo no se encuentra (ej. texto reformateado
-    entre la busqueda y esta descarga)."""
+    que menciona a Paraguay, y devuelve (cantidad, extractos): cantidad es
+    el total de menciones de "Paraguay" en el texto completo; extractos es
+    un fragmento real centrado en CADA mencion (mismo radio que antes),
+    unidos por SEPARADOR_EXTRACTOS - para poder verificar cada una sin
+    abrir el documento entero. (0, "") si por algun motivo no se encuentra
+    ninguna (ej. texto reformateado entre la busqueda y esta descarga)."""
     resp = requests.get(
         URL_GOVINFO_TEXTO.format(package_id=package_id),
         params={"api_key": _api_key()},
@@ -156,14 +182,18 @@ def _extracto_mencion_paraguay(package_id):
     texto = BeautifulSoup(resp.text, "html.parser").get_text(" ", strip=True)
     texto = re.sub(r"\s+", " ", texto).strip()
 
-    match = re.search(r"paraguay", texto, re.IGNORECASE)
-    if not match:
-        return ""
+    matches = list(re.finditer(r"paraguay", texto, re.IGNORECASE))
+    if not matches:
+        return 0, ""
 
-    inicio = max(match.start() - RADIO_EXTRACTO, 0)
-    fin = min(match.end() + RADIO_EXTRACTO, len(texto))
-    extracto = texto[inicio:fin].strip()
-    return f"{'...' if inicio > 0 else ''}{extracto}{'...' if fin < len(texto) else ''}"
+    extractos = []
+    for match in matches:
+        inicio = max(match.start() - RADIO_EXTRACTO, 0)
+        fin = min(match.end() + RADIO_EXTRACTO, len(texto))
+        extracto = texto[inicio:fin].strip()
+        extractos.append(f"{'...' if inicio > 0 else ''}{extracto}{'...' if fin < len(texto) else ''}")
+
+    return len(matches), SEPARADOR_EXTRACTOS.join(extractos)
 
 
 def _enriquecer_proyecto(congreso, tipo, numero):
@@ -174,7 +204,7 @@ def _enriquecer_proyecto(congreso, tipo, numero):
     return resp.json()["bill"]
 
 
-def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill, extracto):
+def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill, cantidad_menciones, extractos):
     sponsors = bill.get("sponsors") or [{}]
     patrocinador = sponsors[0]
     latest = bill.get("latestAction") or {}
@@ -185,7 +215,8 @@ def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill, extracto):
         "numero": numero,
         "identificador": f"{IDENTIFICADOR_POR_TIPO.get(tipo, tipo)} {numero}",
         "titulo": bill.get("title"),
-        "extracto_mencion_paraguay": extracto,
+        "cantidad_menciones_paraguay": cantidad_menciones,
+        "extractos_menciones_paraguay": extractos,
         "fecha_introduccion": bill.get("introducedDate"),
         "fecha_ultima_accion": latest.get("actionDate"),
         "ultima_accion": latest.get("text"),
@@ -224,12 +255,12 @@ def run():
             continue
 
         try:
-            extracto = _extracto_mencion_paraguay(info["package_id_ref"])
+            cantidad_menciones, extractos = _menciones_paraguay(info["package_id_ref"])
         except Exception as exc:  # noqa: BLE001
-            print(f"    [!] no se pudo sacar extracto de {congreso}-{tipo}-{numero}: {exc!r}")
-            extracto = ""
+            print(f"    [!] no se pudo contar menciones de {congreso}-{tipo}-{numero}: {exc!r}")
+            cantidad_menciones, extractos = 0, ""
 
-        fila = _fila_desde_proyecto(congreso, tipo, numero, info["versiones"], bill, extracto)
+        fila = _fila_desde_proyecto(congreso, tipo, numero, info["versiones"], bill, cantidad_menciones, extractos)
         fecha_intro = fila["fecha_introduccion"] or ""
         if fecha_intro[:4].isdigit():
             anio_intro = int(fecha_intro[:4])

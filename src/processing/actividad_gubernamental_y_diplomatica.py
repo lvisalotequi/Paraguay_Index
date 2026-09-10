@@ -9,10 +9,32 @@ compromiso_economico_privado.py), las 3 fuentes de esta dimension son de
 tipo "cantidad": conteo de eventos/proyectos por trimestre, no montos - no
 hace falta reescalar nada, la unidad de las 3 es literalmente "cantidad".
 
-Fuentes y como se tratan (confirmado con datos reales el 2026-09-03):
+Fuentes y como se tratan (confirmado con datos reales el 2026-09-03,
+congreso_menciones_paraguay rediseñado 2026-09-10):
     - congreso_menciones_paraguay (un Excel, una fila por proyecto de ley/
-      resolucion del Congreso de EE.UU. que menciona a Paraguay): cantidad
-      de proyectos por trimestre segun `fecha_introduccion`.
+      resolucion del Congreso de EE.UU. que menciona a Paraguay, con la
+      columna `cantidad_menciones_paraguay` que agrega
+      `congreso_menciones_paraguay.py` desde 2026-09-10 - cuantas veces
+      aparece "Paraguay" en el texto completo, no solo si aparece):
+      **dos variables**, no una (mismo patron que fa_gov en
+      compromiso_financiero_oficial.py - una fuente, dos series):
+        - `congreso_proyectos_relevantes_paraguay`: cantidad de proyectos
+          por trimestre (segun `fecha_introduccion`) con
+          `cantidad_menciones_paraguay > UMBRAL_MENCIONES_RELEVANTE` (3).
+          El umbral es un proxy de que Paraguay es un tema central del
+          proyecto, no una mencion de paso (ver docstring de
+          `congreso_menciones_paraguay.py` para el piloto real que lo
+          valido - saliency theory del Comparative Manifestos Project:
+          los proyectos con "Paraguay" en el titulo promediaron 12
+          menciones contra 1.14 de los que lo mencionan de paso).
+        - `congreso_menciones_totales_paraguay`: suma de
+          `cantidad_menciones_paraguay` de TODOS los proyectos de ese
+          trimestre (relevantes o no) - una medida continua de volumen de
+          mencion, sin el umbral, complementaria a la anterior.
+      **Reemplaza** a la variable `congreso_proyectos_mencion_paraguay`
+      (conteo simple de proyectos, sin distinguir mencion de paso de
+      mencion central) que existia hasta el 2026-09-09 - su carpeta de
+      Drive queda huerfana, el servicio no puede borrarla (rol Writer).
     - ustr_consejo_comercio_inversion (un Excel, una fila por hito del
       Consejo de Comercio e Inversion o antecedente): cantidad de hitos por
       trimestre segun `fecha`. Fuente muy dispersa (pocos eventos en total
@@ -67,6 +89,7 @@ DIMENSION_CRUDA = "2_Actividad_gubernamental_y_diplomatica"
 DIMENSION_LIMPIA = "2_Actividad_gubernamental_y_diplomatica_limpias"
 
 ANIO_MINIMO = 2015
+UMBRAL_MENCIONES_RELEVANTE = 3  # ver docstring del modulo (piloto 2026-09-10)
 
 
 def _excel_mas_reciente(fuente):
@@ -90,8 +113,26 @@ def _contar_por_trimestre(fechas):
 
 
 def _extraer_congreso():
+    """Devuelve (proyectos_relevantes, menciones_totales), cada una
+    {(anio,trim): cantidad} segun trimestre de `fecha_introduccion` - ver
+    docstring del modulo para la definicion de cada una y por que son dos
+    variables separadas en vez de una."""
     df = _excel_mas_reciente("congreso_menciones_paraguay")
-    return _contar_por_trimestre(df["fecha_introduccion"])
+    fechas = pd.to_datetime(df["fecha_introduccion"], errors="coerce")
+    menciones = pd.to_numeric(df["cantidad_menciones_paraguay"], errors="coerce")
+
+    valido = fechas.notna() & menciones.notna() & (fechas.dt.year >= ANIO_MINIMO)
+    fechas = fechas[valido]
+    menciones = menciones[valido]
+
+    proyectos_relevantes, menciones_totales = {}, {}
+    for fecha, cantidad in zip(fechas, menciones):
+        clave = (fecha.year, (fecha.month - 1) // 3 + 1)
+        menciones_totales[clave] = menciones_totales.get(clave, 0) + cantidad
+        if cantidad > UMBRAL_MENCIONES_RELEVANTE:
+            proyectos_relevantes[clave] = proyectos_relevantes.get(clave, 0) + 1
+
+    return proyectos_relevantes, menciones_totales
 
 
 def _extraer_ustr():
@@ -140,8 +181,14 @@ def _extraer_tias():
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
 
+    try:
+        proyectos_relevantes, menciones_totales = _extraer_congreso()
+        subir_variable(DIMENSION_LIMPIA, "congreso_proyectos_relevantes_paraguay", proyectos_relevantes, "cantidad")
+        subir_variable(DIMENSION_LIMPIA, "congreso_menciones_totales_paraguay", menciones_totales, "cantidad")
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] congreso_menciones_paraguay: {exc!r}")
+
     for nombre_variable, extraer in (
-        ("congreso_proyectos_mencion_paraguay", _extraer_congreso),
         ("ustr_hitos_consejo_comercio_inversion", _extraer_ustr),
         ("state_gov_tias_vigentes", _extraer_tias),
     ):
