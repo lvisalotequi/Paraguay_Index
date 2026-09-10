@@ -18,9 +18,35 @@ Fuentes y como se tratan (confirmado con datos reales el 2026-09-03):
       trimestre segun `fecha`. Fuente muy dispersa (pocos eventos en total
       desde 2015) - la mayoria de los trimestres van a quedar en 0/ausentes.
     - state_gov_tias_paraguay (un Excel, una fila por TIAS de Paraguay):
-      cantidad de TIAS por trimestre segun `fecha_entrada_vigor` (cuando el
-      tratado entro en vigor, no cuando se firmo). Igual de dispersa que
-      USTR.
+      **stock acumulado** de TIAS vigentes por trimestre (politica
+      2026-09-10, a pedido del usuario - antes era cantidad de TIAS NUEVOS
+      ese trimestre, igual de disperso que USTR, lo cual no calzaba con el
+      propio nombre de la variable, "vigentes"). Ver `_acumular_por_trimestre()`.
+
+**Por que un stock y no un conteo de eventos, solo para TIAS (2026-09-10):**
+un tratado, a diferencia de una reunion o un proyecto de ley, tiene efecto
+legal que persiste despues de entrar en vigor - "cuantos TIAS estan
+vigentes hoy" es exactamente como el propio Departamento de Estado mide
+esto en su publicacion anual "Treaties in Force" (lista lo que sigue
+vigente, no solo lo firmado ese año), y es el enfoque estandar en la
+literatura de relaciones internacionales para tratados bilaterales (ej. el
+World Treaty Index usa el stock de acuerdos vigentes para operacionalizar
+relaciones bilaterales). Congreso y USTR NO se cambiaron a este enfoque:
+una reunion o un proyecto de ley no tiene "vigencia" en el mismo sentido -
+ocurren y terminan, no hay un estado legal que persista despues.
+
+**Limite explicito, no verificado:** `_acumular_por_trimestre()` asume que
+ningun TIAS se da de baja (terminado/reemplazado/vencido) despues de
+entrar en vigor - no hay ningun mecanismo que lo detecte. La fuente que
+trackearia esto formalmente es el reporte anual "Treaties in Force" del
+Departamento de Estado, pero no es lo que scrapea
+`state_gov_tias_paraguay.py` (investigado 2026-09-10: `www.state.gov`
+devuelve 403 al pedirlo sin el bypass de Cloudflare que ya usa el resto de
+state.gov, y una edicion vieja probada es un PDF escaneado como imagen, no
+texto extraible - agregarlo seria un modulo de ingestion nuevo y separado,
+no algo que este calculo resuelva). No es un problema practico hoy (ninguno
+de los 3 TIAS conocidos esta documentado como terminado), pero queda como
+supuesto explicito, no como algo confirmado.
 
 Se usa el archivo mas reciente subido por ingestion de cada fuente (todas
 suben un Excel nuevo por dia con fecha en el nombre).
@@ -30,6 +56,7 @@ fecha de la corrida en el nombre (idempotente por dia) - no escribe nada a
 disco local.
 """
 import io
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -72,9 +99,42 @@ def _extraer_ustr():
     return _contar_por_trimestre(df["fecha"])
 
 
+def _acumular_por_trimestre(fechas):
+    """Devuelve {(anio,trim): cantidad ACUMULADA} - a diferencia de
+    _contar_por_trimestre, no es cuantos eventos son NUEVOS ese trimestre,
+    es un stock: cuantos ya estaban vigentes a esa fecha, repitiendo el
+    ultimo acumulado en los trimestres sin eventos nuevos (para que no
+    queden huecos entre un evento y el siguiente). Cubre desde el trimestre
+    del primer evento hasta el trimestre actual (no hasta donde llega la
+    fuente - el stock sigue siendo valido despues del ultimo evento
+    conocido). Ver docstring del modulo para el supuesto de que ningun
+    evento se da de baja."""
+    eventos = _contar_por_trimestre(fechas)
+    if not eventos:
+        return {}
+
+    anio, trim = min(eventos)
+    hoy = datetime.now(timezone.utc)
+    ultimo_trim = (hoy.year, (hoy.month - 1) // 3 + 1)
+
+    acumulado = {}
+    total = 0
+    while (anio, trim) <= ultimo_trim:
+        total += eventos.get((anio, trim), 0)
+        acumulado[(anio, trim)] = total
+        trim += 1
+        if trim > 4:
+            trim = 1
+            anio += 1
+    return acumulado
+
+
 def _extraer_tias():
+    """Devuelve el STOCK acumulado de TIAS vigentes por trimestre (no la
+    cantidad de TIAS nuevos ese trimestre) - ver docstring del modulo,
+    politica 2026-09-10."""
     df = _excel_mas_reciente("state_gov_tias_paraguay")
-    return _contar_por_trimestre(df["fecha_entrada_vigor"])
+    return _acumular_por_trimestre(df["fecha_entrada_vigor"])
 
 
 def run():
