@@ -38,17 +38,31 @@ ETAPA 02 · dos implementaciones que hacen LO MISMO (ver aviso abajo):
               │                                        ▼
               │                          Drive: 02_limpias/{dimensión}_limpias/{variable}/  (1 CSV por variable)
               ▼
-ETAPA 03 · src/03_integration/03_integration.py   →  panel trimestral cuadrado, SOLO en memoria
-              │                                       (480 filas = 10 variables × 48 trimestres)
-              ▼
-ETAPA 04 · src/04_analysis_index/04_analysis_index.qmd  →  documento Quarto: diagnóstico + índice
-                                                            (no escribe nada a Drive todavía)
+ETAPA 03 · src/03_integration/03_integration.py   →  Drive: 03_integracion/   (panel trimestral cuadrado,
+              │                                        │      480 filas = 10 variables × 48 trimestres,
+              │                                        │      un CSV largo + un CSV ancho)
+              ▼                                        ▼
+ETAPA 04 · src/04_analysis_index/04_analysis_index.qmd  →  Drive: 04_final/   (CSV largo + CSV ancho +
+                                                            un Google Sheet de 2 pestañas para el dashboard)
+                                                            + el documento Quarto renderizado
 ```
 
-La carpeta de Drive tiene 3 etapas (`01_crudas`, `02_limpias`, `03_final`).
-`01_crudas` y `02_limpias` ya existen y tienen datos. **`03_final` sigue
-vacía**: las etapas 03 y 04 existen como código pero no escriben nada a
-Drive — sus resultados viven en memoria y en el HTML renderizado.
+La carpeta de Drive tiene 4 etapas (`01_crudas`, `02_limpias`, `03_integracion`,
+`04_final`), y desde el 2026-09-10 las cuatro tienen datos: las etapas 03 y 04
+ya publican su salida (antes vivían solo en memoria y en el HTML renderizado).
+Ojo con el nombre: la última carpeta se llama **`04_final`**, no `03_final`
+como decía esta nota antes de que existieran las carpetas reales.
+
+> **Las etapas 03 y 04 escriben distinto a las etapas 01 y 02 (2026-09-10).**
+> Ingestion y processing acumulan un archivo por corrida con la fecha en el
+> nombre y nunca pisan nada (idempotente por día). Las etapas 03 y 04 usan
+> **nombre fijo y reemplazan el contenido del mismo archivo** en cada corrida
+> (`subir_o_reemplazar()` en `src/drive.py`, que hace `files.update`). El
+> motivo es que lo que publican no es una foto nueva de una fuente sino el
+> estado vigente de la etapa, y hay cosas enganchadas por link a esos archivos
+> (el `.qmd` lee el panel de `03_integracion`; un dashboard lee el Sheet de
+> `04_final`). Con nombre fijo, el id del archivo no cambia nunca y el
+> historial de versiones lo guarda igual Drive.
 
 > ⚠️ **Duplicación conocida de la etapa 02 (2026-09-09).** La dimensión 1
 > está implementada dos veces: como módulo (`src/processing/
@@ -149,10 +163,20 @@ no automatizada todavía.
 - Como la subida es por API (no por disco montado), **esto ya corre igual en
   local o en GitHub Actions** — no depende de tener la Unidad compartida
   montada en ninguna letra de unidad.
-- **Salida a Sheets**: `pipeline_log` (auditoría de que corrió) y
-  `catalogo_fuentes` (trazabilidad — de dónde sale cada fuente, ver sección
-  4). Ninguna fuente escribe sus *datos* a Sheets todavía, solo estos dos
-  metadatos de auditoría.
+- **Salida de las etapas 03 y 04**: `CARPETA_INTEGRACION` (`"03_integracion"`)
+  y `CARPETA_FINAL` (`"04_final"`), las dos colgando directo de
+  `DRIVE_ROOT_ID` (ids cacheados en `ETAPA_FOLDER_IDS`,
+  `resolve_etapa_folder(carpeta)` los resuelve). A diferencia de ingestion y
+  processing, escriben con `subir_o_reemplazar()` (nombre fijo, `files.update`
+  sobre el mismo archivo) — ver el aviso de la sección 2.
+- **Salida a Sheets**: tres pestañas de auditoría en el Sheet de `SHEET_ID`
+  (`pipeline_log`, `processing_log` y `catalogo_fuentes` — trazabilidad de
+  dónde sale cada fuente, ver sección 4), más, desde el 2026-09-10, el Sheet
+  `us_py_engagement_index` que publica la etapa 04 dentro de `04_final`. Ese
+  último es el único que lleva *datos* y no metadatos de auditoría, y vive en
+  un archivo aparte (`write_dataframe(..., spreadsheet_id=...)`) porque lo
+  consume un dashboard: nunca se borra ni se recrea, solo se reemplaza el
+  contenido de sus dos pestañas.
 - **Ejecución**: GitHub Actions, disparo manual (`workflow_dispatch`) desde la
   pestaña Actions del repo, y programado cada 3 meses (`schedule` cron
   `0 0 1 */3 *`, 1 de enero/abril/julio/octubre, UTC).
@@ -405,13 +429,28 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     proyecto puede aparecer solo por mencionar a Paraguay de paso (ver
     docstring del módulo). Requiere `CONGRESS_API_KEY` (gratuita, el usuario
     la generó en `api.congress.gov/sign-up` — la misma key sirve para ambas
-    APIs). **Columna de verificación (2026-09-02, a pedido del usuario)**:
-    cada fila incluye `extracto_mencion_paraguay`, un fragmento real del
-    texto del proyecto centrado en la primera mención de "Paraguay" — se
-    descarga el contenido de la misma versión que GovInfo ya encontró que
-    lo menciona (`/packages/{packageId}/htm`), no un snippet inventado, así
-    se puede confirmar de un vistazo que el hit es real y en qué contexto
-    aparece, sin abrir el proyecto entero.
+    APIs). **Rediseñado 2026-09-10 (commit de `lvisalotequi`): cuenta TODAS
+    las menciones, no solo detecta si aparece.** Cada fila incluye ahora
+    `cantidad_menciones_paraguay` (cuántas veces aparece "Paraguay" en el
+    texto completo) y `extractos_menciones_paraguay` (un fragmento real
+    alrededor de CADA mención, unidos por `" ||| "` — antes solo se
+    guardaba `extracto_mencion_paraguay`, un único fragmento de la primera
+    mención). Se descargan del mismo documento que GovInfo ya encontró que
+    contiene "Paraguay" (`/packages/{packageId}/htm`), no son snippets
+    inventados. **Por qué contar en vez de solo detectar**: es un proxy de
+    qué tan central es Paraguay en el proyecto (no de si la mención es
+    positiva o negativa) — misma lógica que la *saliency theory* del
+    Comparative Manifestos Project y el *expressed agenda model* de
+    Grimmer (2013, "Text as Data"), que miden atención a un tema por
+    frecuencia de mención en el texto, no por juicio de contenido. Piloto
+    real (2026-09-10, 3 años: 2020/2021/2024): los proyectos con
+    "Paraguay" en el título promediaron 12.0 menciones contra 1.14 de los
+    que lo mencionan de paso — separación clara que valida el enfoque.
+    **Límite reconocido explícitamente**: la frecuencia no mide intensidad
+    de tono (una mención muy fuerte puede eclipsar a varias tibias);
+    clasificar el tono de cada mención requeriría NLP/LLM, que se decidió
+    no usar para que el pipeline siga siendo determinístico y sin depender
+    de un servicio externo.
   - `ustr_consejo_comercio_inversion.py` — hitos del Consejo de Comercio e
     Inversión (TIFA/TIC) entre Paraguay y EE.UU., vía scraping de
     ustr.gov (el buscador propio del sitio no funciona — confirmado
@@ -630,16 +669,42 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     `Decision == "Approved"`), y aprobado de BID/Banco Mundial (trimestral
     real por fecha de aprobación del proyecto — **monto total del
     proyecto, todavía NO ponderado por la cuota de capital de EE.UU.**, ver
-    pendiente #5). Rango 2015-Q1 a 2027-Q1 (el Banco Mundial ya tiene un
+    pendiente #4). Rango 2015-Q1 a 2027-Q1 (el Banco Mundial ya tiene un
     proyecto con aprobación futura anunciada) — varía por variable, cada
     una con su propio CSV.
-  - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, 3 variables,
-    todo **cantidad** — conteos, no montos): proyectos del Congreso que
-    mencionan a Paraguay (por `fecha_introduccion`, 27 trimestres con al
-    menos 1), hitos del Consejo de Comercio e Inversión de USTR (por
-    `fecha`, muy disperso — 5 trimestres con datos en 10 años), y TIAS de
-    Paraguay vigentes (por `fecha_entrada_vigor`, igual de disperso — 3
-    trimestres con datos).
+  - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, **4 variables**
+    desde el 2026-09-10 — antes 3, ver más abajo —, todo **cantidad**):
+    hitos del Consejo de Comercio e Inversión de USTR (por `fecha`, muy
+    disperso — 5 trimestres con datos en 10 años, sin cambios), y TIAS de
+    Paraguay (rediseñada, ver más abajo). **Congreso, rediseñado
+    2026-09-10 (commit de `lvisalotequi`) — reemplaza a
+    `congreso_proyectos_mencion_paraguay` con dos variables nuevas**, mismo
+    patrón que fa_gov en la dimensión 1 (una fuente, dos series): (1)
+    `congreso_proyectos_relevantes_paraguay` — cantidad de proyectos por
+    trimestre con `cantidad_menciones_paraguay > UMBRAL_MENCIONES_RELEVANTE`
+    (3), un proxy de que Paraguay es tema central del proyecto y no una
+    mención de paso; (2) `congreso_menciones_totales_paraguay` — suma de
+    menciones de TODOS los proyectos del trimestre, sin umbral, una medida
+    continua de volumen. La variable vieja (conteo simple de proyectos, sin
+    distinguir mención central de mención de paso) queda retirada — su
+    carpeta de Drive quedó huérfana (el servicio no puede borrarla, rol
+    Writer). **TIAS, política 2026-09-10**: `state_gov_tias_vigentes` pasó
+    de contar TIAS *nuevos* por trimestre (disperso — 3 trimestres con
+    datos, no calzaba con el propio nombre "vigentes") a un **stock
+    acumulado** de TIAS vigentes (`_acumular_por_trimestre()` — mismo
+    enfoque que usa el Departamento de Estado en su reporte anual
+    "Treaties in Force" y el World Treaty Index para operacionalizar
+    relaciones bilaterales). USTR no se cambió a stock a propósito: una
+    reunión no tiene "vigencia" que persista después de ocurrir, a
+    diferencia de un tratado. **Límite explícito y no verificado**: el
+    stock de TIAS asume que ninguno se da de baja después de entrar en
+    vigor — no hay ningún mecanismo que lo detecte (el reporte formal que
+    lo trackearía, "Treaties in Force", no es lo que scrapea
+    `state_gov_tias_paraguay.py`). Esta redirección hacia medidas continuas
+    (menciones totales, stock acumulado) es directamente relevante para el
+    pendiente #6 ("reemplazar conteos de eventos raros por alguna medida de
+    intensidad continua") — sigue sin estar incorporada al índice, pero el
+    insumo para intentarlo ya existe.
   - `compromiso_economico_privado.py` (dimensión 3, 5 variables, todo
     **monetario en USD sin escalar**): exportaciones/importaciones con
     EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
@@ -718,8 +783,17 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     hace necesaria es el tono de GDELT, que es "trimestre real" y aun así no
     se puede sumar.
   - Expone `limpias_largo` (480 × 11) y `limpias_ancho` (48 × 10), más
-    `catalogo_variables` y `trimestres_panel`. La etapa 04 los importa con
-    `runpy.run_path()` en vez de releer Drive.
+    `catalogo_variables` y `trimestres_panel`.
+  - **Publica los dos formatos en `03_integracion` (2026-09-10):**
+    `panel_trimestral_largo.csv` (480 × 11, el que lee la etapa 04 — es el
+    único que lleva `dimension`/`grano_temporal`/`agregacion`/`unidad`/
+    `en_fuente`/`archivo_origen`) y `panel_trimestral_ancho.csv` (48 × 11,
+    vista cómoda). Nombre fijo, se reemplaza el contenido en cada corrida
+    (ver el aviso de la sección 2), con interruptor `SUBIR_A_DRIVE` (hoy en
+    `True`). El largo se exporta en el **orden declarado** de las variables,
+    no en el alfabético de `limpias_largo`: la etapa 04 reconstruye su
+    catálogo con un `drop_duplicates` sobre ese orden, y hay una validación
+    que lo verifica.
   - Las 10 variables del panel son 3 de la dimensión 1 (fa_gov ob/des,
     usaspending), 3 de la 3 (exportaciones, importaciones, remesas) y 4 de
     la 4 (gdelt articles/tone × py/us). **No se traen las variantes BOTH de
@@ -733,6 +807,32 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   cliente" (ver sección 4). Sigue los 10 pasos del *Handbook on Constructing
   Composite Indicators* de la OCDE/JRC, con una tabla que mapea cada paso a
   su sección.
+
+  **Entrada y salida (2026-09-10).** El insumo es
+  `03_integracion/panel_trimestral_largo.csv`, leído de Drive — **ya no
+  ejecuta `03_integration.py` con `runpy`**. El motivo está escrito en el
+  propio documento: ejecutando la etapa anterior, dos renders podían mirar
+  paneles distintos y las cifras no eran reproducibles contra ningún archivo
+  concreto. Consecuencia operativa: **hay que correr `03_integration.py`
+  antes de renderizar**, si no el documento reporta el panel viejo sin
+  avisar. La salida va a `04_final` y son tres cosas con el mismo contenido:
+  `indice_us_py_ancho.csv` (45 × 29), `indice_us_py_largo.csv` (1.125 × 10) y
+  el Google Sheet `us_py_engagement_index` con las pestañas `indice_ancho` y
+  `indice_largo`. Las tres llevan los tres bloques de columnas: las 10
+  originales (unidad nativa, sin deflactar), las 10 normalizadas (sufijo
+  `_z`, que ya trae adentro deflactar + logaritmo + puntaje z contra la base)
+  y los 5 índices (`indice_dim_1`/`3`/`4`, `indice_agregado`,
+  `indice_agregado_suavizado`), más `trimestre`/`anio`/`trimestre_num`/
+  `provisional`. Interruptor `PUBLICAR_RESULTADO` (hoy en `True`) para
+  renderizar sin escribir nada. **El Sheet no se borra ni se recrea nunca**
+  (lo consume un dashboard): se resuelve por nombre, se crea solo la primera
+  vez, y de ahí en más se reemplaza únicamente el contenido de las dos
+  pestañas — `write_dataframe()` en `src/sheets.py` limpia y reescribe, y
+  solo **agranda** la grilla si hace falta (la grilla por defecto son 1.000 ×
+  26 y el formato largo tiene 1.126 filas, así que sin ese `resize` la
+  escritura fallaba con "exceeds grid limits"). Queda una pestaña `Sheet1`
+  vacía de cuando se creó el archivo: se puede borrar a mano una vez, nada la
+  vuelve a crear.
 
   **Las 11 decisiones que definen el índice** (cada una documentada en el
   .qmd con su alternativa descartada):
@@ -788,6 +888,28 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   appropriations" —, así que el deflactor de 2025-Q4 se calcula con dos
   meses. Trasladar esa descarga a `src/ingestion/` es un pendiente.
 
+- **`src/04_analysis_index/04_construccion_indice.qmd` — reconstrucción del
+  índice desde cero (2026-09-10 en adelante, en curso).** El usuario invalidó
+  `04_analysis_index.qmd` como decisión: sus elecciones metodológicas se
+  tomaron sin evaluar sistemáticamente las alternativas. El documento nuevo
+  rehace el índice siguiendo los 10 pasos del manual OCDE/JRC en 13 etapas, y
+  para cada pregunta explica todas las técnicas disponibles, las contrasta con
+  evidencia real y recién ahí decide, dejando registrada la alternativa
+  descartada.
+
+  Parte del panel de `03_integracion` (12 series, 8 indicadores) y no de
+  `02_limpias`. Ventana 2015-Q1 a 2026-Q1, 45 trimestres sin faltantes.
+
+  **Estado: etapas 0 a 7 completas (31 decisiones registradas), etapas 8 a 13
+  pendientes.** El documento viejo sigue en el repo pero no debe usarse como
+  referencia.
+
+  > **Todo el contexto para retomar está en
+  > [`src/04_analysis_index/ESTADO_CONSTRUCCION_INDICE.md`](src/04_analysis_index/ESTADO_CONSTRUCCION_INDICE.md)**:
+  > convenciones obligatorias de estructura y redacción, las 31 decisiones, lo
+  > que quedó abierto, los hallazgos que no conviene perder y cómo renderizar.
+  > Leerlo antes de tocar el `.qmd`.
+
 ## 7. Pendientes
 
 1. **Definir el resto de las variables de cada dimensión** — las cuatro
@@ -811,12 +933,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
    Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
    específico o confirmar si esta variable existe como dataset en otro lado.
-4. **Materializar `03_final` en Drive.** Las etapas 03 (panel) y 04 (índice)
-   ya existen como código (ver sección 6) pero **no escriben nada**: el panel
-   vive en memoria y el índice solo en el HTML renderizado. Falta decidir qué
-   se persiste (¿el panel cuadrado? ¿la serie del índice? ¿los sub-índices?)
-   y escribirlo a `03_final` y/o al Sheet.
-5. **Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
+4. **Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
    EE.UU.** — `compromiso_financiero_oficial.py` (processing, dimensión 1)
    hoy suma el monto TOTAL aprobado de cada proyecto multilateral, no la
    porción atribuible a EE.UU. según su participación accionaria en cada
@@ -824,31 +941,31 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    de compromiso de EE.UU. propiamente dicha — el cálculo de ponderación
    queda pendiente.
 
-6. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
+5. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
    Hay dos implementaciones de la dimensión 1 que suben a las mismas
    carpetas de Drive y compiten por el idempotente-por-día. Si el script
    lineal reemplaza al módulo, hay que sacar
    `src/processing/compromiso_financiero_oficial.py` de la carpeta que
    `run_processing.py` autodescubre, y decidir si las dimensiones 2, 3 y 4
    se reescriben en el mismo estilo.
-7. **Incorporar la dimensión 2 al índice** — es la limitación más importante
+6. **Incorporar la dimensión 2 al índice** — es la limitación más importante
    del índice actual, que hoy cubre 3 de 4 dimensiones. Sus tres variables
    existen y están limpias, pero son conteos de eventos demasiado raros
    (los hitos de USTR aparecen en 5 trimestres de 45, los TIAS en 3) y al
    normalizarse producirían saltos enormes. La vía más prometedora es
    reemplazar conteos de eventos raros por alguna medida de intensidad
    continua.
-8. **Mover la descarga del IPC a `src/ingestion/`.** Hoy la etapa 04 baja la
+7. **Mover la descarga del IPC a `src/ingestion/`.** Hoy la etapa 04 baja la
    serie de BLS en tiempo de render, lo que hace que el documento dependa de
    una API externa para poder compilarse. Debería ser un módulo de ingestion
    más, con su archivo versionado en Drive.
-9. **Contrastar el índice con indicadores externos** — es el paso 9 del
+8. **Contrastar el índice con indicadores externos** — es el paso 9 del
    manual de la OCDE y el único de los diez que hoy no se cumple.
-10. **Definir la política de re-basificación**: cada cuántos años se
-    actualiza el período base 2015-2019 del índice y cómo se publica la
-    transición (la práctica estándar es publicar ambas series durante un
-    tiempo).
-11. **Higiene del repo**: `.env.example` está borrado en el working tree
+9. **Definir la política de re-basificación**: cada cuántos años se
+   actualiza el período base 2015-2019 del índice y cómo se publica la
+   transición (la práctica estándar es publicar ambas series durante un
+   tiempo).
+10. **Higiene del repo**: `.env.example` está borrado en el working tree
     (es la plantilla versionada que el README y la sección 5 citan para que
     otra persona pueda correr el proyecto), y `.venv/` no está en
     `.gitignore` (solo lo está `gdelt_extraction/.venv/`).
@@ -856,3 +973,11 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
 *(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
 con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret
 `BEA_API_KEY` ya esté cargado en GitHub para que corra igual en Actions.)*
+
+*(Resuelto 2026-09-10: era el pendiente "Materializar `03_final` en Drive".
+Las etapas 03 y 04 ya publican — el panel en `03_integracion` y el resultado
+del índice en `04_final`, este último como CSV largo + ancho y como Google
+Sheet de dos pestañas para el dashboard. Se persisten las 10 columnas
+originales, las 10 normalizadas y los 5 índices, todo probado de punta a
+punta con datos reales. Ojo: la carpeta se llama `04_final`, no `03_final`
+como suponía el pendiente. Ver secciones 2, 3 y 6.)*

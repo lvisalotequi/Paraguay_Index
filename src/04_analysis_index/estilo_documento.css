@@ -1,0 +1,195 @@
+/* ---------------------------------------------------------------------------
+   Estilo del documento de construccion del indice US-PY
+
+   Dos objetivos:
+   1. Que las tablas anchas y los graficos entren sin deslizamiento lateral.
+   2. Que la tabla de contenido distinga a simple vista etapas de subsecciones.
+   --------------------------------------------------------------------------- */
+
+
+/* 0. ANCHO DE LA PAGINA -----------------------------------------------------
+   El documento se renderiza a pagina completa para que las tablas anchas y los
+   graficos entren sin deslizamiento lateral. Pero una linea de texto de 1400px
+   es incomoda de leer, asi que se limita el ancho de la PROSA y se deja que
+   tablas, graficos y bloques de codigo usen todo el espacio disponible. */
+
+main.content > p,
+main.content > ul,
+main.content > ol,
+main.content > blockquote,
+main.content section > p,
+main.content section > ul,
+main.content section > ol,
+main.content section > blockquote,
+main.content .callout .callout-body-container > p,
+main.content .callout .callout-body-container > ul,
+main.content .callout .callout-body-container > ol {
+  max-width: 68rem;
+}
+
+/* los bloques de aviso llevan prosa: se limitan tambien, pero un poco mas
+   anchos porque tienen sangria propia */
+main.content .callout {
+  max-width: 76rem;
+}
+
+/* las tablas y los graficos, en cambio, usan todo el ancho */
+main.content .cell-output-display,
+main.content figure,
+main.content div.sourceCode {
+  max-width: 100%;
+}
+
+
+/* 1. TABLAS -----------------------------------------------------------------
+   Las tablas que produce pandas traen muchas columnas de texto largo. Se
+   reduce el tamano de letra, se permite que el texto corte dentro de la celda
+   y se alinea arriba, para que una celda larga no estire toda la fila. */
+
+table.dataframe {
+  font-size: 0.78rem;
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+table.dataframe th,
+table.dataframe td {
+  white-space: normal;
+  overflow-wrap: break-word;
+  vertical-align: top;
+  padding: 0.32rem 0.5rem;
+  line-height: 1.35;
+}
+
+/* las columnas de texto largo necesitan un ancho minimo para que el contenido
+   se lea en renglones completos y no en una columna de una palabra por linea.
+   Si la suma de los minimos excede el ancho disponible, el contenedor desliza */
+table.dataframe td:nth-child(n + 2) {
+  min-width: 5.5rem;
+}
+
+table.dataframe thead th {
+  background: #eef1f5;
+  font-weight: 600;
+  border-bottom: 2px solid #c8d0da;
+  text-align: left;
+}
+
+table.dataframe tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+/* si aun asi una tabla no entra, que deslice solo la tabla y no la pagina */
+.cell-output-display {
+  overflow-x: auto;
+}
+
+
+/* 2. TABLAS EN MARKDOWN -----------------------------------------------------
+   Las tablas escritas a mano en el texto (dimensiones, etapas pendientes)
+   usan el ancho completo y no el minimo necesario. */
+
+.quarto-title-block + section table,
+main table:not(.dataframe) {
+  width: 100%;
+  font-size: 0.88rem;
+}
+
+
+/* 3. GRAFICOS ---------------------------------------------------------------
+   Las figuras de matplotlib se generan a 9-11 pulgadas de ancho. Se ajustan
+   al ancho disponible en vez de desbordarlo. */
+
+.cell-output-display img,
+figure img {
+  max-width: 100%;
+  height: auto;
+}
+
+
+/* 4. TABLA DE CONTENIDO -----------------------------------------------------
+   Tres niveles con peso, tamano y sangria distintos, mas una linea vertical
+   que marca la profundidad. El nivel 1 son las etapas. */
+
+nav[role="doc-toc"] ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* nivel 1: las etapas */
+nav[role="doc-toc"] > ul > li > a {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #1f2933;
+  padding: 0.32rem 0 0.32rem 0.2rem;
+  display: block;
+  border-left: 3px solid transparent;
+}
+
+nav[role="doc-toc"] > ul > li {
+  margin-top: 0.45rem;
+}
+
+/* nivel 2: las fases y secciones dentro de cada etapa */
+nav[role="doc-toc"] > ul ul > li > a {
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: #44515f;
+  padding: 0.2rem 0 0.2rem 0.9rem;
+  display: block;
+  border-left: 2px solid #dde3ea;
+}
+
+/* nivel 3: los criterios y evidencias dentro de cada fase */
+nav[role="doc-toc"] > ul ul ul > li > a {
+  font-weight: 400;
+  font-size: 0.76rem;
+  color: #6b7784;
+  padding-left: 1.7rem;
+  border-left: 2px solid #eef1f5;
+}
+
+/* el elemento activo se marca con la linea de color, no solo con el texto */
+nav[role="doc-toc"] a.active,
+nav[role="doc-toc"] > ul > li > a.active {
+  border-left-color: #1f4e79;
+  color: #1f4e79;
+  background: #f4f7fa;
+}
+
+nav[role="doc-toc"] a:hover {
+  color: #1f4e79;
+  text-decoration: none;
+}
+
+#toc-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7784;
+  margin-bottom: 0.6rem;
+}
+
+
+/* 5. BLOQUES DE AVISO -------------------------------------------------------
+   Los callout de decision son el elemento mas importante del documento: se
+   les da un poco mas de presencia. */
+
+div.callout {
+  margin: 1.3rem 0;
+}
+
+div.callout-tip .callout-title {
+  font-weight: 700;
+}
+
+
+/* 6. CODIGO -----------------------------------------------------------------
+   El codigo va plegado pero visible; se reduce para que los comentarios
+   largos no obliguen a deslizar. */
+
+div.sourceCode {
+  font-size: 0.80rem;
+}

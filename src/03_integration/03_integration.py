@@ -6,7 +6,7 @@
 #                                                                              #
 # FECHA DE CREACION: 09/09/2026                                                #
 # NOMBRE: 03_integration                                                       #
-# DETALLE: Trae de Drive los CSV ya limpios de 02_limpias (de las tres         #
+# DETALLE: Trae de Drive los CSV ya limpios de 02_limpias (de las cuatro       #
 #          dimensiones que ya tienen variables revisadas) y los deja en un     #
 #          panel trimestral CUADRADO: todos los trimestres de 2015 a 2026      #
 #          por todas las variables, con NA donde la fuente no tiene dato.      #
@@ -16,7 +16,8 @@
 # CORRE DESPUES DE: 02_clean_compromiso_financiero_oficial.py y el resto de    #
 #                   processing (las variables limpias ya tienen que estar en   #
 #                   Drive)                                                     #
-# SALIDA: ninguna todavia - los objetos quedan en memoria para revisar         #
+# SALIDA: Drive 03_integracion/ - el panel en formato largo y en formato       #
+#         ancho, un CSV cada uno. El largo es lo que lee 04_analysis_index     #
 #-----------------------------------------------------------------------------.#
 
 
@@ -70,13 +71,21 @@ if not Path(CREDENCIALES).is_file():
         "Revisar el .env."
     )
 
-from src.drive import VARIABLE_FOLDER_IDS, descargar_archivo, listar_archivos  # noqa: E402
+from src.drive import (  # noqa: E402
+    CARPETA_INTEGRACION,
+    VARIABLE_FOLDER_IDS,
+    descargar_archivo,
+    listar_archivos,
+    resolve_etapa_folder,
+    subir_o_reemplazar,
+)
 
 
 ## 0.3. Parametros configurables ----------------------------------------------------
 
 # carpetas de Drive de donde se lee, una por dimension                 # Input
 DIMENSION_1 = "1_Compromiso_financiero_oficial_limpias"
+DIMENSION_2 = "2_Actividad_gubernamental_y_diplomatica_limpias"
 DIMENSION_3 = "3_Compromiso_economico_privado_limpias"
 DIMENSION_4 = "4_Visibilidad_mediatica_y_relevancia_publica_limpias"
 
@@ -98,23 +107,41 @@ DIMENSION_4 = "4_Visibilidad_mediatica_y_relevancia_publica_limpias"
 #   agregacion (que pasa si se juntan varios trimestres)
 #     "suma"                 flujo sumable: los cuatro trimestres suman el
 #                            total del anio.
-#     "no sumar"             el valor YA es el total del anio, repetido cuatro
-#                            veces. Sumarlo da cuatro veces el total real.
+#     "no sumar"             el valor NO es un flujo, es un nivel: o el total
+#                            del anio repetido cuatro veces (fa_gov), o un
+#                            STOCK acumulado que ya trae adentro todo lo
+#                            anterior (state_gov_tias_vigentes - cuantos TIAS
+#                            siguen vigentes a esa fecha, no cuantos entraron
+#                            en vigor ESE trimestre). En los dos casos, sumar
+#                            los cuatro trimestres cuenta lo mismo mas de una
+#                            vez.
 #     "promedio ponderado"   es un promedio, no un flujo. Sumar no significa
 #                            nada; para llevarlo a anio hay que promediar
 #                            ponderando por la cantidad de articulos del
 #                            mismo pais (la variable gdelt_proxy_articles_*
 #                            que va al lado).
 #
-# El caso que obliga a tener las dos columnas es el tono de GDELT: es
-# "trimestre real" y aun asi no se puede sumar. Con una sola marca, el error
-# se puede cometer sin querer en 04_analysis_index.
+# El caso que obliga a tener las dos columnas es el tono de GDELT (y ahora
+# tambien state_gov_tias_vigentes): son "trimestre real" y aun asi no se
+# pueden sumar. Con una sola marca, el error se puede cometer sin querer en
+# 04_analysis_index.
 
 VARIABLES_D1 = [
     # variable                      grano temporal     agregacion
     ("fa_gov_obligaciones",         "anio repetido",   "no sumar"),
     ("fa_gov_desembolsos",          "anio repetido",   "no sumar"),
     ("usaspending_obligaciones",    "trimestre real",  "suma"),
+]
+
+# Las dos variables de processing/actividad_gubernamental_y_diplomatica.py
+# que ya estan limpias y en Drive (rediseño 2026-09-10 - ver CLAUDE.md
+# seccion 6). Las otras dos de esa dimension (ustr_hitos_consejo_comercio_
+# inversion, congreso_menciones_totales_paraguay) siguen sin entrar al panel:
+# el usuario todavia no pidio incorporarlas.
+VARIABLES_D2 = [
+    # variable                                  grano temporal     agregacion
+    ("congreso_proyectos_relevantes_paraguay",   "trimestre real",  "suma"),
+    ("state_gov_tias_vigentes",                  "trimestre real",  "no sumar"),
 ]
 
 VARIABLES_D3 = [
@@ -135,6 +162,7 @@ VARIABLES_D4 = [
 # el registro completo, en el orden en que se apilan al final del paso 1
 DIMENSIONES = [
     (DIMENSION_1, VARIABLES_D1),
+    (DIMENSION_2, VARIABLES_D2),
     (DIMENSION_3, VARIABLES_D3),
     (DIMENSION_4, VARIABLES_D4),
 ]
@@ -146,10 +174,23 @@ COLUMNAS_CONTRATO = ["trimestre", "anio", "trimestre_num", "valor", "unidad"]
 # siempre tiene los 48 trimestres de 2015-Q1 a 2026-Q4 por variable, aunque
 # una fuente no llegue hasta ahi (esos trimestres quedan en NA) y aunque otra
 # publique mas alla (esas filas quedan afuera, y la validacion lo avisa - hoy
-# no pasa con estas diez, pero el Banco Mundial en la dimension 1 ya publica
+# no pasa con estas doce, pero el Banco Mundial en la dimension 1 ya publica
 # aprobaciones futuras).
 ANIO_MINIMO = 2015
 ANIO_MAXIMO = 2026
+
+# carpeta de Drive donde se publica el panel                          # Output
+CARPETA_SALIDA = CARPETA_INTEGRACION
+
+# Nombres FIJOS, sin fecha: cada corrida reemplaza el contenido del mismo
+# archivo en vez de dejar uno nuevo al lado (ver subir_o_reemplazar en
+# src/drive.py). El largo es el que lee 04_analysis_index
+ARCHIVO_PANEL_LARGO = "panel_trimestral_largo.csv"
+ARCHIVO_PANEL_ANCHO = "panel_trimestral_ancho.csv"
+
+# en False el script corre entero sin tocar Drive, que es lo que se quiere
+# mientras se revisa. En True publica el panel
+SUBIR_A_DRIVE = True
 
 # muestra las tablas completas al imprimirlas en la consola
 pd.set_option("display.max_columns", None)
@@ -169,12 +210,12 @@ pd.set_option("display.width", 200)
 # archivo_origen) para saber, ya dentro del panel, de donde salio cada fila y
 # como se la puede usar.
 #
-# Las tres dimensiones se leen por separado (1.1, 1.2, 1.3), se apilan (1.4) y
-# recien ahi se cuadra el panel contra la grilla completa de trimestres (1.5).
+# Las cuatro dimensiones se leen por separado (1.1 a 1.4), se apilan (1.5) y
+# recien ahi se cuadra el panel contra la grilla completa de trimestres (1.6).
 # Las unidades NO son homogeneas entre dimensiones: la 1 y la 3 son monetarias
-# (USD sin escalar), la 4 mezcla conteos e indice de tono. Ese es justamente el
-# problema que resuelve 04_analysis_index; aca solo se transporta la unidad tal
-# como vino.
+# (USD sin escalar), la 2 y la 4 son cantidad (mezclada con indice de tono en
+# la 4). Ese es justamente el problema que resuelve 04_analysis_index; aca
+# solo se transporta la unidad tal como vino.
 
 
 def csv_mas_reciente(dimension_limpia, variable):
@@ -232,7 +273,7 @@ def importar_dimension(dimension_limpia, variables):
     return tablas, archivos
 
 
-# los dos dicts que van acumulando lo de las tres dimensiones
+# los dos dicts que van acumulando lo de las cuatro dimensiones
 limpias = {}
 archivos_usados = {}
 
@@ -259,7 +300,33 @@ fa_gov_desembolsos_limpia = limpias_d1["fa_gov_desembolsos"]
 usaspending_obligaciones_limpia = limpias_d1["usaspending_obligaciones"]
 
 
-## 1.2. Dimension 3 - Compromiso economico privado ----------------------------------
+## 1.2. Dimension 2 - Actividad gubernamental y diplomatica -------------------------
+
+# Primera vez que esta dimension entra al panel (2026-09-10) - hasta ahora
+# quedaba afuera porque sus variables eran conteos de eventos demasiado raros
+# (ver CLAUDE.md seccion 7, pendiente #6). Las dos que entran ahora son
+# "trimestre real" pero con comportamiento opuesto:
+#   congreso_proyectos_relevantes_paraguay   FLUJO - cuantos proyectos nuevos
+#                                             se introdujeron ese trimestre,
+#                                             se puede sumar.
+#   state_gov_tias_vigentes                  STOCK - cuantos TIAS siguen
+#                                             vigentes a esa fecha, NO se
+#                                             puede sumar (ver 0.3).
+# Las dos en "cantidad", sin reescalar.
+
+print(f"\n[{DIMENSION_2}]")
+
+limpias_d2, archivos_d2 = importar_dimension(DIMENSION_2, VARIABLES_D2)
+
+limpias.update(limpias_d2)
+archivos_usados.update(archivos_d2)
+
+
+congreso_proyectos_relevantes_paraguay_limpia = limpias_d2["congreso_proyectos_relevantes_paraguay"]
+state_gov_tias_vigentes_limpia = limpias_d2["state_gov_tias_vigentes"]
+
+
+## 1.3. Dimension 3 - Compromiso economico privado ----------------------------------
 
 # Las tres salen del BCP y son trimestrales reales: exportaciones e
 # importaciones vienen ya trimestrales en el Boletin de Comercio Exterior, y
@@ -280,7 +347,7 @@ importaciones_limpia = limpias_d3["importaciones"]
 remesas_limpia = limpias_d3["remesas"]
 
 
-## 1.3. Dimension 4 - Visibilidad mediatica y relevancia publica --------------------
+## 1.4. Dimension 4 - Visibilidad mediatica y relevancia publica --------------------
 
 # Las cuatro salen de GDELT (regla proxy B) y van en pares: por cada pais de
 # la fuente (PY = medios paraguayos, US = medios estadounidenses) hay una
@@ -312,11 +379,11 @@ gdelt_proxy_articles_us_limpia = limpias_d4["gdelt_proxy_articles_us"]
 gdelt_tone_promedio_us_limpia = limpias_d4["gdelt_tone_promedio_us"]
 
 
-## 1.4. Apilado de las tres dimensiones ---------------------------------------------
+## 1.5. Apilado de las cuatro dimensiones --------------------------------------------
 
-# 1. Apila las diez variables en una sola tabla, tal como vinieron
+# 1. Apila las doce variables en una sola tabla, tal como vinieron
 #    Todavia desparejo: cada variable trae solo los trimestres que su fuente
-#    publica. Cuadrarlo es el paso 1.5
+#    publica. Cuadrarlo es el paso 1.6
 
 limpias_apiladas = pd.concat(
     [
@@ -355,7 +422,7 @@ if (unidades_por_variable > 1).any():
     )
 
 
-## 1.5. Panel cuadrado (2015-2026, NA donde no hay dato) ----------------------------
+## 1.6. Panel cuadrado (2015-2026, NA donde no hay dato) ----------------------------
 
 # El panel tiene forma fija: 48 trimestres (ANIO_MINIMO-Q1 a ANIO_MAXIMO-Q4)
 # por cada variable declarada en 0.3, esten o no en los CSV. Se arma la grilla
@@ -566,4 +633,78 @@ if len(completos):
 
 else:
 
-    print("\nno hay ningun trimestre con las diez variables a la vez")
+    print("\nno hay ningun trimestre con las doce variables a la vez")
+
+
+#=============================================================================.#
+# 2. EXPORTAR PANEL -----
+#=============================================================================.#
+
+# El panel se publica en Drive en los dos formatos que ya existen en memoria:
+# largo (una fila por variable y trimestre, con las columnas de trazabilidad) y
+# ancho (una fila por trimestre, una columna por variable). El largo es el
+# insumo de 04_analysis_index - trae todo lo que el ancho no puede llevar
+# (dimension, grano_temporal, agregacion, unidad, en_fuente, archivo_origen);
+# el ancho es la vista comoda para mirar el panel de un vistazo.
+#
+# Los dos van con nombre FIJO y cada corrida reemplaza el contenido del mismo
+# archivo, a diferencia de 01_crudas y 02_limpias, que acumulan una foto por
+# dia. El motivo es que esto no es un dato nuevo cada dia sino el estado
+# vigente de la etapa, y con nombre fijo el id (y el link) del archivo no
+# cambia nunca. El historial de cada version lo guarda igual Drive.
+
+
+# 1. Ordena el panel largo segun el orden declarado de las variables
+#    limpias_largo esta ordenado alfabeticamente por variable dentro de cada
+#    dimension, y el orden que importa es el declarado en 0.3: es el que
+#    reconstruye 04_analysis_index al leer el archivo (fa_gov_obligaciones
+#    antes que fa_gov_desembolsos, y no al reves)
+
+orden_variables = {nombre: i for i, nombre in enumerate(catalogo_variables["variable"])}
+
+panel_largo_export = (
+    limpias_largo
+
+    # columna auxiliar solo para ordenar, se saca antes de exportar
+    .assign(orden_variable=lambda d: d["variable"].map(orden_variables))
+    .sort_values(["orden_variable", "anio", "trimestre_num"])
+    .drop(columns="orden_variable")
+    .reset_index(drop=True)
+)
+
+
+# 2. Baja el trimestre del indice a columna en el formato ancho
+#    limpias_ancho tiene el trimestre como indice y el CSV no lo guardaria
+
+panel_ancho_export = limpias_ancho.reset_index()
+
+
+# 3. Publica los dos formatos en la carpeta de la etapa
+
+if not SUBIR_A_DRIVE:
+
+    print(
+        "\nSUBIR_A_DRIVE = False: no se subio nada. panel_largo_export y "
+        "panel_ancho_export quedan en memoria."
+    )
+
+else:
+
+    carpeta_salida_id = resolve_etapa_folder(CARPETA_SALIDA)
+
+    print(f"\n[{CARPETA_SALIDA}]")
+
+    for nombre_archivo, tabla_export in (
+        (ARCHIVO_PANEL_LARGO, panel_largo_export),
+        (ARCHIVO_PANEL_ANCHO, panel_ancho_export),
+    ):
+
+        contenido = tabla_export.to_csv(index=False).encode("utf-8")
+
+        subir_o_reemplazar(contenido, nombre_archivo, carpeta_salida_id, mime_type="text/csv")
+
+        print(
+            f"  {nombre_archivo:<28} {len(tabla_export):>4} filas x "
+            f"{tabla_export.shape[1]:>2} columnas"
+        )
+

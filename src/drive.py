@@ -33,6 +33,12 @@ resolve_folder con el sufijo "_crudas" ya aplicado, con reintentos (ver
 _buscar_hijo_con_reintentos) como defensa extra ante demoras de indexado
 de Drive; conviene agregar su ID a FOLDER_IDS a mano despues de la primera
 corrida exitosa.
+
+Las etapas 03 y 04 escriben distinto (2026-09-10): publican en
+03_integracion y 04_final (ver ETAPA_FOLDER_IDS) con nombre de archivo FIJO
+y reemplazando el contenido del mismo archivo en cada corrida
+(subir_o_reemplazar), en vez de acumular una foto por dia como ingestion y
+processing. El motivo esta explicado en el docstring de esa funcion.
 """
 import io
 import os
@@ -47,6 +53,10 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 DRIVE_ROOT_ID = "1iFJsRRCMSa7u4-GpYNbl7BE2HnvDGxrL"  # carpeta "2.Datos_recolectados"
 CARPETA_CRUDAS = "01_crudas"  # subcarpeta donde va todo lo que sube ingestion
 CARPETA_LIMPIAS = "02_limpias"  # subcarpeta donde processing sube sus CSV consolidados
+CARPETA_INTEGRACION = "03_integracion"  # subcarpeta donde 03_integration publica el panel
+CARPETA_FINAL = "04_final"  # subcarpeta donde 04_analysis_index publica el resultado
+
+MIME_HOJA_DE_CALCULO = "application/vnd.google-apps.spreadsheet"
 
 # IDs de carpeta (dimension, fuente) -> folder_id, confirmados a mano el
 # 2026-09-02 (ver nota de fiabilidad arriba). Evitan una busqueda por nombre
@@ -97,6 +107,15 @@ VARIABLE_FOLDER_IDS = {
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_py"): "1ksnf--1J-0bGXQOb7SxH9r_-QKkWBA7v",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles_us"): "1PQj2dAUno-c-UbIXf-vMqL5d5Ix1KXZJ",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_us"): "1WWoWzRRl0gISTUbZPlhhHTMLmtGsYFbY",
+}
+
+# Igual que los dos diccionarios de arriba, pero para las carpetas de salida de
+# las etapas 03 y 04 (hermanas de 01_crudas/02_limpias dentro de DRIVE_ROOT_ID,
+# ids confirmados a mano el 2026-09-10). A diferencia de ingestion y processing,
+# estas dos etapas tienen UNA carpeta cada una, no una por fuente/variable.
+ETAPA_FOLDER_IDS = {
+    CARPETA_INTEGRACION: "1ePuS3VBB3EG36zA00_MS8PnAj5ICD4Ib",
+    CARPETA_FINAL: "1BPhoxDLryWrJ4-6Z02H3EtcyaENFaJUe",
 }
 
 
@@ -189,6 +208,17 @@ def resolve_variable_folder(dimension_limpia, variable):
     return resolve_folder(CARPETA_LIMPIAS, dimension_limpia, variable)
 
 
+def resolve_etapa_folder(carpeta):
+    """Atajo para la carpeta de salida de una etapa posterior a processing
+    (CARPETA_INTEGRACION o CARPETA_FINAL, colgando directo de DRIVE_ROOT_ID).
+    Usa ETAPA_FOLDER_IDS si ya se conoce el id; si no, cae de vuelta a
+    resolve_folder (busqueda + reintentos)."""
+    conocido = ETAPA_FOLDER_IDS.get(carpeta)
+    if conocido:
+        return conocido
+    return resolve_folder(carpeta)
+
+
 def existe_archivo(nombre, carpeta_id):
     """True si ya hay un archivo con ese nombre en esa carpeta de Drive.
     Con reintentos (ver nota de fiabilidad arriba) - una busqueda fallida
@@ -243,3 +273,64 @@ def subir_archivo(contenido, nombre, carpeta_id, mime_type="application/octet-st
         .execute()
     )
     return archivo["id"]
+
+
+def subir_o_reemplazar(contenido, nombre, carpeta_id, mime_type="application/octet-stream"):
+    """Como subir_archivo, pero si ya hay un archivo con ese nombre en la
+    carpeta REEMPLAZA su contenido (files.update) en vez de crear otro.
+    Devuelve el id, que es siempre el mismo entre corridas.
+
+    Es lo contrario del criterio de ingestion/processing (nombre con fecha,
+    idempotente por dia, nunca se pisa nada): ahi cada corrida agrega una foto
+    mas al historial de una fuente, y aca lo que se publica es el estado
+    vigente de una etapa, que otra cosa puede tener enganchado por link. Con un
+    nombre fijo, ese link no se rompe nunca; el historial de cada version lo
+    guarda igual Drive."""
+    drive = _client()
+    existente = _buscar_hijo_con_reintentos(drive, nombre, carpeta_id)
+
+    if not existente:
+        return subir_archivo(contenido, nombre, carpeta_id, mime_type=mime_type)
+
+    media = MediaIoBaseUpload(io.BytesIO(contenido), mimetype=mime_type, resumable=False)
+    archivo = (
+        drive.files()
+        .update(
+            fileId=existente["id"],
+            media_body=media,
+            fields="id",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+    return archivo["id"]
+
+
+def resolver_hoja_de_calculo(nombre, carpeta_id):
+    """Devuelve el id del Google Sheet `nombre` dentro de carpeta_id, creandolo
+    vacio si todavia no existe. Devuelve siempre el mismo id: el archivo no se
+    borra ni se recrea nunca, para que lo que este enganchado a ese Sheet (un
+    dashboard, por ejemplo) siga apuntando al mismo lado.
+
+    Solo resuelve el archivo - escribir las pestanas es trabajo de
+    src/sheets.py (write_dataframe)."""
+    drive = _client()
+    existente = _buscar_hijo_con_reintentos(drive, nombre, carpeta_id)
+
+    if existente:
+        return existente["id"]
+
+    nueva = (
+        drive.files()
+        .create(
+            body={
+                "name": nombre,
+                "mimeType": MIME_HOJA_DE_CALCULO,
+                "parents": [carpeta_id],
+            },
+            fields="id",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+    return nueva["id"]

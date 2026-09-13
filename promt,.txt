@@ -1,0 +1,201 @@
+1. La tabla de operacionalización, pero agregando una columna que indique: cómo se está completando cada indicador, si de deflactó, se transformó, etc.
+2. Para cada etapa se presenta el proceso aplicado finalmente y debajo una tabla con una columna que indica las opciones evaluadas y otras el motivo de descarte.
+
+
+
+Promt:
+
+TRABAJAREMOS SOBRE LA BASE DE LOS 12 INDICADORES ESTABLECIDOS. DEBES SEGUIR ESTRICTAMENTE LA SIGUIENTE ESTRUCTURA Y LÓGICA PARA EL ANÁLISIS DE DATOS:
+
+1. ETAPA 0 (CONFIGURACIÓN): EL PRIMER PASO DEBE SER OBLIGATORIAMENTE EL "SETUP" (CONFIGURACIÓN INICIAL DEL ENTORNO, PAQUETES Y CARGA DE DATOS).
+2. RAZONAMIENTO BASE PARA TODAS LAS ETAPAS: LA SIGUIENTE LÓGICA DEBE APLICARSE A ABSOLUTAMENTE TODOS LOS PASOS Y ETAPAS DEL ANÁLISIS (ESTA REGLA NO SE RESTRINGE SOLO A LA NORMALIZACIÓN O TRANSFORMACIÓN, APLICA A TODO EL FLUJO). PARA CADA PASO, DEBES EJECUTAR LAS SIGUIENTES TRES FASES EN ESTE ORDEN EXACTO:
+
+* FASE A (EXPLICACIÓN Y ANÁLISIS INDIVIDUAL): PRIMERO, DEBES REALIZAR EL ANÁLISIS DE CADA TÉCNICA POSIBLE SEGÚN LA ETAPA (CADA TIPO DE NORMALIZACIÓN, TRANSFORMACIÓN, IMPUTACIÓN, ETC.). DEBES EXPLICAR DE MANERA SEPARADA E INDEPENDIENTE EN QUÉ CONSISTE CADA TÉCNICA ESPECÍFICA Y QUÉ OBJETIVO SE BUSCA LOGRAR CON ELLA.
+* FASE B (CONTRASTE Y JUSTIFICACIÓN): SEGUNDO, DEBES CONTRASTAR LOS RESULTADOS. DEBES EXPLICAR CLARA Y DETALLADAMENTE POR QUÉ SE DESCARTAN ALGUNAS OPCIONES Y POR QUÉ SE ELIGEN OTRAS. ADVERTENCIA: ESTE DESCARTE SOLO APLICA SI ES METODOLÓGICAMENTE VÁLIDO REALIZARLO EN ESE EXACTO MOMENTO. SI LA SELECCIÓN DE LA MEJOR TÉCNICA (EJ. NORMALIZACIÓN) REQUIERE ESPERAR HASTA EL ANÁLISIS DE SENSIBILIDAD O SI DEBEN EVALUARSE TODAS HASTA EL FINAL, DEBES PROCEDER ASÍ Y EXPLICARLO. COMO EXPERTO, TU DEBER ES GUIARTE ESTRICTAMENTE POR LAS DIRECTRICES DE LA OCDE PARA DETERMINAR SI SE EVALÚA EN EL MOMENTO O DESPUÉS.
+* FASE C (CONCLUSIÓN SÓLIDA): TERCERO, CADA ETAPA DEBE CONCLUIR OBLIGATORIAMENTE CON UNA DECISIÓN SÓLIDA, DEFINITIVA Y PROFUNDAMENTE EXPLICADA ANTES DE PODER AVANZAR AL SIGUIENTE PASO DEL ANÁLISIS.
+
+3. FORMATO DE ENTREGA: TODO EL PROYECTO Y LAS EXPLICACIONES DEBEN SER DESARROLLADOS Y ENTREGADOS EXCLUSIVAMENTE DENTRO DE LA ESTRUCTURA DE UN DOCUMENTO QUARTO (.QMD).
+4. NIVEL DE DETALLE Y PEDAGOGÍA (CERO ASUNCIONES): TIENES QUE SER EXTREMADAMENTE DETALLISTA. QUEDA ESTRICTAMENTE PROHIBIDO ASUMIR CUALQUIER TIPO DE CONOCIMIENTO PREVIO. ASUME QUE EL USUARIO NO SABE NADA NI CONOCE LAS PRUEBAS ESTADÍSTICAS. POR LO TANTO, ES UN REQUISITO INQUEBRANTABLE QUE EXPLIQUES EXACTAMENTE QUÉ ESTÁS HACIENDO Y QUÉ SE BUSCA LOGRAR ANTES DE SIQUIERA ESCRIBIR UNA SOLA LÍNEA DE CÓDIGO.
+5. ESTILO Y CALIDAD DEL CÓDIGO: DEBES APLICAR ESTRICTAMENTE LOS SKILLS DE ESTILO Y ORDEN DEL USUARIO PARA TODO EL CÓDIGO (CÓDIGO EXTREMADAMENTE LIMPIO, ORDENADO, LEGIBLE Y PROFUNDAMENTE COMENTADO).
+6. DEBES USAR TABLA Y GRAFICAS QUE PERMITAN ENTENDER MEJOR EL ANÁLISIS Y DAR CLARIDAD.
+
+
+
+ESTOS SON LOS PASOS/ETAPAS:
+
+
+
+1. Marco teórico y registro de decisiones (transversal)
+Sigue sin ser un paso de cálculo — es el documento vivo donde cada elección de los pasos 1-9 queda escrita con su alternativa descartada y el motivo. Lo único que agrego ahora: como estamos reabriendo todo, el registro también debe decir explícitamente qué se reevaluó y con qué resultado respecto al análisis anterior (aunque ese análisis no tenga validez como decisión, sirve como primer candidato a probar, no se tira).
+
+
+2. Selección de datos
+No asumido: qué variante de cada fuente usar cuando hay más de una disponible (ej. asistencia oficial puede medirse como obligado, desembolsado o autorizado; IED como flujo o como stock; DFC como monto o como cantidad de proyectos).
+Criterios a evaluar por variable, no elegidos de antemano:
+
+* Validez de contenido: ¿cuál de las variantes representa mejor el concepto "compromiso" que la dimensión dice medir? (un compromiso anunciado no es lo mismo que un desembolso efectivo — hay que argumentar cuál es más fiel al constructo, no cuál está más disponible).
+* Calidad/cobertura: % de períodos con dato, consistencia de la definición en el tiempo (ej. el cambio de institución OPIC→DFC a mitad de serie es una ruptura que hay que decidir cómo tratar: ¿empalmar, tratar como dos series, o excluir el tramo anterior?).
+* Redundancia preliminar: si dos variantes de la misma fuente están muy correlacionadas, no hace falta elegir una — a veces conviene ver si aportan información distinta.
+* Reproducibilidad: fuente con API pública y estable vs. scraping frágil — afecta si el índice se puede actualizar cada año sin fallar.
+
+Esto también aplica a variables de conteo (proyectos de Congreso, hitos USTR, TIAS): antes de decidir cómo transformarlas (paso 4), hay que decidir qué exactamente se cuenta — ¿todo evento, o solo los que superan un umbral de relevancia? Ninguna de las dos está descartada.
+
+
+3. Tratamiento de datos faltantes
+No asumido: qué método de imputación/tratamiento usar. El menú real (no solo "recortar la ventana"):
+
+* Eliminación por listado (recortar la ventana temporal a donde todas las variables tienen dato).
+* Interpolación (lineal o spline) — válida para huecos internos de una serie, arriesgada en los bordes.
+* Arrastre (carry-forward/back) — repetir el último valor conocido; distinto de "repetir un valor anual en los 4 trimestres" (que es una decisión de granularidad, no de dato faltante, y hay que separarlas conceptualmente aunque el resultado numérico se parezca).
+* Imputación por regresión (predecir el valor faltante a partir de otras variables correlacionadas).
+* Imputación múltiple (MICE, algoritmo EM) — el manual OCDE la menciona como estándar para paneles con muchos huecos, aunque con ~10-12 años de historia el margen para estimar el modelo de imputación es chico.
+* Vecino más cercano / hot-deck.
+* Excluir la variable si la proporción de faltantes supera un umbral (a definir).
+* Tratar como cero real — solo cuando el hueco significa conceptualmente "el evento no ocurrió" (ej. ningún tratado nuevo ese trimestre), nunca cuando significa "la fuente no publicó".
+
+Lo que decide entre estas opciones, no asumido: el patrón del faltante. Si el dato falta al azar (missing at random), interpolar o imputar por regresión es razonable. Si falta de forma sistemática por un cambio real (ej. USAID dejó de reportar en 2025), imputar sería inventar una tendencia que no existió — ahí el candidato correcto es dejar el hueco visible o recortar la ventana, pero esto hay que argumentarlo caso por caso, no aplicar una sola regla a las 12+ variables.
+
+
+4. Exploración descriptiva
+No es un paso de "elegir método" sino el que genera la evidencia para decidir los pasos 4-6. Por cada variable, sin excepción:
+
+* Tendencia central y dispersión (media, mediana, desvío, rango).
+* Forma de la distribución: asimetría (skewness), curtosis, histograma, comparación contra una normal (test de Shapiro-Wilk o Jarque-Bera).
+* Detección de outliers con más de un método, porque distintos métodos dan distintos resultados: regla de z-score (>2 o >3 desvíos), regla del rango intercuartílico (1.5× o 3× RIC), desviación absoluta mediana (más robusta que el desvío estándar cuando ya hay outliers), inspección visual. No se elige un solo método de detección todavía — se documentan los candidatos a outlier bajo cada regla y se decide en el paso 4 qué hacer con ellos.
+* Presencia de valores negativos o cero (determina de entrada si log simple es matemáticamente inválido).
+* Gráfico de la serie en el tiempo: ¿hay quiebres estructurales visibles? (USAID 2025, pandemia 2020) — un quiebre estructural real no es un outlier a corregir, es señal a preservar; hay que distinguirlos explícitamente antes de decidir tratamiento.
+* Consistencia del grano temporal (trimestral real vs. anual repetido).
+
+
+
+5. Transformación de variables
+Este paso concentra el mayor número de decisiones abiertas. Lo separo en sub-decisiones, cada una con su propio menú:
+(a) Ajuste de precios (deflactación) — nada decidido:
+
+* No deflactar (nominal).
+* Deflactar por IPC de EE.UU. (BLS).
+* Deflactar por IPC de Paraguay.
+* Deflactar por el deflactor implícito del PBI (de cualquiera de los dos países).
+* Usar tipo de cambio real en vez de un índice de precios, para las variables de comercio.
+* Criterio: depende de qué perspectiva de poder adquisitivo es relevante para lo que se mide — ¿el compromiso "vale" lo mismo en términos de qué economía? — y de en qué moneda declara originalmente cada fuente.
+
+(b) Ajuste de escala para extensibilidad entre países — nada decidido:
+
+* Sin ajuste (valor absoluto).
+* Per cápita (población de Paraguay).
+* % del PBI de Paraguay.
+* % del total de comercio/IED de Paraguay (participación/share).
+* Criterio: si el objetivo es medir intensidad relativa del vínculo (comparable entre países de tamaño distinto) o volumen absoluto — son preguntas conceptuales distintas y ninguna es automáticamente correcta.
+
+(c) Transformación de distribución — nada decidido:
+
+* Sin transformar.
+* Log(x) — inválido si hay ceros o negativos.
+* Log(1+x) — admite ceros, no negativos.
+* Raíz cuadrada.
+* Box-Cox — estima el mejor exponente empíricamente, pero el resultado es menos interpretable.
+* Yeo-Johnson — como Box-Cox pero admite negativos (relevante si el flujo de IED o la balanza tienen valores negativos).
+* Criterio: comparar asimetría y normalidad antes/después de cada transformación candidata (test estadístico, no impresión visual), y priorizar la que sea interpretable sobre la que ajuste mejor si la diferencia es marginal.
+
+(d) Tratamiento de outliers — nada decidido, y es una decisión distinta de (c):
+
+* No tratar.
+* Winsorización (recortar al percentil elegido — 1-99, 5-95, o al segundo valor más extremo; el percentil exacto también es una decisión a testear, no un default).
+* Recorte/exclusión del dato.
+* Tope a un múltiplo del desvío estándar o del RIC.
+* Uso de estadísticos robustos (mediana/MAD) en los cálculos posteriores en vez de modificar el dato.
+* No tratar como outlier estadístico, sino marcar como evento estructural real (dummy o nota) — la opción más relevante para USAID 2025 y la pandemia 2020, porque no son errores de medición, son la señal que el índice tiene que mostrar.
+* Criterio central, conceptual antes que estadístico: ¿el valor extremo es un error/ruido, o es información real que el índice debe reflejar? Esto se decide variable por variable y evento por evento, no con una regla única para todo el panel.
+
+(e) Variables de conteo disperso (proyectos de Congreso, hitos USTR, TIAS) — nada decidido:
+
+* Conteo simple por período.
+* Stock acumulado (para las que son de naturaleza acumulativa, como tratados vigentes).
+* Tasa/densidad sobre un total de referencia.
+* Escala ordinal (ej. 0-3) cuando la mayoría de los períodos son cero y el conteo real casi no varía.
+* Criterio: frecuencia de períodos con cero, si el fenómeno es de naturaleza flujo o stock conceptualmente, y qué tan sensible queda la normalización del paso 6 ante cada alternativa.
+
+
+
+6. Consistencia interna / análisis multivariado
+No asumido: qué técnica usar ni a qué nivel.
+
+* Matriz de correlación — Pearson (asume relación lineal y distribución razonable) vs. Spearman (robusta a outliers y no linealidad, más defendible con series cortas y ya transformadas de formas distintas).
+* Alfa de Cronbach — calculable, pero su interpretación depende de si el modelo se trata como reflectivo o formativo; esa clasificación (reflectivo/formativo) también hay que argumentarla, no asumirla, aunque el manual OCDE es claro en que el alfa solo tiene sentido pleno en modelos reflectivos.
+* Análisis factorial exploratorio — exige un n mucho mayor al disponible; se evalúa si es viable con alguna agrupación de variables, no se descarta de entrada sin probar.
+* PCA — a qué nivel es matemáticamente viable depende de cuántas observaciones hay contra cuántas variables en ese nivel (indicador, bloque o dimensión); esto se verifica con los datos reales de este proyecto, no se asume que solo funciona a nivel de dimensión.
+* Análisis de cluster de indicadores, como alternativa exploratoria para detectar agrupamientos no evidentes.
+* Criterio: n disponible en cada nivel, resultado del test de esfericidad de Bartlett o KMO si se intenta factorial/PCA, y un umbral de redundancia (¿0,80? ¿0,90?) que también hay que fijar con argumento, no copiarlo de otro proyecto.
+
+
+
+7. Normalización
+No asumido: ni el método, ni si la referencia es fija o móvil. Menú completo:
+
+* Min-max (reescalado 0-100) — con dos variantes independientes entre sí: referencia recalculada cada actualización, o referencia fija de una vez.
+* Z-scores (estandarización) — misma bifurcación: referencia móvil o fija.
+* Ranking/ordinal — pierde magnitud, gana robustez ante outliers.
+* Distancia a una referencia (a un período, a un promedio regional, al mejor desempeño observado).
+* Número índice con año/período base (estilo IPC) — permite valores fuera de 0-100.
+* Categorización/escala ordinal para variables muy dispersas de conteo.
+* Indicador por encima/debajo de la media.
+* Criterio, ninguno cerrado:
+   * ¿El índice necesita compararse año a año sin que una actualización futura reescriba el pasado? Eso favorece una referencia fija sobre una recalculada — pero hay que decidir cuál método con referencia fija, no asumir cuál.
+   * ¿La variable tiene outliers ya tratados o no en el paso 4? Normalizar antes o después de tratar outliers da resultados distintos y hay que ser explícito sobre el orden.
+   * ¿Se necesita permitir valores por fuera de un rango acotado? Eso descarta los métodos tipo goalpost (0-100 estricto) pero no dice cuál de los métodos sin techo es mejor.
+   * Todo esto se prueba contra los datos reales de cada variable, no se elige una convención "porque la usa el IDH" o "porque la usa el WJP" sin verificar que las propiedades de esos datos apliquen acá.
+
+
+
+8. Ponderación
+No asumido. Menú completo:
+
+* Igual/1-n entre todos los indicadores.
+* Jerárquica igualitaria (por dimensión, luego por bloque, luego por indicador).
+* PCA / análisis factorial (pesos derivados de la varianza explicada) — a qué nivel es calculable depende del resultado del paso 5.
+* Budget Allocation Process (BAP) — panel de expertos reparte 100 puntos.
+* Analytic Hierarchy Process (AHP) — comparaciones de a pares con matriz de consistencia.
+* Regresión contra una variable de resultado externa — requiere primero decidir si existe una variable de resultado no controversial (no la hay identificada todavía, así que esta opción depende de si se logra definir una).
+* Data Envelopment Analysis — pesos que maximizan el desempeño relativo de cada período.
+* Criterio, nada cerrado: disponibilidad real de un panel de expertos para BAP/AHP, viabilidad estadística de PCA en cada nivel (paso 5), y el costo de transparencia de cada método — un esquema más sofisticado que iguales requiere poder defender de dónde salió cada peso ante un revisor técnico, no solo que "dio mejor ajuste estadístico".
+
+
+
+9. Agregación
+No asumido. Menú completo:
+
+* Media aritmética (compensatoria total).
+* Media geométrica (penaliza más los valores bajos; no admite ceros ni negativos sin ajuste).
+* Media armónica (aún menos compensatoria que la geométrica).
+* Métodos no compensatorios / multicriterio (ej. Borda count, métodos de sobreclasificación tipo ELECTRE) — donde un valor muy bajo en una dimensión no se puede compensar con otra en absoluto.
+* Criterio, nada cerrado: esto es antes que nada una decisión conceptual sobre la teoría del vínculo bilateral — ¿las dimensiones son sustitutas entre sí (una puede compensar a otra) o son complementarias/necesarias todas (un colapso en una no debería diluirse)? — y recién después una decisión técnica sobre qué hacer si hay ceros o negativos en alguna dimensión bajo el método elegido.
+
+
+
+10. Análisis de sensibilidad y robustez
+No asumido cuáles factores variar ni con qué método. Menú:
+
+* Análisis de un factor a la vez (OAT).
+* Simulación Monte Carlo variando simultáneamente varios factores metodológicos (tratamiento de missing, transformación, normalización, ponderación, agregación — el espacio combinatorio creció respecto al plan original justamente porque ahora cada paso tiene varios candidatos reales, no uno).
+* Descomposición de varianza basada en Sobol (primer orden y totales).
+* Método de Morris (screening más económico que Sobol cuando hay muchos factores a la vez — puede ser el paso previo para reducir cuántos factores meten en el Monte Carlo completo).
+* Leave-one-out por indicador y por fuente.
+* Bootstrap sobre las observaciones (distinto de variar el método: remuestrea los datos, no las decisiones metodológicas).
+* Criterio: con cuántos factores metodológicos reales se termina (después de que los pasos 4-8 hayan reducido el menú a 2-4 candidatos defendibles cada uno, no antes), y qué se necesita reportar — rango por año, ranking estable, o ambos.
+
+
+
+11. Volver a los datos ("back to the data", Paso 8 OCDE)
+Tu "10. Análisis de estabilidad" y parte de tu "11" van acá: una vez que el índice sensibilizado es estable, se abre de nuevo para explicar qué lo mueve.
+
+* Descomposición del índice por período: qué dimensión explica un año atípico (ya identificado: 2025 tiene dimensión 3 en máximo de la serie contra dimensión 1 en mínimo — una divergencia de más de 4 desvíos).
+* Detectar si una sola dimensión domina el agregado pese a pesar igual que las otras (hoy la dimensión 4 correlaciona 0,74 con el agregado).
+
+
+
+12. Vínculos con indicadores externos (Paso 9 OCDE) — esto falta hoy, es un pendiente real
+Contrastar el índice contra algo fuera de sí mismo: otros índices de relacionamiento bilateral, eventos históricos conocidos (¿el índice cae cuando debería caer según hechos verificables externos, más allá de USAID y la pandemia que ya se usaron para construirlo?). Es el único de los 10 pasos del manual OCDE que el proyecto reconoce explícitamente como no cumplido todavía.
+
+
+13. Resultados, interpretación y comunicación (Paso 10 OCDE)
+Tu "11" completo: interpretación del índice general, de cada subíndice, tabla de operacionalización, glosario, decisiones con alternativa descartada — el estándar "calidad de paper" que ya se le exigió al `.qmd`. Incluye el dashboard con storytelling que ya se diseñó (2 actos: qué pasó / por qué) para Looker Studio.

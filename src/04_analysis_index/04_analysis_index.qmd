@@ -172,8 +172,14 @@ debería revisar su historia cada vez que se agrega un trimestre.
 # Preparación del entorno {#sec-setup}
 
 Este bloque prepara el entorno de trabajo: carga las librerías, resuelve las
-credenciales de acceso a Google Drive y define el sistema visual del documento.
-No contiene ninguna decisión metodológica.
+credenciales de acceso a Google Drive, declara de dónde se lee el panel y dónde
+se publica el resultado, y define el sistema visual del documento. No contiene
+ninguna decisión metodológica.
+
+Las rutas de entrada y de salida están todas juntas y declaradas por nombre, de
+modo que mover una carpeta o renombrar un archivo publicado sea cambiar una
+constante y no buscar en el cuerpo del documento. La sección @sec-publicacion
+detalla qué se escribe en cada una.
 
 El sistema visual se declara una sola vez y todos los gráficos lo consumen, de
 modo que el documento se lea como un conjunto coherente. La regla de color es
@@ -187,10 +193,8 @@ por gris, donde el gris marca el punto en que el valor es cero o neutro.
 ```{python}
 #| label: setup
 
-import contextlib
 import io
 import os
-import runpy
 import sys
 from pathlib import Path
 
@@ -232,7 +236,37 @@ if not Path(CREDENCIALES).is_absolute():
 if not Path(CREDENCIALES).is_file():
     raise SystemExit(f"No existe el archivo de la cuenta de servicio: {CREDENCIALES}.")
 
-SCRIPT_03 = RAIZ_REPO / "src" / "03_integration" / "03_integration.py"
+from src.drive import (  # noqa: E402
+    CARPETA_FINAL,
+    CARPETA_INTEGRACION,
+    descargar_archivo,
+    listar_archivos,
+    resolve_etapa_folder,
+    resolver_hoja_de_calculo,
+    subir_o_reemplazar,
+)
+from src.sheets import write_dataframe  # noqa: E402
+
+
+## Entrada y salida en Drive -------------------------------------------------
+
+# el panel que publica la etapa 03, unico insumo de este documento
+CARPETA_PANEL = CARPETA_INTEGRACION
+ARCHIVO_PANEL = "panel_trimestral_largo.csv"
+
+# donde se publica el resultado de este documento. Nombres fijos: cada corrida
+# reemplaza el contenido del mismo archivo, no deja uno nuevo al lado
+CARPETA_RESULTADO = CARPETA_FINAL
+ARCHIVO_RESULTADO_ANCHO = "indice_us_py_ancho.csv"
+ARCHIVO_RESULTADO_LARGO = "indice_us_py_largo.csv"
+
+# el mismo resultado en un Google Sheet, que es lo que consume el dashboard
+NOMBRE_HOJA_RESULTADO = "us_py_engagement_index"
+PESTANA_ANCHO = "indice_ancho"
+PESTANA_LARGO = "indice_largo"
+
+# en False el documento renderiza entero sin escribir nada en Drive
+PUBLICAR_RESULTADO = True
 
 
 ## Sistema visual ------------------------------------------------------------
@@ -511,7 +545,7 @@ resuelve cada paso.
 | 7. Análisis de incertidumbre y sensibilidad | Probar si el resultado depende de las decisiones tomadas | Sección 7.3 |
 | 8. Vuelta a los datos | Verificar qué componentes explican el resultado | Sección 7.1 |
 | 9. Vínculo con otros indicadores | Contrastar el índice con medidas externas | Sección 9 (pendiente declarado) |
-| 10. Presentación y difusión | Definir cómo se comunica el resultado | Sección 8 |
+| 10. Presentación y difusión | Definir cómo se comunica el resultado | Sección 8 y @sec-publicacion |
 
 Dos elementos adicionales que el manual enfatiza y que suelen omitirse merecen
 mención explícita porque acá sí se abordan: el tratamiento de series en valores
@@ -535,25 +569,79 @@ formativo es distinto: que cada componente aporte información no redundante
 
 ## Origen del panel
 
-El panel no se vuelve a leer desde Google Drive en este documento: se importa
-ejecutando la etapa anterior del pipeline, que es la única responsable de esa
-lectura. De este modo existe una sola versión del código que baja los datos, y
-cualquier cambio en la estructura de carpetas se corrige en un solo lugar.
+El insumo de este documento es un único archivo: el panel trimestral que la
+etapa anterior del pipeline publica en la carpeta `03_integracion` de Google
+Drive. Este documento **no** vuelve a leer las variables limpias una por una ni
+vuelve a ejecutar la etapa anterior: lee el mismo archivo publicado que puede
+leer cualquier otro consumidor del panel.
+
+La razón es de trazabilidad. Si el documento ejecutara la etapa anterior en cada
+render, cada corrida podría estar mirando un panel distinto —porque entre dos
+renders alguna variable limpia puede haberse actualizado— y las cifras del
+documento no serían reproducibles contra ningún archivo concreto. Leyendo el
+archivo publicado, en cambio, el panel que produjo estos resultados existe, está
+fechado por Drive y se puede volver a bajar tal cual.
+
+*Consecuencia operativa:* si el panel de `03_integracion` está desactualizado,
+este documento reporta datos viejos sin avisar. El orden de corrida es siempre
+`03_integration.py` primero y este documento después.
 
 ```{python}
 #| label: import-panel
 
-# la etapa 03 imprime su propio reporte de carga; se silencia acá para no
-# duplicarlo, pero se conserva por si hace falta auditarlo
-reporte_03 = io.StringIO()
+carpeta_panel_id = resolve_etapa_folder(CARPETA_PANEL)
 
-with contextlib.redirect_stdout(reporte_03):
-    etapa_03 = runpy.run_path(str(SCRIPT_03))
+archivos_panel = [
+    archivo
+    for archivo in listar_archivos(carpeta_panel_id)
+    if archivo["name"] == ARCHIVO_PANEL
+]
 
-panel = etapa_03["limpias_largo"]
-panel_ancho = etapa_03["limpias_ancho"]
-catalogo = etapa_03["catalogo_variables"]
-trimestres_panel = etapa_03["trimestres_panel"]
+if not archivos_panel:
+    raise SystemExit(
+        f"No está '{ARCHIVO_PANEL}' en la carpeta {CARPETA_PANEL} de Drive. "
+        "Correr antes src/03_integration/03_integration.py con SUBIR_A_DRIVE = True."
+    )
+
+panel = pd.read_csv(io.BytesIO(descargar_archivo(archivos_panel[0]["id"])))
+
+COLUMNAS_PANEL = [
+    "dimension", "variable", "grano_temporal", "agregacion", "trimestre",
+    "anio", "trimestre_num", "valor", "unidad", "en_fuente", "archivo_origen",
+]
+
+faltantes = [columna for columna in COLUMNAS_PANEL if columna not in panel.columns]
+
+if faltantes:
+    raise SystemExit(
+        f"El panel publicado no trae las columnas {faltantes}. Revisar la "
+        "sección 2 de 03_integration.py."
+    )
+
+# El catálogo de variables y la grilla de trimestres no viajan como archivos
+# aparte: el catálogo son las columnas del panel que no dependen del trimestre
+# (una fila por variable) y la grilla son los trimestres únicos. El orden en que
+# las variables aparecen en el archivo es el que declaró la etapa 03, y se
+# conserva acá porque define el orden de las variables en todo el documento.
+catalogo = (
+    panel[["dimension", "variable", "grano_temporal", "agregacion", "unidad",
+           "archivo_origen"]]
+    .drop_duplicates("variable")
+    .reset_index(drop=True)
+)
+
+trimestres_panel = (
+    panel[["anio", "trimestre_num", "trimestre"]]
+    .drop_duplicates()
+    .sort_values(["anio", "trimestre_num"])
+    .reset_index(drop=True)
+)
+
+panel_ancho = (
+    panel
+    .pivot(index="trimestre", columns="variable", values="valor")
+    .reindex(index=trimestres_panel["trimestre"], columns=catalogo["variable"])
+)
 
 VARIABLES = list(catalogo["variable"])
 DIMENSIONES = list(catalogo["dimension"].unique())
@@ -561,6 +649,7 @@ ORDEN_TRIMESTRES = list(trimestres_panel["trimestre"])
 UNIDAD_DE = catalogo.set_index("variable")["unidad"].to_dict()
 DIMENSION_DE = catalogo.set_index("variable")["dimension"].to_dict()
 
+print(f"Origen: {CARPETA_PANEL}/{ARCHIVO_PANEL} (Drive)")
 print(f"Panel: {panel.shape[0]} filas ({len(VARIABLES)} variables × "
       f"{len(ORDEN_TRIMESTRES)} trimestres)")
 print(f"Rango: {ORDEN_TRIMESTRES[0]} a {ORDEN_TRIMESTRES[-1]}")
@@ -2453,6 +2542,329 @@ propia de cada flujo.
 6. **Definir la política de re-basificación**: cada cuántos años se actualiza el
    período base de 2015-2019 y cómo se publica la transición.
 
+# Publicación del resultado {#sec-publicacion}
+
+## Qué se publica
+
+Todo lo que este documento calcula se publica como una sola tabla, en la carpeta
+`04_final` de Google Drive. La tabla lleva tres bloques de columnas, que son las
+tres etapas por las que pasa cada variable:
+
+| Bloque | Columnas | Qué es |
+|---|---|---|
+| **Original** | una por variable, con su nombre | El valor tal como lo publica la fuente, en su unidad nativa y sin deflactar. Es el que se puede auditar contra el sitio de origen. |
+| **Normalizado** | la misma variable con el sufijo `_z` | El puntaje z que entra al índice. Ya trae aplicadas las tres transformaciones: deflactar (decisión 5), logaritmo donde corresponde (decisión 6) y normalizar contra el período base (decisión 11). |
+| **Índices** | `indice_dim_1`, `indice_dim_3`, `indice_dim_4`, `indice_agregado`, `indice_agregado_suavizado` | Los tres sub-índices dimensionales, el agregado, y la lectura suavizada a cuatro trimestres que la decisión 7 establece como forma de lectura. |
+
+Que estén los tres bloques en el mismo archivo es deliberado: permite verificar
+en una sola tabla que un movimiento del índice se corresponde con un movimiento
+de las variables que lo componen, sin tener que cruzar archivos. La columna
+original **no** es el insumo del puntaje z de su misma fila —entre una y otra
+está la deflación y el logaritmo—, y por eso el `_z` no se puede reproducir
+aplicándole una normalización simple a la columna original.
+
+Cada fila lleva además cuatro identificadores: `trimestre`, `anio`,
+`trimestre_num` y `provisional`. Esta última es la marca de la decisión 4: vale
+verdadero en los trimestres del año fiscal en curso, que no son comparables con
+el resto. Quien consuma el archivo puede filtrarlos sin necesidad de saber cuál
+es el año en curso en cada corrida.
+
+## Por qué dos formatos y no uno
+
+La misma tabla se publica en formato ancho y en formato largo, en archivos
+separados.
+
+- **Ancho**: una fila por trimestre y una columna por serie. Es la forma en que
+  se mira una tabla y la que espera cualquier herramienta que grafique una serie
+  contra el tiempo.
+- **Largo**: una fila por trimestre y serie, con una única columna `valor` y
+  cuatro columnas que dicen qué es esa fila (`nivel`, `dimension`, `serie`,
+  `medida`). Es la forma que espera una herramienta de tablero, donde el usuario
+  elige qué serie mirar con un filtro en vez de con una columna distinta.
+
+Convertir uno en el otro es trivial, pero hacerlo del lado del consumidor
+implica que cada consumidor lo resuelva a su manera. Publicar los dos cuesta un
+archivo más y elimina esa fuente de divergencia. Los dos salen del mismo objeto,
+y la validación al final del bloque de código verifica que lleven exactamente la
+misma cantidad de valores.
+
+## Por qué el Google Sheet se actualiza por contenido y no se reemplaza
+
+El resultado se publica también como Google Sheet, con una pestaña por formato,
+porque es lo que consume el tablero.
+
+Un tablero se engancha a un archivo y a una pestaña concretos. Si el pipeline
+borrara y volviera a crear el Sheet en cada corrida, el archivo nuevo tendría un
+identificador distinto y el tablero quedaría apuntando a un archivo que ya no
+existe. Lo mismo vale para las pestañas: borrar y recrear una pestaña cambia su
+identificador interno.
+
+Por eso la publicación sigue tres reglas:
+
+1. **El archivo se resuelve, no se crea.** Se busca el Sheet por nombre dentro
+   de la carpeta y solo se crea si todavía no existe. A partir de ahí es siempre
+   el mismo archivo.
+2. **Las pestañas se vacían y se vuelven a llenar**, nunca se eliminan ni se
+   renombran. Se reemplaza el contenido, no el contenedor.
+3. **La grilla solo crece.** Si la tabla necesita más filas o columnas de las
+   que tiene la pestaña, se agranda; nunca se achica, para no borrar nada que
+   alguien haya dejado al costado de los datos.
+
+Los CSV siguen el mismo criterio por el mismo motivo: nombre fijo y reemplazo
+del contenido del mismo archivo, en vez de un archivo nuevo con la fecha en el
+nombre como hacen las etapas de extracción y limpieza. Ahí cada corrida agrega
+una foto al historial de una fuente; acá lo que se publica es el estado vigente
+del índice, y el historial de versiones lo guarda Drive.
+
+## La tabla final
+
+```{python}
+#| label: resultado-ancho
+
+# etiquetas de unidad de los dos bloques derivados: el archivo tiene que
+# poder leerse sin este documento al lado
+UNIDAD_NORMALIZADA = "desvios del periodo base 2015-2019"
+UNIDAD_INDICE = "indice base 100 = promedio 2015-2019"
+
+IDENTIFICADORES = ["trimestre", "anio", "trimestre_num", "provisional"]
+
+
+# 1. Arranca con las diez columnas originales
+#    X_nominal es el panel tal como lo publico la etapa 03: unidad nativa de
+#    cada fuente y sin deflactar
+
+resultado_ancho = X_nominal.copy()
+
+
+# 2. Agrega las diez normalizadas, con sufijo _z
+#    Z ya trae adentro deflactar, logaritmo y puntaje z contra el periodo base
+
+resultado_ancho = resultado_ancho.join(Z.add_suffix("_z"))
+
+
+# 3. Agrega los tres sub-indices por dimension
+#    "1_Compromiso_financiero_oficial_limpias" -> "indice_dim_1"
+
+resultado_ancho = resultado_ancho.join(
+    sub_indices.rename(columns=lambda dimension: "indice_dim_" + dimension.split("_")[0])
+)
+
+
+# 4. Agrega el indice agregado y su lectura suavizada (decision 7)
+
+resultado_ancho = resultado_ancho.join(
+    indice[["indice", "suavizado"]].rename(columns={
+        "indice": "indice_agregado",
+        "suavizado": "indice_agregado_suavizado",
+    })
+)
+
+
+# 5. Baja el trimestre a columna y agrega los identificadores
+
+resultado_ancho = (
+    resultado_ancho
+    .reset_index()
+    .assign(
+
+        # "2015-Q1" -> 2015
+        anio=lambda d: d["trimestre"].str[:4].astype(int),
+
+        # "2015-Q1" -> 1
+        trimestre_num=lambda d: d["trimestre"].str[-1].astype(int),
+
+        # decision 4: los trimestres del año fiscal en curso no son comparables
+        provisional=lambda d: d["trimestre"].isin(VENTANA_PROVISIONAL),
+    )
+)
+
+
+# 6. Ordena las columnas: identificadores, originales, normalizadas, indices
+
+COLUMNAS_NORMALIZADAS = [f"{variable}_z" for variable in VARIABLES]
+
+COLUMNAS_INDICE = (
+    [f"indice_dim_{dimension.split('_')[0]}" for dimension in sub_indices.columns]
+    + ["indice_agregado", "indice_agregado_suavizado"]
+)
+
+resultado_ancho = resultado_ancho[
+    IDENTIFICADORES + VARIABLES + COLUMNAS_NORMALIZADAS + COLUMNAS_INDICE
+]
+
+print(f"Formato ancho: {resultado_ancho.shape[0]} trimestres × "
+      f"{resultado_ancho.shape[1]} columnas")
+```
+
+```{python}
+#| label: resultado-largo
+
+# 1. Diccionario de las columnas de valor del formato ancho
+#    Dice, para cada una, a que serie pertenece, que representa y en que unidad
+#    esta. Es lo que permite pasar a largo sin perder el significado de la
+#    columna, que en el formato ancho vive en el nombre
+
+catalogo_columnas = pd.DataFrame(
+    [
+        {"columna": variable, "nivel": "variable", "dimension": DIMENSION_DE[variable],
+         "serie": variable, "medida": "original", "unidad": UNIDAD_DE[variable]}
+        for variable in VARIABLES
+    ]
+    + [
+        {"columna": f"{variable}_z", "nivel": "variable", "dimension": DIMENSION_DE[variable],
+         "serie": variable, "medida": "normalizado", "unidad": UNIDAD_NORMALIZADA}
+        for variable in VARIABLES
+    ]
+    + [
+        {"columna": f"indice_dim_{dimension.split('_')[0]}", "nivel": "dimension",
+         "dimension": dimension, "serie": f"indice_dim_{dimension.split('_')[0]}",
+         "medida": "indice", "unidad": UNIDAD_INDICE}
+        for dimension in sub_indices.columns
+    ]
+
+    # el agregado no pertenece a ninguna dimension: la columna queda vacia
+    + [
+        {"columna": "indice_agregado", "nivel": "agregado", "dimension": "",
+         "serie": "indice_agregado", "medida": "indice", "unidad": UNIDAD_INDICE},
+        {"columna": "indice_agregado_suavizado", "nivel": "agregado", "dimension": "",
+         "serie": "indice_agregado_suavizado", "medida": "indice", "unidad": UNIDAD_INDICE},
+    ]
+)
+
+
+# 2. Pasa el ancho a largo: una fila por trimestre y columna de valor
+
+resultado_largo = resultado_ancho.melt(
+    id_vars=IDENTIFICADORES,
+    var_name="columna",
+    value_name="valor",
+)
+
+
+# 3. Pega el significado de cada columna
+
+resultado_largo = resultado_largo.merge(catalogo_columnas, on="columna", how="left")
+
+
+# 4. Ordena por el orden en que las columnas aparecen en el formato ancho
+
+orden_columnas = {nombre: i for i, nombre in enumerate(catalogo_columnas["columna"])}
+
+resultado_largo = (
+    resultado_largo
+    .assign(orden_columna=lambda d: d["columna"].map(orden_columnas))
+    .sort_values(["orden_columna", "anio", "trimestre_num"])
+)
+
+
+# 5. Deja las columnas finales, en el orden en que se leen
+
+resultado_largo = (
+    resultado_largo[
+        IDENTIFICADORES + ["nivel", "dimension", "serie", "medida", "unidad", "valor"]
+    ]
+    .reset_index(drop=True)
+)
+
+print(f"Formato largo: {resultado_largo.shape[0]} filas "
+      f"({resultado_ancho.shape[0]} trimestres × "
+      f"{len(catalogo_columnas)} series)")
+```
+
+```{python}
+#| label: validacion-resultado
+
+# 1. Que los dos formatos lleven exactamente los mismos valores
+#    Si no coinciden, uno de los dos perdio o duplico filas al armarse
+
+valores_ancho = int(
+    resultado_ancho[VARIABLES + COLUMNAS_NORMALIZADAS + COLUMNAS_INDICE]
+    .notna().sum().sum()
+)
+
+valores_largo = int(resultado_largo["valor"].notna().sum())
+
+if valores_ancho != valores_largo:
+    raise SystemExit(
+        f"El formato ancho tiene {valores_ancho} valores no nulos y el largo "
+        f"{valores_largo}. Los dos tienen que describir la misma tabla."
+    )
+
+
+# 2. Que ninguna columna del formato ancho se haya quedado sin traduccion
+#    (un merge con nombre mal escrito deja el 'nivel' en nulo, no falla)
+
+sin_traducir = resultado_largo[resultado_largo["nivel"].isna()]
+
+if len(sin_traducir):
+    raise SystemExit(
+        f"Estas filas quedaron sin significado: {sorted(set(sin_traducir['serie']))}."
+    )
+
+
+# 3. Que la escala publicada sea la declarada en la decision 11
+
+base_publicada = resultado_ancho[resultado_ancho["trimestre"].isin(PERIODO_BASE)]
+
+print(f"valores no nulos: {valores_ancho} en los dos formatos")
+print(f"trimestres provisionales: "
+      f"{', '.join(resultado_ancho.loc[resultado_ancho['provisional'], 'trimestre']) or 'ninguno'}")
+print(f"escala en el período base: media "
+      f"{base_publicada['indice_agregado'].mean():.2f}, desvío "
+      f"{base_publicada['indice_agregado'].std():.2f}")
+```
+
+## Escritura en Drive
+
+```{python}
+#| label: publicacion
+#| code-fold: false
+
+if not PUBLICAR_RESULTADO:
+
+    print("PUBLICAR_RESULTADO = False: no se escribió nada en Drive. "
+          "resultado_ancho y resultado_largo quedan en memoria.")
+
+else:
+
+    carpeta_resultado_id = resolve_etapa_folder(CARPETA_RESULTADO)
+
+    print(f"[{CARPETA_RESULTADO}]")
+
+
+    # 1. Los dos CSV, reemplazando el contenido del mismo archivo
+
+    for nombre_archivo, tabla_resultado in (
+        (ARCHIVO_RESULTADO_ANCHO, resultado_ancho),
+        (ARCHIVO_RESULTADO_LARGO, resultado_largo),
+    ):
+
+        contenido = tabla_resultado.to_csv(index=False).encode("utf-8")
+
+        subir_o_reemplazar(
+            contenido,
+            nombre_archivo,
+            carpeta_resultado_id,
+            mime_type="text/csv",
+        )
+
+        print(f"  {nombre_archivo:<26} {len(tabla_resultado):>5} filas x "
+              f"{tabla_resultado.shape[1]:>2} columnas")
+
+
+    # 2. El Sheet del tablero: se resuelve el archivo (se crea solo la primera
+    #    vez) y se reemplaza el contenido de cada pestaña
+
+    hoja_id = resolver_hoja_de_calculo(NOMBRE_HOJA_RESULTADO, carpeta_resultado_id)
+
+    write_dataframe(PESTANA_ANCHO, resultado_ancho, spreadsheet_id=hoja_id)
+    write_dataframe(PESTANA_LARGO, resultado_largo, spreadsheet_id=hoja_id)
+
+    print(f"  {NOMBRE_HOJA_RESULTADO:<26} pestañas '{PESTANA_ANCHO}' y "
+          f"'{PESTANA_LARGO}' actualizadas")
+    print(f"  https://docs.google.com/spreadsheets/d/{hoja_id}")
+```
+
 # Reproducibilidad {.unnumbered}
 
 ```{python}
@@ -2469,8 +2881,17 @@ print(f"  numpy       {np.__version__}")
 print(f"  matplotlib  {matplotlib.__version__}")
 print()
 print("Fuentes de datos de esta corrida")
-print(f"  Panel: {SCRIPT_03.relative_to(RAIZ_REPO)}")
+print(f"  Panel: Drive {CARPETA_PANEL}/{ARCHIVO_PANEL}")
 print(f"  Deflactor: BLS, serie {SERIE_IPC}, base {TRIMESTRE_BASE_PRECIOS}")
+print()
+print("Resultado publicado")
+if PUBLICAR_RESULTADO:
+    print(f"  Drive {CARPETA_RESULTADO}/{ARCHIVO_RESULTADO_ANCHO}")
+    print(f"  Drive {CARPETA_RESULTADO}/{ARCHIVO_RESULTADO_LARGO}")
+    print(f"  Sheet '{NOMBRE_HOJA_RESULTADO}', pestañas "
+          f"'{PESTANA_ANCHO}' y '{PESTANA_LARGO}'")
+else:
+    print("  (PUBLICAR_RESULTADO = False, esta corrida no publicó nada)")
 print()
 print("Archivos de 02_limpias utilizados")
 for fila in catalogo.itertuples():
