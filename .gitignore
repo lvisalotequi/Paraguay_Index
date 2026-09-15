@@ -40,3 +40,4 @@ Thumbs.db
 gdelt_extraction/output/
 gdelt_extraction/.venv/
 !gdelt_extraction/*.json
+CONTEXTO_INFORME_AVANCES.md
