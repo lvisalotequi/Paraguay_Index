@@ -1,0 +1,1192 @@
+---
+title: "US-PY Engagement Index"
+subtitle: "Análisis e interpretación del índice"
+author: "Equilibrium BDC"
+date: today
+lang: es
+number-sections: true
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
+    toc-depth: 3
+    code-fold: true
+    code-summary: "código"
+    theme: cosmo
+    fig-dpi: 160
+    tbl-cap-location: top
+    page-layout: full
+  docx:
+    toc: true
+    toc-title: "Contenido"
+    toc-depth: 3
+    echo: false
+    fig-dpi: 200
+    tbl-cap-location: top
+execute:
+  warning: false
+jupyter: python3
+---
+
+```{python}
+#| label: setup-entorno
+
+# 0.1. ENTORNO -----------------------------------------------------------------
+
+# 1. Manejo de tablas, calculo numerico y utilidades de sistema
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+
+# 2. Graficos
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
+
+# 3. Emision de tablas: se escriben como markdown y no como HTML, porque es el
+#    unico formato que Word y el navegador muestran igual de bien
+from IPython.display import Markdown, display
+
+
+# 4. Sin limite de ancho por celda ni de columnas al imprimir
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_colwidth", None)
+pd.set_option("display.width", 200)
+```
+
+```{python}
+#| label: setup-helpers
+
+# 0.2. FUNCIONES DE PRESENTACION -----------------------------------------------
+
+# 1. Formato de los numeros que el texto calcula en linea. El informe escribe los
+#    decimales con coma, de modo que las cifras pasan por esta unica via
+def num(valor, decimales=1):
+    """Devuelve el valor como texto con coma decimal."""
+
+    return f"{float(valor):.{decimales}f}".replace(".", ",")
+
+
+# 2. Escribe un numero con separador de miles y coma decimal, al modo espanol
+def numero_largo(valor, decimales=0):
+    """Devuelve el valor con punto de miles y coma decimal."""
+
+    texto = f"{float(valor):,.{decimales}f}"
+
+    return texto.replace(",", "@").replace(".", ",").replace("@", ".")
+
+
+# 3. Unica via para mostrar una tabla. Convierte los numeros al formato local y
+#    emite markdown, que Word traduce a tabla nativa y el navegador a tabla HTML
+def tabla(datos, decimales=1):
+    """Muestra un DataFrame como tabla, con los numeros en formato local."""
+
+    presentado = datos.copy()
+
+    for columna in presentado.columns:
+
+        if not pd.api.types.is_numeric_dtype(presentado[columna]):
+
+            continue
+
+        valores = presentado[columna].dropna()
+
+        es_conteo = (
+            len(valores) > 0
+            and np.allclose(valores, valores.round())
+            and "(" not in str(columna)
+        )
+
+        presentado[columna] = presentado[columna].map(
+            lambda v: "" if pd.isna(v) else numero_largo(v, 0 if es_conteo else decimales)
+        )
+
+    display(Markdown(presentado.to_markdown(index=False)))
+
+
+# 4. Estilo grafico unico para todo el informe. El ancho se fija en 6,5 pulgadas
+#    porque es el espacio util de una pagina de Word con margenes de una pulgada
+ANCHO_FIGURA = 6.5
+
+plt.rcParams.update({
+    "figure.dpi": 130,
+    "savefig.dpi": 130,
+    "font.size": 8.5,
+    "axes.titlesize": 9,
+    "axes.labelsize": 8.5,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.grid": True,
+    "grid.color": "#e6e9ee",
+    "grid.linewidth": 0.7,
+    "legend.frameon": False,
+    "xtick.labelsize": 7.5,
+    "ytick.labelsize": 7.5,
+})
+```
+
+```{python}
+#| label: setup-indice
+
+# 0.3. CARGA DEL INDICE CONSTRUIDO ---------------------------------------------
+
+# 1. El indice no se recalcula en este documento: se importa el modulo que lo
+#    construye a partir de los mismos caches que el documento de construccion,
+#    de modo que las cifras de la interpretacion no puedan separarse de las de
+#    aquel. El modulo vive junto a este archivo
+sys.path.insert(0, str(Path.cwd()))
+
+from _indice import construir_indice, verificar_anclajes, salto_por_unidad, movimiento_continuo
+
+
+# 2. Reconstruye el indice y deja sus objetos disponibles con nombres cortos
+idx = construir_indice()
+
+indice = idx.indice
+
+dimensiones = idx.indices_por_dimension
+
+desbalance = idx.desbalance
+
+trimestres_ventana = idx.trimestres_ventana
+
+anio = idx.anio_serie
+
+es_provisional = idx.es_provisional
+
+periodo_referencia = idx.periodo_referencia
+
+
+# 3. Etiqueta corta de cada dimension (D1..D4) para tablas y ejes estrechos
+DIM_CORTA = {etiqueta: etiqueta.split(" · ")[0] for etiqueta in idx.ETIQUETA_DIMENSION.values()}
+
+COLOR_POR_ETIQUETA = {
+    idx.ETIQUETA_DIMENSION[clave]: color for clave, color in idx.COLOR_DIMENSION.items()
+}
+
+
+# 4. Atajo: promedio anual de una serie trimestral
+def por_anio(serie):
+    """Promedio de la serie dentro de cada anio de la ventana."""
+
+    return serie.groupby(anio).mean()
+```
+
+::: {.content-visible when-format="html"}
+
+```{python}
+#| label: setup-validacion
+#| output: asis
+
+# Validacion ------------------------------------------------------------------
+
+# El documento se abre comprobando que el indice que reconstruye coincide con
+# lo que declara la construccion. Si algun anclaje no coincide, la tabla lo
+# muestra y ninguna cifra posterior es confiable
+control = verificar_anclajes(idx)
+
+tabla(control.assign(coincide=lambda d: np.where(d["coincide"], "sí", "NO")))
+```
+
+:::
+
+Este documento lee el US-PY Engagement Index ya construido y describe qué indica
+sobre la relación bilateral entre Paraguay y Estados Unidos entre el primer
+trimestre de 2015 y el primero de 2026. La construcción del índice, con las
+decisiones metodológicas que la definieron, corresponde a la sección anterior del
+informe; aquí no se la repite. El índice y las cuatro dimensiones que lo componen
+se toman del mismo procedimiento que produjo esa sección, mediante un módulo común
+que los reconstruye desde los datos de origen, de modo que ninguna cifra de esta
+interpretación pueda diferir de las publicadas allí.
+
+El análisis se organiza en seis lecturas sucesivas. La primera fija qué mide el índice
+y en qué dirección se interpreta cada movimiento. La segunda describe la trayectoria
+del vínculo a lo largo del período. La tercera explica el debilitamiento de 2020 y la
+recuperación posterior, con las series concretas que los produjeron. La cuarta
+interpreta el giro reciente, en el que el vínculo no se debilita ni se fortalece en
+conjunto pero cambia de composición. La quinta identifica con qué dimensión se mueve el
+número general. La sexta reúne los límites que condicionan la lectura. Un apartado final
+enumera las limitaciones identificadas para corregir en la próxima versión del índice.
+
+# Qué mide el índice y en qué dirección se lee
+
+El índice mide la fortaleza del vínculo bilateral entre Paraguay y Estados Unidos, con
+una dirección que puede interpretarse. Un valor más alto corresponde a un
+relacionamiento más denso y en mejores términos, y uno más bajo a un vínculo más
+débil, de modo que una subida del índice significa que la relación se fortaleció y una
+bajada que se debilitó. Esa dirección es la que permite leer cada movimiento como una
+mejora o un deterioro, y no solo como una variación numérica.
+
+La escala se fijó en la construcción y toda la lectura depende de ella. El índice se
+expresa sobre una escala sin unidad de medida en la que el
+**`{python} num(idx.MEDIA_OBJETIVO, 0)` corresponde al promedio del período de
+referencia** —la década 2015-2024 sin el año 2020— y **`{python} num(idx.DESVIO_OBJETIVO, 0)`
+puntos equivalen a un desvío estándar** de ese mismo período. Un trimestre en 110 se
+sitúa un desvío por encima del promedio de referencia, y uno en 90, un desvío por
+debajo.
+
+```{python}
+#| label: tbl-escala
+#| tbl-cap: "Referencia de lectura de la escala común sobre la que se expresan el índice y sus dimensiones."
+#| output: asis
+
+# 0.4. REFERENCIA DE LECTURA DE LA ESCALA --------------------------------------
+
+# 1. Traduce los valores de la escala a su interpretacion, para que la lectura
+#    de los apartados siguientes no dependa de recordar la construccion
+referencia_escala = pd.DataFrame([
+    {"Valor en la escala": "100", "Qué representa": "El promedio del período de referencia 2015-2024 sin 2020"},
+    {"Valor en la escala": "110", "Qué representa": "Un desvío estándar por encima de ese promedio"},
+    {"Valor en la escala": "90", "Qué representa": "Un desvío estándar por debajo de ese promedio"},
+    {"Valor en la escala": "10 puntos", "Qué representa": "La distancia de un desvío estándar del período de referencia"},
+])
+
+tabla(referencia_escala)
+```
+
+La escala no tiene un techo ni un piso fijos, porque un período posterior puede
+alejarse del promedio de referencia tanto como los datos lo determinen. Un valor
+no expresa entonces una posición dentro de un rango cerrado, sino una distancia
+respecto del nivel ordinario del período de referencia.
+
+El índice general es el promedio de cuatro dimensiones, cada una de las cuales capta
+un canal distinto de la relación. Interpretar el índice exige saber qué mide cada una
+y qué significa que suba, porque una misma variación del número general puede provenir
+de canales muy diferentes.
+
+```{python}
+#| label: tbl-significado
+#| tbl-cap: "Qué capta cada dimensión y qué implica que su valor aumente."
+#| output: asis
+
+# 0.6. SIGNIFICADO Y DIRECCION DE CADA DIMENSION -------------------------------
+
+# 1. Que mide cada dimension y como se lee una subida, para que los movimientos
+#    de los apartados siguientes tengan un significado y no solo un signo
+significado_dimensiones = pd.DataFrame([
+    {
+        "Dimensión": "D1 · Compromiso financiero oficial",
+        "Qué capta": "Recursos que el gobierno de EE.UU. dirige a Paraguay: asistencia oficial y gasto federal ejecutado",
+        "Que suba significa": "Mayor financiamiento oficial estadounidense hacia Paraguay",
+    },
+    {
+        "Dimensión": "D2 · Vínculo político-institucional",
+        "Qué capta": "Instrumentos formales del vínculo: tratados bilaterales vigentes y atención legislativa del Congreso",
+        "Que suba significa": "Más tratados en vigor y más atención del Congreso a Paraguay",
+    },
+    {
+        "Dimensión": "D3 · Compromiso económico privado",
+        "Qué capta": "Flujos económicos entre los dos países: comercio de bienes y remesas familiares",
+        "Que suba significa": "Mayor intercambio comercial y de remesas con EE.UU.",
+    },
+    {
+        "Dimensión": "D4 · Visibilidad mediática",
+        "Qué capta": "Presencia del vínculo en los medios: volumen de cobertura y tono de las noticias",
+        "Que suba significa": "Más cobertura mediática del vínculo, o en mejor tono",
+    },
+])
+
+tabla(significado_dimensiones)
+```
+
+Con la escala y el significado de cada dimensión fijados, el apartado siguiente
+describe la trayectoria que el vínculo siguió a lo largo del período.
+
+# La trayectoria del vínculo entre 2015 y 2026
+
+El índice general se mueve a lo largo de todo el período. La figura muestra la serie
+trimestral completa, con la línea de referencia en 100 y una escala secundaria en
+desvíos que permite leer la magnitud de cada movimiento. El rasgo de mayor magnitud es
+una caída pronunciada en 2020 seguida de una recuperación; el resto del tiempo el
+índice sube y baja de un trimestre a otro sin describir una tendencia definida.
+
+```{python}
+#| label: fig-indice
+#| fig-cap: "El índice general por trimestre. La línea horizontal marca el promedio del período de referencia; el punto final corresponde al trimestre provisional."
+
+# 1.1. EL INDICE GENERAL EN EL PERIODO -----------------------------------------
+
+# 1. Recorrido del indice y trimestres en que alcanza sus extremos
+indice_minimo = indice.min()
+indice_maximo = indice.max()
+
+trimestre_minimo = indice.idxmin()
+trimestre_maximo = indice.idxmax()
+
+
+# 2. Grafico de la serie trimestral, con la linea de referencia en 100 y una
+#    escala secundaria en desvios para que la magnitud de cada movimiento se pueda
+#    leer directamente. No se acota el eje ni se sombrea ninguna franja
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 3.0))
+
+posiciones = range(len(trimestres_ventana))
+
+eje.plot(posiciones, indice.values, color="#1f2933", linewidth=1.8)
+
+# marca el trimestre provisional, cuyos valores todavia pueden cambiar
+provisional_idx = [i for i, t in enumerate(trimestres_ventana) if es_provisional[t]]
+
+eje.scatter(provisional_idx, indice.iloc[provisional_idx], s=28, color="#b35c00",
+            zorder=3, label="trimestre provisional")
+
+eje.axhline(idx.MEDIA_OBJETIVO, color="#8a94a0", linestyle="--", linewidth=0.8)
+
+marcas = [i for i, t in enumerate(trimestres_ventana) if t.endswith("Q1")]
+
+eje.set_xticks(marcas)
+eje.set_xticklabels([trimestres_ventana[i][:4] for i in marcas])
+eje.set_ylabel("escala común (100 = promedio de la referencia)")
+eje.legend(loc="lower right", fontsize=7)
+
+# eje derecho: la misma serie leida en desvios respecto de la referencia
+eje_desvios = eje.twinx()
+
+eje_desvios.set_ylim((eje.get_ylim()[0] - idx.MEDIA_OBJETIVO) / idx.DESVIO_OBJETIVO,
+                     (eje.get_ylim()[1] - idx.MEDIA_OBJETIVO) / idx.DESVIO_OBJETIVO)
+
+eje_desvios.set_ylabel("desvíos respecto de la referencia")
+eje_desvios.grid(False)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: amplitud
+#| include: false
+
+# 1.2. AMPLITUD DE LA SERIE ----------------------------------------------------
+
+# 1. Recorrido total de la serie, expresado tambien en desvios de la escala
+recorrido_puntos = indice_maximo - indice_minimo
+
+recorrido_desvios = recorrido_puntos / idx.DESVIO_OBJETIVO
+
+
+# 2. Promedio anual del indice y cambio de un anio al siguiente
+indice_anual = por_anio(indice)
+
+cambio_anual = indice_anual.diff().abs()
+
+cambio_anual_tipico = cambio_anual.median()
+
+
+# 3. Anio mas bajo de la serie
+anio_mas_bajo = indice_anual.idxmin()
+
+
+# 4. Movimiento de un trimestre al siguiente: su valor tipico y su maximo, para
+#    poder medir la amplitud del vaiven contra el desvio de la escala
+movimiento_trimestral_indice = indice.diff().abs().median()
+
+cambio_qoq_maximo = indice.diff().abs().max()
+```
+
+La amplitud de esos movimientos conviene medirla, porque de ella depende qué lectura
+admiten. El índice recorre `{python} num(recorrido_puntos)` puntos entre su valor más
+bajo y el más alto, equivalentes a `{python} num(recorrido_desvios, 2)` desvíos de la
+escala; su cambio de un trimestre al siguiente es de
+`{python} num(movimiento_trimestral_indice)` puntos como valor mediano, con un máximo de
+`{python} num(cambio_qoq_maximo)` puntos. Estas cifras dicen cuánto se mueve el índice,
+pero no si cada movimiento corresponde a un cambio en la relación o a la volatilidad
+trimestral propia de sus componentes, que en varias de las series es considerable.
+Distinguir una cosa de la otra exige descomponer cada movimiento en las series que lo
+producen, y es lo que hacen los apartados siguientes.
+
+El análisis de robustez de la construcción acotó además hasta dónde llega esa
+distinción. Ese análisis encontró que el índice separa con nitidez los cambios de
+régimen, como la caída de 2020, pero no las diferencias pequeñas entre años contiguos,
+y menos aún entre trimestres, que quedan dentro de la incertidumbre del propio método.
+La interpretación se apoya por eso en los movimientos de mayor magnitud y en su
+descomposición por canal, no en el vaivén de un trimestre a otro.
+
+El movimiento de mayor magnitud del período es la caída de `{python} anio_mas_bajo`, que
+promedió `{python} num(indice_anual.loc[anio_mas_bajo])` puntos y cuyo primer trimestre
+marcó el valor más bajo de la serie, `{python} num(indice_minimo)`, un desvío por debajo
+del nivel de referencia. Ese año concentra el único debilitamiento generalizado del
+período, que el apartado siguiente explica; la recuperación posterior devolvió el índice
+hacia `{python} num(indice_anual.loc['2023'])` puntos en 2023, como muestra la tabla de
+promedios anuales.
+
+```{python}
+#| label: tbl-indice-anual
+#| tbl-cap: "Promedio anual del índice general. El último año contiene un solo trimestre, marcado como provisional."
+#| output: asis
+
+# 1.3. PROMEDIO ANUAL DEL INDICE -----------------------------------------------
+
+# 1. Promedio del indice en cada anio, con una nota para el anio incompleto
+anios_provisionales = sorted({t[:4] for t in trimestres_ventana if es_provisional[t]})
+
+resumen_indice_anual = (
+    indice_anual.rename("Índice general").reset_index()
+    .rename(columns={"index": "Año"})
+    .assign(**{
+        "Nota": lambda d: np.where(d["Año"].isin(anios_provisionales), "trimestre provisional", ""),
+    })
+)
+
+tabla(resumen_indice_anual)
+```
+
+El nivel del índice general, por sí solo, permite ver poco más que la caída de 2020 y
+su recuperación, porque es un promedio de cuatro dimensiones y puede mantenerse mientras
+esas dimensiones se mueven en direcciones opuestas. La interpretación que sigue se apoya
+por eso en la descomposición del índice y no en su nivel agregado. Los dos apartados
+siguientes la desarrollan. El primero explica el debilitamiento de 2020 y la
+recuperación posterior; el segundo, el giro reciente en el que la composición del
+vínculo cambia sin que su nivel general lo registre.
+
+# El debilitamiento de 2020 y la recuperación posterior
+
+El descenso de 2020 fue el único debilitamiento generalizado del período, porque
+alcanzó a las cuatro dimensiones a la vez. La figura muestra el índice general junto
+con sus cuatro dimensiones, y permite ver que en 2020 todas caen y que después se
+recuperan en momentos distintos.
+
+```{python}
+#| label: fig-dimensiones
+#| fig-cap: "El índice general y sus cuatro dimensiones sobre la escala común."
+
+# 2.1. LAS CUATRO DIMENSIONES EN EL TIEMPO -------------------------------------
+
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 3.6))
+
+for etiqueta in dimensiones.columns:
+
+    eje.plot(range(len(dimensiones)), dimensiones[etiqueta].values,
+             color=COLOR_POR_ETIQUETA[etiqueta], linewidth=1.1, label=DIM_CORTA[etiqueta])
+
+eje.plot(range(len(indice)), indice.values, color="#1f2933", linewidth=2.2,
+         label="Índice general")
+
+eje.axhline(idx.MEDIA_OBJETIVO, color="#8a94a0", linestyle="--", linewidth=0.8)
+
+marcas = [i for i, t in enumerate(trimestres_ventana) if t.endswith("Q1")]
+
+eje.set_xticks(marcas)
+eje.set_xticklabels([trimestres_ventana[i][:4] for i in marcas])
+eje.set_ylabel("escala común (100 = promedio de la referencia)")
+eje.legend(ncol=5, loc="lower center", fontsize=6.5)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: dimensiones-cifras
+#| include: false
+
+# 2.2. TRAYECTORIA DE CADA DIMENSION -------------------------------------------
+
+# 1. Promedio anual de cada dimension
+dim_anual = dimensiones.apply(por_anio)
+
+
+# 2. Primer y ultimo anio completos de la ventana, para describir la tendencia
+anios_completos = [a for a in dim_anual.index if a not in anios_provisionales]
+
+primer_anio = anios_completos[0]
+ultimo_anio_completo = anios_completos[-1]
+
+
+# 3. Etiqueta larga de cada dimension por su nombre corto
+LARGA_POR_CORTA = {DIM_CORTA[e]: e for e in dimensiones.columns}
+
+d1 = LARGA_POR_CORTA["D1"]
+d2 = LARGA_POR_CORTA["D2"]
+d3 = LARGA_POR_CORTA["D3"]
+d4 = LARGA_POR_CORTA["D4"]
+
+
+# 4. Cuanto cambio cada dimension entre el primer y el ultimo anio completo, y
+#    cuanto vario cada una a lo largo de la ventana. Respaldan las afirmaciones
+#    de que la D1 es la que mas descendio y la D3 la mas estable
+cambio_dim = dim_anual.loc[ultimo_anio_completo] - dim_anual.loc[primer_anio]
+
+std_dim = dimensiones.std()
+```
+
+```{python}
+#| label: valores-reales
+#| include: false
+
+# 3.1. VALORES REALES DE CADA SERIE POR ANIO -----------------------------------
+
+# 1. Agregacion correcta segun el tipo de serie: suma anual en los flujos y los
+#    conteos, promedio en la asistencia de grano anual y en el tono, y stock a
+#    fin de anio en los tratados
+pv = idx.panel_ventana
+
+SERIES_SUMA = ["exportaciones", "importaciones", "remesas", "usaspending_obligaciones",
+               "gdelt_proxy_articles_py", "gdelt_proxy_articles_us"]
+
+SERIES_MEDIA = ["fa_gov_obligaciones", "fa_gov_desembolsos",
+                "gdelt_tone_promedio_py", "gdelt_tone_promedio_us"]
+
+SERIES_STOCK = ["state_gov_tias_vigentes"]
+
+
+def valor_anual(variable):
+    """Valor de la serie por anio, agregado como corresponde a su tipo."""
+
+    grupo = pv[variable].groupby(anio)
+
+    if variable in SERIES_SUMA:
+        return grupo.sum()
+
+    if variable in SERIES_STOCK:
+        return grupo.last()
+
+    return grupo.mean()
+
+
+valores_anuales = pd.DataFrame({v: valor_anual(v) for v in SERIES_SUMA + SERIES_MEDIA + SERIES_STOCK})
+
+
+# 2. Cambio porcentual de una serie entre dos anios, para citarlo en la prosa
+def cambio_pct(variable, desde, hasta):
+    """Variacion porcentual de la serie entre dos anios."""
+
+    return (valores_anuales.loc[hasta, variable] / valores_anuales.loc[desde, variable] - 1) * 100
+
+
+# caidas de 2020
+caida_importaciones_2020 = cambio_pct("importaciones", "2019", "2020")
+caida_articulos_us_2020 = cambio_pct("gdelt_proxy_articles_us", "2019", "2020")
+
+# recuperacion escalonada
+suba_desembolsos_2021 = cambio_pct("fa_gov_desembolsos", "2020", "2021")
+suba_articulos_py_2023 = cambio_pct("gdelt_proxy_articles_py", "2022", "2023")
+
+# giro reciente
+caida_asistencia_2025 = cambio_pct("fa_gov_obligaciones", "2024", "2025")
+multiplo_exportaciones = valores_anuales.loc["2025", "exportaciones"] / valores_anuales.loc["2020", "exportaciones"]
+```
+
+```{python}
+#| label: fig-descomposicion
+#| fig-cap: "Cuánto aportó cada dimensión al cambio del índice de un año al siguiente. Un tramo hacia abajo es un debilitamiento de ese canal; hacia arriba, un fortalecimiento."
+
+# 3.2. DESCOMPOSICION DEL CAMBIO ANUAL POR DIMENSION ---------------------------
+
+# 1. Aporte de cada dimension al cambio del indice: un cuarto de su propio cambio,
+#    porque las cuatro dimensiones pesan lo mismo dentro del indice general
+contrib_dim = (dim_anual.diff() * 0.25).dropna()
+
+
+# 2. Grafico de barras apiladas por anio, una barra por dimension. Los aportes
+#    positivos se apilan hacia arriba y los negativos hacia abajo
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 3.0))
+
+posiciones = range(len(contrib_dim))
+
+fondo_positivo = np.zeros(len(contrib_dim))
+fondo_negativo = np.zeros(len(contrib_dim))
+
+for etiqueta in dimensiones.columns:
+
+    valores = contrib_dim[etiqueta].values
+
+    base = np.where(valores >= 0, fondo_positivo, fondo_negativo)
+
+    eje.bar(posiciones, valores, bottom=base, width=0.7,
+            color=COLOR_POR_ETIQUETA[etiqueta], label=DIM_CORTA[etiqueta])
+
+    fondo_positivo = fondo_positivo + np.where(valores >= 0, valores, 0)
+    fondo_negativo = fondo_negativo + np.where(valores < 0, valores, 0)
+
+eje.axhline(0, color="#1f2933", linewidth=0.9)
+eje.set_xticks(list(posiciones))
+eje.set_xticklabels(contrib_dim.index)
+eje.set_ylabel("aporte al cambio del índice, en puntos")
+eje.legend(ncol=4, loc="lower center", fontsize=6.5)
+
+plt.tight_layout()
+plt.show()
+```
+
+El año 2020 concentra el único debilitamiento generalizado de la serie. El índice
+cayó desde un nivel próximo a 100 hasta `{python} num(indice_anual.loc['2020'])` puntos
+en el promedio del año, con su valor más bajo, `{python} num(indice_minimo)`, en el
+primer trimestre. La descomposición muestra que la caída no provino de un canal
+aislado sino de los cuatro a la vez, porque las cuatro dimensiones aportaron un
+descenso ese año. En términos de las fuentes, las importaciones de bienes desde
+Estados Unidos se contrajeron un `{python} num(-caida_importaciones_2020, 0)` por
+ciento respecto de 2019, la cobertura de los medios estadounidenses sobre Paraguay
+cayó un `{python} num(-caida_articulos_us_2020, 0)` por ciento, y tanto la asistencia
+oficial como las remesas retrocedieron. El debilitamiento coincide con el primer año
+de la pandemia, que interrumpió a la vez el comercio, los flujos oficiales y la
+atención mediática.
+
+La recuperación posterior no fue simultánea sino escalonada, y la descomposición
+muestra en qué orden se repuso cada canal. En 2021 se recuperaron primero el comercio
+y los flujos oficiales, con desembolsos de asistencia que más que se duplicaron
+respecto de 2020 —un `{python} num(suba_desembolsos_2021, 0)` por ciento más— y con las
+importaciones de vuelta en su nivel previo. En 2022 el comercio alcanzó su punto más
+alto del período y entró en vigor el primer tratado bilateral del rango, pero la
+visibilidad mediática cayó a su valor más bajo, de modo que los canales económico e
+institucional subían mientras la cobertura se contraía. En 2023 se recuperó la
+visibilidad, con un aumento del `{python} num(suba_articulos_py_2023, 0)` por ciento en
+la cobertura de los medios paraguayos y una mejora del tono de las noticias. Hacia
+2023 el índice había vuelto a su nivel ordinario, pero por la suma de canales que se
+repusieron en momentos distintos y no por una recuperación uniforme.
+
+La tabla resume el nivel de cada dimensión y del índice por año, y permite seguir esas
+trayectorias.
+
+```{python}
+#| label: tbl-dimensiones-anual
+#| tbl-cap: "Promedio anual de cada dimensión y del índice general. El último año contiene un solo trimestre, provisional."
+#| output: asis
+
+# 2.3. TABLA DE DIMENSIONES POR ANIO -------------------------------------------
+
+# 1. Promedios anuales de las dimensiones y del indice, con etiquetas cortas
+tabla_dim_anual = dim_anual.rename(columns=DIM_CORTA).copy()
+
+tabla_dim_anual["Índice general"] = por_anio(indice)
+
+tabla_dim_anual = tabla_dim_anual.reset_index().rename(columns={"index": "Año"})
+
+tabla(tabla_dim_anual)
+```
+
+Las trayectorias anuales dejan ver que las cuatro dimensiones no volvieron al mismo
+punto tras la recuperación. La visibilidad mediática fue la más volátil, con su caída
+más profunda entre 2020 y 2022 —hasta `{python} num(dim_anual[d4].loc[["2020","2021","2022"]].min())`
+en su año más bajo— y su reposición en 2023. El compromiso económico privado fue en
+cambio la más estable, con la menor variación de las cuatro, un desvío de
+`{python} num(std_dim[d3])` puntos sobre la ventana frente a `{python} num(std_dim[d2])`
+de la más variable. Y a partir de 2024 aparece un patrón distinto de todo lo anterior,
+en el que el compromiso financiero oficial y el vínculo político-institucional se
+separan de manera sostenida. Ese giro es el que el apartado siguiente interpreta.
+
+# El giro reciente: de la asistencia oficial al comercio y los tratados
+
+A partir de 2024 el índice general se mantiene próximo a su nivel de referencia, pero
+esa estabilidad convive con el cambio más importante del período. El compromiso
+financiero oficial cae de manera sostenida mientras el compromiso económico privado y
+el vínculo político-institucional ascienden, de modo que la relación no se debilita ni
+se fortalece en conjunto, sino que cambia de composición. Los valores de las fuentes
+precisan ese giro en términos concretos.
+
+```{python}
+#| label: tbl-valores-reales
+#| tbl-cap: "Valor anual de las principales series de cada canal, en los años completos. Las monetarias son totales anuales en millones de dólares corrientes; los tratados, el stock vigente a fin de año."
+#| output: asis
+
+# 3.3. VALORES REALES DE LOS CANALES QUE CAMBIAN ------------------------------
+
+# 1. Principales series de cada dimension, en los anios completos, con su unidad
+#    legible, para que el giro se lea en dolares y en tratados y no solo en puntos
+tabla_valores = (
+    pd.DataFrame({
+        "Exportaciones a EE.UU. (M USD)": valores_anuales["exportaciones"] / 1e6,
+        "Importaciones de EE.UU. (M USD)": valores_anuales["importaciones"] / 1e6,
+        "Remesas (M USD)": valores_anuales["remesas"] / 1e6,
+        "Asistencia obligada (M USD)": valores_anuales["fa_gov_obligaciones"] / 1e6,
+        "Tratados vigentes": valores_anuales["state_gov_tias_vigentes"],
+    })
+    .loc[anios_completos]
+    .rename_axis("Año")
+    .reset_index()
+)
+
+tabla(tabla_valores)
+```
+
+El giro tiene tres componentes. El primero es la retracción del financiamiento oficial
+estadounidense: las obligaciones de asistencia cayeron un
+`{python} num(-caida_asistencia_2025, 0)` por ciento entre 2024 y 2025, de
+`{python} num(valores_anuales.loc['2024', 'fa_gov_obligaciones'] / 1e6, 1)` a
+`{python} num(valores_anuales.loc['2025', 'fa_gov_obligaciones'] / 1e6, 1)` millones de
+dólares, y en el primer trimestre de 2026 descienden casi a cero, aunque ese último
+dato es provisional y todavía puede corregirse. El segundo es la expansión del
+comercio: las exportaciones de bienes a Estados Unidos se multiplicaron por
+`{python} num(multiplo_exportaciones, 1)` entre 2020 y 2025, hasta un máximo de la
+serie de `{python} num(valores_anuales.loc['2025', 'exportaciones'] / 1e6, 0)` millones
+de dólares. El tercero es la acumulación de instrumentos formales: el stock de tratados
+bilaterales vigentes pasó de cero antes de 2021 a tres al inicio de 2026. La relación,
+en suma, se reorienta desde el financiamiento entre gobiernos hacia el intercambio
+comercial y los vínculos formales.
+
+Ese cambio de composición se refleja en el desbalance entre dimensiones, la distancia
+entre la más alta y la más baja de cada trimestre, que la figura siguiente muestra a lo
+largo del período.
+
+```{python}
+#| label: fig-desbalance
+#| fig-cap: "Distancia entre la dimensión más alta y la más baja de cada trimestre. La línea horizontal marca su mediana."
+
+# 3.1. DESBALANCE ENTRE DIMENSIONES --------------------------------------------
+
+# 1. Extremos del desbalance
+desbalance_tipico = desbalance.median()
+desbalance_maximo = desbalance.max()
+trimestre_desbalance_maximo = desbalance.idxmax()
+
+
+# 2. Grafico del desbalance en el tiempo
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 2.7))
+
+eje.fill_between(range(len(desbalance)), 0, desbalance.values, color="#c8d0da")
+
+eje.plot(range(len(desbalance)), desbalance.values, color="#b35c00", linewidth=1.2)
+
+eje.axhline(desbalance_tipico, color="#1f2933", linestyle="--", linewidth=0.8)
+
+eje.text(0.4, desbalance_tipico + 1.1,
+         f"mediana: {num(desbalance_tipico)} puntos", fontsize=7)
+
+marcas = [i for i, t in enumerate(trimestres_ventana) if t.endswith("Q1")]
+
+eje.set_xticks(marcas)
+eje.set_xticklabels([trimestres_ventana[i][:4] for i in marcas])
+eje.set_ylabel("distancia entre dimensiones, en puntos")
+
+plt.tight_layout()
+plt.show()
+```
+
+El desbalance típico entre dimensiones fue de `{python} num(desbalance_tipico)`
+puntos y alcanzó su máximo, `{python} num(desbalance_maximo)` puntos, en
+`{python} trimestre_desbalance_maximo`. En ese trimestre el índice general marcó
+`{python} num(indice.loc[trimestre_desbalance_maximo])`, próximo a su nivel de
+referencia, mientras el compromiso financiero oficial se situaba en
+`{python} num(dimensiones.loc[trimestre_desbalance_maximo, d1])` y el vínculo
+político-institucional en `{python} num(dimensiones.loc[trimestre_desbalance_maximo, d2])`.
+Quien leyera solo el número general concluiría que la relación se encontraba en su
+nivel habitual, cuando dos de sus dimensiones estaban separadas por más de cuatro
+desvíos de la escala. La figura siguiente aísla esas dos dimensiones para ver la brecha
+de cerca.
+
+```{python}
+#| label: fig-brecha
+#| fig-cap: "Las dos dimensiones que se separan al cierre del período, con la distancia entre ambas sombreada."
+
+# 3.2. LA BRECHA ENTRE LAS DOS DIMENSIONES QUE DIVERGEN ------------------------
+
+# 1. Dimensiones que marcan los extremos del desbalance al cierre del periodo
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 3.0))
+
+posiciones = range(len(trimestres_ventana))
+
+eje.fill_between(posiciones, dimensiones[d1].values, dimensiones[d2].values,
+                 color="#eef1f5", label="distancia entre las dos")
+
+for etiqueta, color in [(d1, COLOR_POR_ETIQUETA[d1]), (d2, COLOR_POR_ETIQUETA[d2])]:
+
+    eje.plot(posiciones, dimensiones[etiqueta].values, color=color, linewidth=1.5,
+             label=DIM_CORTA[etiqueta])
+
+eje.axhline(idx.MEDIA_OBJETIVO, color="#8a94a0", linestyle="--", linewidth=0.8)
+
+marcas = [i for i, t in enumerate(trimestres_ventana) if t.endswith("Q1")]
+
+eje.set_xticks(marcas)
+eje.set_xticklabels([trimestres_ventana[i][:4] for i in marcas])
+eje.set_ylabel("escala común")
+eje.legend(loc="lower left", fontsize=7)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: divergencia-cifras
+#| include: false
+
+# 3.3. LA DIVERGENCIA SOBRE EL ULTIMO ANIO COMPLETO ----------------------------
+
+# 1. Promedio de cada dimension en el ultimo anio completo, que no depende del
+#    trimestre provisional
+d1_ultimo = dim_anual.loc[ultimo_anio_completo, d1]
+d2_ultimo = dim_anual.loc[ultimo_anio_completo, d2]
+
+brecha_ultimo_anio = d2_ultimo - d1_ultimo
+```
+
+La divergencia no depende del trimestre provisional. Sobre el último año completo,
+`{python} ultimo_anio_completo`, el vínculo político-institucional promedió
+`{python} num(d2_ultimo)` y el compromiso financiero oficial
+`{python} num(d1_ultimo)`, una brecha de `{python} num(brecha_ultimo_anio)` puntos
+entre la dimensión más alta y la más baja. El índice general de ese año,
+`{python} num(dim_anual.loc[ultimo_anio_completo].mean())`, es el promedio de esas dos
+trayectorias opuestas.
+
+Dos salvedades acotan la lectura de esta brecha. La caída del compromiso financiero
+oficial en el primer trimestre de 2026 está amplificada por la publicación parcial del
+año fiscal estadounidense, de modo que su magnitud en ese trimestre todavía puede
+corregirse al alza. Y el ascenso del vínculo político-institucional se apoya en las dos
+series de medición más limitada del índice, según se detalla en el apartado de
+limitaciones, de modo que la dirección del giro es firme pero su magnitud exacta en esa
+dimensión debe leerse con cautela. Con esas salvedades, la lectura central del período
+reciente es el cambio de composición y no el nivel del índice general, que se mantiene
+estable porque los canales que se retraen y los que se expanden se compensan. El
+apartado siguiente identifica con cuál de las cuatro dimensiones se mueve ese número
+general.
+
+# Con qué dimensión se mueve el índice general
+
+Aunque las cuatro dimensiones reciben el mismo peso en la construcción, no influyen
+por igual sobre el movimiento del índice general. La influencia depende también de
+cuánto varió cada dimensión en el período, que es un rasgo de los datos y no una
+decisión de diseño. Una forma de medirla es correlacionar cada dimensión con el
+índice general.
+
+```{python}
+#| label: fig-correlacion
+#| fig-cap: "Correlación de cada dimensión con el índice general sobre los 45 trimestres de la ventana. Un valor más alto indica que el índice general sigue más de cerca a esa dimensión."
+
+# 4.1. CORRELACION DE CADA DIMENSION CON EL INDICE GENERAL ---------------------
+
+# 1. Correlacion de cada dimension con el indice general
+correlaciones = pd.Series(
+    {etiqueta: np.corrcoef(dimensiones[etiqueta], indice)[0, 1] for etiqueta in dimensiones.columns}
+).sort_values()
+
+
+# 2. Grafico de barras horizontales
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 2.5))
+
+eje.barh(
+    [DIM_CORTA[e] for e in correlaciones.index],
+    correlaciones.values,
+    color=[COLOR_POR_ETIQUETA[e] for e in correlaciones.index],
+    height=0.6,
+)
+
+for posicion, valor in enumerate(correlaciones.values):
+
+    eje.text(valor + 0.01, posicion, num(valor, 2), va="center", fontsize=7.5)
+
+eje.set_xlim(0, 0.85)
+eje.set_xlabel("correlación con el índice general")
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: correlacion-cifras
+#| include: false
+
+# 4.2. EXTREMOS DE LA CORRELACION ----------------------------------------------
+
+dimension_mas_correlacionada = correlaciones.idxmax()
+dimension_menos_correlacionada = correlaciones.idxmin()
+
+correlacion_maxima = correlaciones.max()
+correlacion_minima = correlaciones.min()
+```
+
+La dimensión con la que más se mueve el índice general es
+**`{python} DIM_CORTA[dimension_mas_correlacionada]`**, con una correlación de
+`{python} num(correlacion_maxima, 2)`, seguida por el compromiso económico privado.
+La de menor influencia efectiva es **`{python} DIM_CORTA[dimension_menos_correlacionada]`**,
+con `{python} num(correlacion_minima, 2)`, precisamente porque en la segunda mitad del
+período se movió en dirección contraria a las demás, de modo que su descenso restó al
+índice lo que otras dimensiones sumaban. La igualdad de pesos declarada en la
+construcción no se traduce, por lo tanto, en igualdad de influencia sobre el
+resultado, y esa diferencia se publica en lugar de corregirse, porque proviene del
+comportamiento de los datos y no del diseño del índice.
+
+Este resultado matiza la interpretación del giro reciente. El compromiso financiero
+oficial, que es la dimensión que más cae, es a la vez la que menos arrastra al índice
+general, de modo que su descenso queda amortiguado en el número de conjunto. La
+divergencia entre canales es, por eso, más pronunciada de lo que el índice general
+deja ver. El apartado siguiente reúne los límites que condicionan toda esta lectura,
+antes de pasar a las limitaciones a corregir en la próxima versión.
+
+# Los límites de la lectura
+
+Tres condiciones acotan lo que puede afirmarse a partir del índice, y conviene
+enunciarlas junto con los resultados para no atribuirles más precisión de la que
+tienen.
+
+```{python}
+#| label: limites-cifras
+#| include: false
+
+# 5.1. LIMITES DE LA LECTURA ---------------------------------------------------
+
+# 1. El trimestre provisional y cuanto se aparta su dimension mas baja
+trimestre_provisional = idx.TRIMESTRES_PROVISIONALES[0]
+
+d1_provisional = dimensiones.loc[trimestre_provisional, d1]
+
+
+# 2. Signo del tono: las dos series de tono son negativas casi siempre
+series_tono = idx.series_tono
+
+tono_crudo = idx.panel_ventana[series_tono]
+
+tono_observaciones = tono_crudo.size
+
+tono_negativas = int((tono_crudo < 0).to_numpy().sum())
+
+proporcion_tono_negativo = tono_negativas / tono_observaciones * 100
+
+
+# 3. Amplitud del indice frente al movimiento trimestral tipico de una serie
+#    continua, con el mismo metodo que el documento de construccion (la mediana
+#    de las medianas del cambio trimestral de cada serie continua)
+movimiento_trimestral_continuo = movimiento_continuo(idx)
+```
+
+**El trimestre final es provisional.** El primer trimestre de 2026 depende de un año
+fiscal estadounidense que la fuente publica de manera parcial mientras el año está en
+curso, de modo que los valores de la asistencia oficial de ese trimestre todavía
+pueden crecer. Por ese motivo el compromiso financiero oficial marca allí
+`{python} num(d1_provisional)`, su valor más bajo de la serie, y el desbalance de ese
+trimestre —el máximo del período— está en parte determinado por esa medición
+incompleta. El trimestre se conserva en la serie porque contiene información real de
+las otras diez series, pero quedó excluido del período de referencia y su valor debe
+leerse como sujeto a revisión.
+
+**El tono de la cobertura informa por su movimiento y no por su signo.** Las dos
+series de tono son negativas en `{python} num(tono_negativas, 0)` de las
+`{python} num(tono_observaciones, 0)` observaciones, el
+`{python} num(proporcion_tono_negativo, 0)` por ciento, porque el periodismo redacta
+en tono negativo por convención, con independencia de la relación bilateral. Un valor negativo no indica
+entonces una cobertura hostil, y lo informativo es la variación del tono de un
+período a otro, no que su nivel sea negativo.
+
+**El índice distingue cambios de régimen y no variaciones menores.** Su recorrido
+total, `{python} num(recorrido_desvios, 2)` desvíos de la escala, convive con un
+movimiento trimestral de las series continuas de `{python} num(movimiento_trimestral_continuo)`
+puntos como valor típico. En la serie se distinguen con claridad la caída de 2020 y la
+divergencia reciente entre dimensiones, pero no las diferencias finas entre un año y el
+siguiente dentro de un mismo período.
+
+```{python}
+#| label: tbl-limites
+#| tbl-cap: "Los tres límites que condicionan la lectura del índice, con la magnitud que los cuantifica."
+#| output: asis
+
+# 5.2. RESUMEN DE LOS LIMITES DE LA LECTURA ------------------------------------
+
+# 1. Una fila por limite, con la cifra que ya calculo el apartado
+resumen_limites = pd.DataFrame([
+    {
+        "Límite de la lectura": "El trimestre final es provisional",
+        "Magnitud": f"El compromiso financiero oficial marca {num(d1_provisional)} en 2026-Q1, sujeto a revisión",
+    },
+    {
+        "Límite de la lectura": "El tono informa por su movimiento, no por su signo",
+        "Magnitud": f"Negativo en {tono_negativas} de {tono_observaciones} observaciones por convención periodística",
+    },
+    {
+        "Límite de la lectura": "El índice distingue regímenes, no variaciones menores",
+        "Magnitud": f"Recorrido de {num(recorrido_desvios, 2)} desvíos frente a {num(movimiento_trimestral_continuo)} puntos de movimiento trimestral típico",
+    },
+])
+
+tabla(resumen_limites)
+```
+
+Estos tres límites son propios de la lectura del índice tal como está construido. Las
+limitaciones del apartado final son de otra naturaleza, porque señalan aspectos del
+propio diseño que la próxima versión corregirá.
+
+# Las limitaciones a corregir en la próxima versión
+
+Las limitaciones que siguen se identificaron durante la construcción y se
+documentaron con su magnitud medida. Ninguna invalida los resultados de esta versión,
+pero cada una acota su alcance, y su corrección se difirió a una construcción más fina
+del índice. Se ordenan de la más consecuente para la interpretación a la de menor
+efecto numérico.
+
+## La dimensión político-institucional se apoya en sus dos series más débiles
+
+La dimensión que más ascendió en la segunda mitad del período, y que sostiene la
+divergencia descrita, es la que descansa en las dos series de medición más limitada
+del índice. La primera cuenta los proyectos de ley del Congreso de Estados Unidos
+que tratan a Paraguay como asunto central de un trimestre, y toma casi siempre los
+valores cero y uno. La segunda es el stock acumulado de tratados bilaterales
+vigentes, que registra solo cuatro niveles distintos en todo el período y nunca
+desciende, porque no incorpora la baja de un tratado cuando deja de estar vigente.
+
+```{python}
+#| label: fig-saltos
+#| fig-cap: "Cuántos puntos de la escala desplaza un solo hecho en las dos series discretas, frente al movimiento trimestral típico de una serie continua."
+
+# 6.1. TAMANO DEL SALTO DE LAS SERIES DISCRETAS --------------------------------
+
+# 1. Puntos que desplaza un solo hecho en cada serie discreta, con el mismo
+#    metodo que el documento de construccion: la pendiente del valor normalizado
+#    (redondeado a un decimal) sobre el recorrido nativo de la serie
+salto_congreso = salto_por_unidad(idx, "congreso_proyectos_relevantes_paraguay")
+
+salto_tratado = salto_por_unidad(idx, "state_gov_tias_vigentes")
+
+
+# 2. Compara esos saltos con el movimiento trimestral tipico de una continua
+comparacion_saltos = pd.Series({
+    "Un proyecto de ley\n(serie del Congreso)": salto_congreso,
+    "Un tratado nuevo\n(stock de tratados)": salto_tratado,
+    "Movimiento trimestral típico\nde una serie continua": movimiento_trimestral_continuo,
+})
+
+
+# 3. Grafico
+figura, eje = plt.subplots(figsize=(ANCHO_FIGURA, 2.6))
+
+colores = ["#b35c00", "#b35c00", "#8a94a0"]
+
+eje.bar(range(len(comparacion_saltos)), comparacion_saltos.values, width=0.6, color=colores)
+
+for posicion, valor in enumerate(comparacion_saltos.values):
+
+    eje.text(posicion, valor + 0.4, num(valor), ha="center", fontsize=8)
+
+eje.set_xticks(range(len(comparacion_saltos)))
+eje.set_xticklabels(comparacion_saltos.index, fontsize=7)
+eje.set_ylabel("puntos de la escala")
+
+plt.tight_layout()
+plt.show()
+```
+
+El efecto de esa medición gruesa es que un solo hecho desplaza la serie mucho más
+que el movimiento ordinario de las demás. La incorporación de un proyecto de ley
+mueve su serie `{python} num(salto_congreso)` puntos, y la de un tratado nuevo
+`{python} num(salto_tratado)` puntos de manera permanente, frente a los
+`{python} num(movimiento_trimestral_continuo)` puntos de un movimiento trimestral
+típico de una serie continua. A esa limitación de granularidad se suma una limitación
+de contenido. La serie del Congreso mide la atención legislativa hacia Paraguay, pero
+no la dirección de esa atención. De los proyectos que la serie contabiliza en el
+período, la mayoría son restrictivos o de seguridad y uno solo es inequívocamente
+favorable, de modo que un valor más alto de la serie no equivale necesariamente a una
+relación en mejores términos.
+
+La próxima versión debería asignar a cada proyecto una dirección verificada, mediante
+una tabla de clasificación versionada en la fuente, que es el mismo procedimiento que
+el proyecto ya emplea para el histórico de reuniones bilaterales y de tratados.
+El tratamiento del stock de tratados también quedaría revisado, para que registre la
+baja de un instrumento cuando deja de estar vigente.
+
+## El gasto federal ejecutado incorpora asistencia que la asistencia oficial ya cuenta
+
+Dentro de la dimensión de compromiso financiero oficial, la serie de gasto federal
+ejecutado suma transacciones que incluyen parte de la asistencia oficial, que la
+dimensión ya mide con sus propias series. La construcción cuantificó esa
+superposición sobre el último año con datos completos y la documentó como una
+limitación conocida. Su efecto es un doble conteo parcial dentro de la dimensión, que
+la próxima versión debería corregir depurando de la serie de gasto federal la
+porción que corresponde a asistencia.
+
+```{python}
+#| label: tbl-dimension-1
+#| tbl-cap: "Las series que integran la dimensión de compromiso financiero oficial en esta versión del índice."
+#| output: asis
+
+# 6.2. SERIES DE LA DIMENSION DE COMPROMISO FINANCIERO OFICIAL -----------------
+
+# 1. Series de la dimension 1, con el indicador que operacionaliza cada una
+series_dim_1 = (
+    idx.catalogo_series[idx.catalogo_series["dimension"].str.startswith("1_")]
+    [["indicador", "variable"]]
+    .rename(columns={"indicador": "Indicador", "variable": "Serie"})
+    .reset_index(drop=True)
+)
+
+tabla(series_dim_1)
+```
+
+La corrección de esta superposición no altera la dirección de la dimensión, que
+desciende en los años recientes por la caída de la asistencia oficial, pero sí
+ajustaría su nivel. Junto con la revisión de la dimensión político-institucional,
+completa el conjunto de correcciones internas a las dimensiones.
+
+## El índice todavía no se contrastó con referencias externas
+
+El manual metodológico que guía la construcción prevé un paso de validación que
+contrasta el índice con indicadores externos ya establecidos, para confirmar que su
+comportamiento resulta coherente con mediciones independientes de la misma relación.
+Ese paso es el único de los diez del manual que esta versión no cumple. La próxima
+versión debería incorporarlo, comparando el índice o sus dimensiones con series
+externas de referencia sobre el vínculo entre los dos países.
+
+## Los insumos auxiliares y la política de rebase quedan pendientes
+
+Dos aspectos del procedimiento quedan por resolver sin efecto sobre los valores
+actuales. El primero es que el índice de precios de Estados Unidos y la población de
+Paraguay, que el procedimiento usa para ajustar las series monetarias, se descargan
+en el momento de compilar el documento y todavía no forman parte del proceso de
+extracción con su archivo versionado. El segundo es la política de rebase. El período
+de referencia que fija el valor 100 quedará representativo mientras el índice cubra
+años próximos a esa década, y la próxima versión debería definir cada cuántos años se
+actualiza y cómo se comunica la transición.
+
+```{python}
+#| label: tbl-limitaciones
+#| tbl-cap: "Resumen de las limitaciones identificadas y la corrección prevista para la próxima versión."
+#| output: asis
+
+# 6.3. RESUMEN DE LAS LIMITACIONES ---------------------------------------------
+
+# 1. Una fila por limitacion, en el orden en que el apartado las presenta
+resumen_limitaciones = pd.DataFrame([
+    {
+        "Limitación": "La serie del Congreso toma casi siempre dos valores y no verifica la dirección de la atención",
+        "Dimensión": "D2 · Vínculo político-institucional",
+        "Corrección prevista": "Clasificar la dirección de cada proyecto en una tabla versionada en la fuente",
+    },
+    {
+        "Limitación": "El stock de tratados solo asciende y no registra la baja de un instrumento",
+        "Dimensión": "D2 · Vínculo político-institucional",
+        "Corrección prevista": "Descontar del stock los tratados que dejan de estar vigentes",
+    },
+    {
+        "Limitación": "El gasto federal ejecutado incorpora asistencia que la asistencia oficial ya cuenta",
+        "Dimensión": "D1 · Compromiso financiero oficial",
+        "Corrección prevista": "Depurar de la serie de gasto federal la porción de asistencia",
+    },
+    {
+        "Limitación": "El índice no se contrastó con indicadores externos",
+        "Dimensión": "Todas",
+        "Corrección prevista": "Incorporar el paso de validación con series externas de referencia",
+    },
+    {
+        "Limitación": "El IPC y la población se descargan al compilar y la política de rebase no está definida",
+        "Dimensión": "Todas",
+        "Corrección prevista": "Versionar los insumos auxiliares y fijar la regla de actualización de la base",
+    },
+])
+
+tabla(resumen_limitaciones)
+```
+
+Las cinco limitaciones comparten una característica que conviene subrayar. Ninguna
+altera la lectura central de esta versión, que es la divergencia entre un compromiso
+financiero oficial en descenso y un vínculo político-institucional en ascenso, con un
+índice general estable porque ambos se compensan. Las correcciones previstas afinan la
+medición de las dimensiones y agregan la validación externa que el procedimiento aún
+no incorpora, y su conjunto define el alcance de la próxima edición del índice.
+
+::: {.content-visible when-format="html"}
+
+```{python}
+#| label: cierre-validacion
+
+# Validacion final ------------------------------------------------------------
+
+# Repite el control de anclajes al cierre, de modo que cualquier lector del HTML
+# confirme que las cifras del documento salieron del indice construido
+control_final = verificar_anclajes(idx)
+
+print(f"[{'OK' if control_final['coincide'].all() else '!!'}] las cifras del documento "
+      f"reproducen el indice construido: {int(control_final['coincide'].sum())} de "
+      f"{len(control_final)} anclajes coinciden")
+
+print(f"[OK] recorrido del indice general: {indice.min():.2f} ({indice.idxmin()}) "
+      f"a {indice.max():.2f} ({indice.idxmax()})")
+```
+
+:::
