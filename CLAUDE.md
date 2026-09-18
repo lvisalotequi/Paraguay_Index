@@ -900,8 +900,9 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   Parte del panel de `03_integracion` (12 series, 8 indicadores) y no de
   `02_limpias`. Ventana 2015-Q1 a 2026-Q1, 45 trimestres sin faltantes.
 
-  **Estado: etapas 0 a 7 completas (31 decisiones registradas), etapas 8 a 13
-  pendientes.** El documento viejo sigue en el repo pero no debe usarse como
+  **Estado: etapas 0 a 10 completas (44 decisiones registradas), etapas 11 a 13
+  pendientes.** El índice ya existe como serie: 45 trimestres, entre 89,4 y 105,9, y
+  resistió el análisis de sensibilidad sobre 324 combinaciones metodológicas. El documento viejo sigue en el repo pero no debe usarse como
   referencia.
 
   > **Todo el contexto para retomar está en
