@@ -25,9 +25,51 @@ Fuentes y como se tratan (confirmado con datos reales el 2026-09-03):
       historicos) - sin fecha mas fina que el año, se repite en los 4
       trimestres como fa_gov.
     - exim_autorizaciones (CSV unico, ya filtrado a Paraguay): se filtra a
-      `Decision == "Approved"` (se excluyen autorizaciones declinadas) y se
-      suma `Approved/Declined Amount` por trimestre segun `Decision Date`.
-      Trimestral autentico.
+      `Decision == "Approved"` (se excluyen autorizaciones declinadas - hoy
+      es un filtro inerte, las 60 filas de Paraguay ya vienen todas
+      "Approved", pero se deja por si alguna vez aparece una declinada) y se
+      suman DOS columnas por trimestre segun `Decision Date`, mismo patron
+      que fa_gov obligado/desembolsado: `exim_autorizado` (`Approved/
+      Declined Amount`, el valor de cara de la autorizacion) y
+      `exim_desembolsado` (`Disbursed/Shipped Amount`, lo que realmente se
+      desembolso - para Guarantee - o se embarco - para Insurance - bajo esa
+      autorizacion). Trimestral autentico. Las 4 operaciones canceladas
+      (`Deal Cancelled == "Yes"`) ya vienen con monto $0 en el propio
+      archivo de EXIM, no requieren ajuste aparte.
+
+      **Piloto Insurance vs Guarantee (2026-09-21, a pedido del usuario -
+      "quisiera ver si tienen comportamientos distintos... para decidir si
+      conviene separarlos"): se investigo separarlos y se decidio NO
+      hacerlo, con evidencia.** Los dos `Program` que existen para Paraguay
+      (Insurance y Guarantee - no hay Loan ni Working Capital) se comportan
+      de forma casi opuesta: correlacion practicamente nula o levemente
+      negativa (Spearman sobre cambios trimestrales -0.15, igual criterio
+      que usa la etapa de construccion del indice para evaluar redundancia),
+      coocurren en el mismo trimestre solo 4.5% de las veces (22.7% solo
+      Insurance, 25% solo Guarantee, 47.7% ninguno), y hay un cambio de
+      regimen real: Insurance domino 2017-2020 (100%/100%/42%/79% del total
+      anual) y desde 2021 EXIM le da a Paraguay casi exclusivamente
+      Guarantees (60%-100% del total anual 2021-2025). Tambien difieren en
+      tamaño promedio de operacion (Insurance ~USD 2.46M, Guarantee ~USD
+      1.35M) y en cuanto de lo aprobado se desembolsa/embarca (Guarantee
+      94.3%, Insurance 70.5%). Toda esta evidencia apunta a que SON series
+      con comportamiento distinto, no redundantes entre si.
+
+      **Por que igual se decidio no separarlas**: al turnarse en vez de
+      superponerse, la serie COMBINADA tiene actividad en 23 de 44
+      trimestres (desde 2015), contra apenas 12 (Insurance sola) y 13
+      (Guarantee sola) si se separan - separar convertiria una variable ya
+      razonable en dos series de eventos raros, el mismo problema que ya
+      esta documentado y sin resolver para la dimension 2 (ver CLAUDE.md,
+      pendiente #6). La combinada ademas es MENOS volatil que cualquiera de
+      las dos por separado (coeficiente de variacion anual 0.91 vs 1.34 de
+      Insurance y 0.99 de Guarantee) - justamente por el efecto de que se
+      turnan. Se prioriza tener una serie utilizable para el indice sobre
+      preservar la distincion Insurance/Guarantee, aunque esa distincion sea
+      real. Si en el futuro se necesita esa distincion (ej. para leer la
+      composicion del compromiso de EXIM, no para el indice en si), estos
+      numeros de referencia ya estan calculados y no hace falta repetir el
+      piloto.
     - bid_proyectos / bancomundial_proyectos (JSON diario, ya filtrado a
       Paraguay - se usa el archivo mas reciente subido por ingestion): se
       suma el monto aprobado de cada proyecto por trimestre segun su fecha
@@ -131,13 +173,17 @@ def _extraer_dfc():
 
 
 def _extraer_exim():
-    """Devuelve {(anio,trim): usd} sumando `Approved/Declined Amount` de
+    """Devuelve (autorizado, desembolsado), cada una {(anio,trim): usd},
+    sumando `Approved/Declined Amount` y `Disbursed/Shipped Amount` de
     autorizaciones con `Decision == "Approved"`, por trimestre de
-    `Decision Date`."""
+    `Decision Date` - ver el docstring del modulo para el piloto que
+    decidio no separar por Program (Insurance/Guarantee)."""
     _, contenido = _archivo_mas_reciente_por_nombre("exim_autorizaciones")
     df = pd.read_csv(io.BytesIO(contenido))
     aprobadas = df[df["Decision"] == "Approved"]
-    return _sumar_por_trimestre(aprobadas["Decision Date"], aprobadas["Approved/Declined Amount"])
+    autorizado = _sumar_por_trimestre(aprobadas["Decision Date"], aprobadas["Approved/Declined Amount"])
+    desembolsado = _sumar_por_trimestre(aprobadas["Decision Date"], aprobadas["Disbursed/Shipped Amount"])
+    return autorizado, desembolsado
 
 
 def _extraer_bid():
@@ -177,10 +223,16 @@ def run():
     except Exception as exc:  # noqa: BLE001
         print(f"    [!] fa_gov_asistencia_oficial: {exc!r}")
 
+    try:
+        autorizado_exim, desembolsado_exim = _extraer_exim()
+        fuentes.append(("exim_autorizado", autorizado_exim))
+        fuentes.append(("exim_desembolsado", desembolsado_exim))
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] exim_autorizaciones: {exc!r}")
+
     for nombre_variable, extraer in (
         ("usaspending_obligaciones", _extraer_usaspending),
         ("dfc_comprometido", _extraer_dfc),
-        ("exim_autorizado", _extraer_exim),
         ("bid_proyectos_aprobados", _extraer_bid),
         ("bancomundial_proyectos_aprobados", _extraer_bancomundial),
     ):
