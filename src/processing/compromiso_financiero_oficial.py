@@ -20,10 +20,24 @@ Fuentes y como se tratan (confirmado con datos reales el 2026-09-03):
       diferencia de fa_gov, esta SI tiene fecha de transaccion real -
       trimestral autentico.
     - dfc_proyectos_activos (Excel unico, todos los paises, hoja
-      "Project Data"): se filtra a `Country == "Paraguay"` y se suma
-      `Committed` por `Fiscal Year`. Muy pocos proyectos en total (~4
-      historicos) - sin fecha mas fina que el año, se repite en los 4
-      trimestres como fa_gov.
+      "Project Data"): se filtra a `Country == "Paraguay"` y se suman DOS
+      variables por trimestre: `dfc_comprometido` (`Committed` por `Fiscal
+      Year`, repetido en los 4 trimestres como fa_gov - sin fecha mas fina
+      que el año) y `dfc_proyectos_vigentes` (stock acumulado de proyectos
+      vigentes, usando `Estimated Term (Years)` para dar de baja el
+      proyecto al vencer - ver `_acumular_vigencia_dfc()` para el detalle y
+      sus limitaciones). Muy pocos proyectos en total (~4 historicos) - es
+      "Active Project Data", una foto de lo vigente hoy, no un historico
+      completo (un proyecto viejo ya cerrado no aparece, ni para los
+      trimestres en que si estuvo activo - investigado el 2026-09-21 a
+      pedido del usuario, que sospechaba que la transicion OPIC→DFC de
+      2019 podia haber perdido datos de Paraguay anteriores a 2018: se
+      descarto esa hipotesis con evidencia - el archivo global SI conserva
+      511 proyectos de otros paises originados antes de 2018 y aun
+      vigentes, de las 3 agencias predecesoras (OPIC/Legacy USAID/DCA), asi
+      que la transicion en si no pierde datos; la ausencia de proyectos
+      viejos de Paraguay es mas probablemente por vencimiento natural de
+      prestamos previos, no un error de la fuente).
     - exim_autorizaciones (CSV unico, ya filtrado a Paraguay): se filtra a
       `Decision == "Approved"` (se excluyen autorizaciones declinadas - hoy
       es un filtro inerte, las 60 filas de Paraguay ya vienen todas
@@ -87,6 +101,7 @@ disco local.
 import io
 import json
 import zipfile
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -160,16 +175,68 @@ def _extraer_usaspending():
     return acumulado
 
 
+def _acumular_vigencia_dfc(fiscal_years, terminos):
+    """Devuelve {(anio,trim): cantidad de proyectos vigentes}. Cada proyecto
+    se considera vigente desde el trimestre 1 de su `Fiscal Year` hasta el
+    trimestre 4 del año (`Fiscal Year` + `Estimated Term (Years)`) - a
+    diferencia de state_gov_tias_vigentes (que acumula sin bajas porque no
+    hay dato de vencimiento), acá SI hay una duracion estimada por proyecto
+    y se usa para dar de baja el proyecto vencido, no solo para sumar.
+    Aproximado por partida doble: el trimestre exacto dentro del Fiscal Year
+    no se conoce (solo el año), y "Estimated Term" es una estimacion de DFC,
+    no una fecha de vencimiento contractual real."""
+    ventanas = []
+    for anio_inicio, term in zip(fiscal_years, terminos):
+        if pd.isna(anio_inicio):
+            continue
+        anio_inicio = int(anio_inicio)
+        term = int(term) if pd.notna(term) else 0
+        ventanas.append(((anio_inicio, 1), (anio_inicio + term, 4)))
+
+    if not ventanas:
+        return {}
+
+    anio, trim = min(v[0] for v in ventanas)
+    hoy = datetime.now(timezone.utc)
+    ultimo_trim = (hoy.year, (hoy.month - 1) // 3 + 1)
+
+    resultado = {}
+    while (anio, trim) <= ultimo_trim:
+        resultado[(anio, trim)] = sum(1 for inicio, fin in ventanas if inicio <= (anio, trim) <= fin)
+        trim += 1
+        if trim > 4:
+            trim = 1
+            anio += 1
+    return resultado
+
+
 def _extraer_dfc():
-    """Devuelve {(anio,trim): usd} sumando `Committed` de proyectos de
-    Paraguay por `Fiscal Year`, repitiendo el total en los 4 trimestres
-    (ver docstring - muy pocos proyectos, sin fecha mas fina que el año)."""
+    """Devuelve (comprometido, proyectos_vigentes).
+
+    `comprometido`: {(anio,trim): usd} sumando `Committed` de proyectos de
+    Paraguay por `Fiscal Year`, repitiendo el total en los 4 trimestres (muy
+    pocos proyectos, sin fecha mas fina que el año).
+
+    `proyectos_vigentes`: {(anio,trim): cantidad}, stock acumulado de
+    proyectos vigentes (ver `_acumular_vigencia_dfc`) - a pedido del usuario
+    (2026-09-21), que prefirio esto en vez de un conteo simple por trimestre
+    (con solo 4 proyectos en 8 años, un conteo de eventos nuevos por
+    trimestre queda casi todo en cero, mismo problema ya documentado para
+    USTR/TIAS antes del cambio a stock). Limite explicito heredado del
+    propio archivo de DFC (ver docstring del modulo, "Active Project
+    Data"): es una foto de lo activo hoy, no un historico completo - un
+    proyecto viejo que ya cerro no aparece nunca, ni siquiera para los
+    trimestres en que SI estuvo vigente."""
     _, contenido = _archivo_mas_reciente_por_nombre("dfc_proyectos_activos")
     df = pd.read_excel(io.BytesIO(contenido), sheet_name="Project Data", header=1)
-    py = df[df["Country"] == "Paraguay"]
-    por_anio = py.groupby("Fiscal Year")["Committed"].sum()
-    por_anio = por_anio[por_anio.index >= ANIO_MINIMO]
-    return _repetir_en_trimestres(por_anio.to_dict())
+    py = df[df["Country"] == "Paraguay"].copy()
+    py["Fiscal Year"] = pd.to_numeric(py["Fiscal Year"], errors="coerce")
+
+    por_anio = py[py["Fiscal Year"] >= ANIO_MINIMO].groupby("Fiscal Year")["Committed"].sum()
+    comprometido = _repetir_en_trimestres(por_anio.to_dict())
+
+    proyectos_vigentes = _acumular_vigencia_dfc(py["Fiscal Year"], py["Estimated Term (Years)"])
+    return comprometido, proyectos_vigentes
 
 
 def _extraer_exim():
@@ -218,33 +285,39 @@ def run():
 
     try:
         obligaciones_fa, desembolsos_fa = _extraer_fa_gov()
-        fuentes.append(("fa_gov_obligaciones", obligaciones_fa))
-        fuentes.append(("fa_gov_desembolsos", desembolsos_fa))
+        fuentes.append(("fa_gov_obligaciones", obligaciones_fa, "USD"))
+        fuentes.append(("fa_gov_desembolsos", desembolsos_fa, "USD"))
     except Exception as exc:  # noqa: BLE001
         print(f"    [!] fa_gov_asistencia_oficial: {exc!r}")
 
     try:
         autorizado_exim, desembolsado_exim = _extraer_exim()
-        fuentes.append(("exim_autorizado", autorizado_exim))
-        fuentes.append(("exim_desembolsado", desembolsado_exim))
+        fuentes.append(("exim_autorizado", autorizado_exim, "USD"))
+        fuentes.append(("exim_desembolsado", desembolsado_exim, "USD"))
     except Exception as exc:  # noqa: BLE001
         print(f"    [!] exim_autorizaciones: {exc!r}")
 
+    try:
+        comprometido_dfc, proyectos_vigentes_dfc = _extraer_dfc()
+        fuentes.append(("dfc_comprometido", comprometido_dfc, "USD"))
+        fuentes.append(("dfc_proyectos_vigentes", proyectos_vigentes_dfc, "cantidad"))
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] dfc_proyectos_activos: {exc!r}")
+
     for nombre_variable, extraer in (
         ("usaspending_obligaciones", _extraer_usaspending),
-        ("dfc_comprometido", _extraer_dfc),
         ("bid_proyectos_aprobados", _extraer_bid),
         ("bancomundial_proyectos_aprobados", _extraer_bancomundial),
     ):
         try:
-            fuentes.append((nombre_variable, extraer()))
+            fuentes.append((nombre_variable, extraer(), "USD"))
         except Exception as exc:  # noqa: BLE001
             print(f"    [!] {nombre_variable}: {exc!r}")
 
-    # todas estas fuentes ya vienen nativamente en USD (no miles/millones),
-    # a diferencia de la dimension 3 - no hace falta reescalar
-    for nombre_variable, valores in fuentes:
-        subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, "USD")
+    # todas las fuentes monetarias ya vienen nativamente en USD (no miles/
+    # millones), a diferencia de la dimension 3 - no hace falta reescalar
+    for nombre_variable, valores, unidad in fuentes:
+        subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, unidad)
 
 
 if __name__ == "__main__":
