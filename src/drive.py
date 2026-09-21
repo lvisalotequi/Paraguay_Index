@@ -67,6 +67,7 @@ FOLDER_IDS = {
     ("1_Compromiso_financiero_oficial", "exim_autorizaciones"): "1ufc_mOeVDduU0ZboK0Y2_mI5nYIq9Wh6",
     ("1_Compromiso_financiero_oficial", "dfc_proyectos_activos"): "1jz2hOG81GGOETPX9JPF0G0L0oTTyt7TA",
     ("1_Compromiso_financiero_oficial", "bid_proyectos"): "1Hc0uqRJA3_4BD7EbnaVDA9TbEy7v-Lc_",
+    ("1_Compromiso_financiero_oficial", "cuota_capital_bid"): "1bFpLwDb8KdmKPeJwYSaMgawrg0Z0AWS_",
     ("1_Compromiso_financiero_oficial", "bancomundial_proyectos"): "1u1eYPMSIHxnySRvK-PEoETIp1rrdJ-bA",
     ("2_Actividad_gubernamental_y_diplomatica", "congreso_menciones_paraguay"): "1V0F9qzym6h83FUYQuy_L7vdJYQ_VeYXS",
     ("2_Actividad_gubernamental_y_diplomatica", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",

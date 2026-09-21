@@ -19,11 +19,13 @@ análisis.
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**14 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**15 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
-  DFC, EXIM, BID (proyectos), Banco Mundial (proyectos).
+  DFC, EXIM, BID (proyectos), Banco Mundial (proyectos), cuota de capital
+  de EE.UU. en el BID (para ponderar los aportes multilaterales
+  atribuibles a EE.UU.).
 - **Actividad gubernamental y diplomática**: proyectos de ley y resoluciones
   del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov);
   reuniones del Consejo de Comercio e Inversión (TIFA/TIC) Paraguay-EE.UU.
@@ -167,6 +169,7 @@ Paraguay_Index/
 │   │   ├── exim_autorizaciones.py              # CSV de EXIM, filtrado a Paraguay antes de subir           (dimensión 1)
 │   │   ├── bid_proyectos.py                    # API CKAN del BID, filtrada a Paraguay server-side         (dimensión 1)
 │   │   ├── bancomundial_proyectos.py           # API del Banco Mundial, filtrada a Paraguay server-side    (dimensión 1)
+│   │   ├── cuota_capital_bid.py                # Cuota de capital de EE.UU. en el BID (valor fijo)         (dimensión 1)
 │   │   ├── congreso_menciones_paraguay.py      # GovInfo + Congress.gov: proyectos que mencionan Paraguay  (dimensión 2)
 │   │   ├── ustr_consejo_comercio_inversion.py  # Scraping histórico + en vivo de ustr.gov                  (dimensión 2)
 │   │   ├── state_gov_tias_paraguay.py          # Histórico + búsqueda en vivo (DuckDuckGo) de TIAS         (dimensión 2)
@@ -231,6 +234,7 @@ Paraguay_Index/
 - **`exim_autorizaciones.py`** — CSV de EXIM, filtrado a Paraguay antes de subir (`_obtener_url_csv()`) → `run()`.
 - **`bid_proyectos.py`** — API CKAN de datos abiertos del BID, filtrada a Paraguay (`_pedir_proyectos()`) → `run()`.
 - **`bancomundial_proyectos.py`** — API de proyectos del Banco Mundial, filtrada a Paraguay (`_pedir_proyectos()`) → `run()`.
+- **`cuota_capital_bid.py`** — cuota de capital/poder de voto de EE.UU. en el BID (30,006%), valor fijo verificado a mano (la página oficial usa un widget de Power BI, no scrapeable) → `run()`.
 - **`congreso_menciones_paraguay.py`** — combina GovInfo (búsqueda de texto completo) + Congress.gov (datos estructurados): `_buscar_proyectos_govinfo()`, `_proyectos_unicos(hits)`, `_enriquecer_proyecto(...)`, `_menciones_paraguay(package_id)` (cuenta todas las menciones, no solo la primera), `_fila_desde_proyecto(...)` → `run()`.
 - **`ustr_consejo_comercio_inversion.py`** — histórico fijo + revisión en vivo de ustr.gov: `_historico_verificado()`, `_verificar_evento_historico(evento)`, `_revisar_sitio_vivo()`, `_buscar_en_mes(anio, mes)`, `_fecha_del_comunicado(url)`, `_titulo_relevante(titulo)` → `run()`.
 - **`state_gov_tias_paraguay.py`** — histórico fijo + búsqueda en vivo (DuckDuckGo) de TIAS en state.gov: `_historico_verificado()`, `_buscar_candidatos_vivo(urls_conocidas)`, `_parsear_pagina_tias(url)`, `_anio_desde_tias(tias)`, `_normalizar_fecha(texto)` → `run()`.

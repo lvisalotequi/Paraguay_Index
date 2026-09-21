@@ -388,7 +388,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     el usuario la generó en `apps.bea.gov/API/signup`).
   - Los cuatro probados con datos reales: suben bien y una segunda corrida
     saltea lo que ya está (idempotente).
-- Seis scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
+- Siete scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
   (2015-actualidad; ver política de filtrado a Paraguay/EE.UU. en sección 4):
   - `fa_gov_asistencia_oficial.py` — API del dashboard de ForeignAssistance.gov,
     ya filtrada a Paraguay por la URL (`.../PRY/...`); un JSON por año+medida
@@ -411,7 +411,32 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     para "Desembolsos multilaterales atribuibles a EE.UU." — el cálculo
     ponderado por cuota de capital de EE.UU. es trabajo de una etapa
     posterior, acá solo se extraen los proyectos crudos de cada banco.
-  - Los seis probados con datos reales: suben bien (confirmado con datos
+  - `cuota_capital_bid.py` (2026-09-21, primer paso del pendiente #4 —
+    ponderar BID/Banco Mundial por cuota de capital de EE.UU.): sube el %
+    de capital/poder de voto de EE.UU. en el BID, **30,006%**, verificado a
+    mano contra la página oficial del BID ("Capital Stock And Voting
+    Power"). **Excepción real, no solo pragmática, a "todo se
+    scrapea":** esa página no tiene la tabla en HTML — la renderiza un
+    widget de Power BI embebido (confirmado inspeccionando la página con
+    el navegador: carga `idb_powerbi-embed.js` y un iframe de
+    `app.powerbi.com` con token de sesión), así que no hay HTML ni JSON
+    estático que `requests`/`curl_cffi` puedan leer — automatizarlo en
+    serio exigiría un navegador headless, una dependencia que el proyecto
+    no usa en ningún otro lado. Se usa un **valor fijo verificado a mano**,
+    justificado porque además se confirmó que el BID no tiene un aumento
+    de capital desde "IDB-9" (2010) — el mismo 30,006% aplica a todo
+    2015-2026. **Verificación (a pedido del usuario, dado que no se puede
+    chequear en vivo):** es manual — hay que revisar la página del BID de
+    vez en cuando y, si cambia (ej. un futuro aumento de capital),
+    actualizar `PORCENTAJE_EEUU`/`FECHA_VERIFICACION` en el código; cada
+    corrida solo sube un archivo nuevo si `FECHA_VERIFICACION` cambió, así
+    el historial en Drive documenta cuándo se revisó por última vez, no
+    un timestamp automático sin sentido. El Banco Mundial (IBRD) **sí**
+    tuvo un cambio real de cuota en 2018 (Selective Capital Increase) — su
+    ingestion (`cuota_capital_bancomundial.py`) queda pendiente, necesita
+    una serie por año, no una constante (ver pendiente #4 actualizado en
+    sección 7).
+  - Los siete probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
 - Tres fuentes reales de la dimensión `2_Actividad_gubernamental_y_diplomatica`
   (2026-09-02):
@@ -939,8 +964,48 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    hoy suma el monto TOTAL aprobado de cada proyecto multilateral, no la
    porción atribuible a EE.UU. según su participación accionaria en cada
    banco. Es una cifra de "actividad multilateral" general, no una cifra
-   de compromiso de EE.UU. propiamente dicha — el cálculo de ponderación
-   queda pendiente.
+   de compromiso de EE.UU. propiamente dicha.
+
+   **Investigado 2026-09-21, en curso — no es un cálculo simple de "% ×
+   monto total".** Hallazgos, con evidencia real:
+   - El método en sí (monto atribuible = % de cuota de capital × monto al
+     país) es el mismo que usa la OCDE/DAC para su estadística de "imputed
+     multilateral ODA" — no es un atajo del proyecto, es una convención
+     estadística reconocida.
+   - **BID**: la cuota de EE.UU. (30,006%) ya está lista
+     (`cuota_capital_bid.py`, ver sección 6) — constante, sin aumento de
+     capital desde 2010. Pero **no se le puede aplicar a todo
+     `bid_proyectos_aprobados` por igual**: de los 940 registros de
+     Paraguay, el 69% son "Technical Cooperation" (cooperación técnica),
+     financiada mayormente por fondos fiduciarios específicos (ej.
+     confirmado un caso real financiado por el Fund for Special
+     Operations) que NO salen del Capital Ordinario — aplicarles 30% sería
+     inventar un número. El dataset actual (`bid_proyectos.py`) no tiene
+     ningún campo que identifique el fondo fiduciario exacto de cada TC —
+     esa info vive en la página de cada proyecto individual, no es
+     práctico revisarla operación por operación (~544 registros sin
+     instrumento identificado). **Decisión (2026-09-21, a pedido del
+     usuario): ponderar por 30% solo `opertyp_nm` "Loan Operation" y
+     "Container"** (préstamos y líneas de crédito de Capital Ordinario,
+     ~US$11.150M de los ~US$10.600M+ del total histórico) — dejar afuera
+     del cálculo ponderado la Cooperación Técnica, el Multilateral
+     Investment Fund/IDB Lab, IDB Invest (entidad legal separada, cuota
+     propia sin investigar), Garantías y Equity, documentados como "no
+     atribuibles de forma confiable con los datos disponibles hoy". Falta
+     implementar esta lógica en `compromiso_financiero_oficial.py`.
+   - **Banco Mundial**: los proyectos de Paraguay son 100% IBRD, cero IDA
+     (`idacommamt` da 0 en las 133 filas) — no hay que mezclar dos cuotas
+     distintas, es más simple que el BID en ese sentido. Pero a diferencia
+     del BID, la cuota de EE.UU. **sí cambió realmente** en 2018 (Selective
+     Capital Increase — confirmado: EE.UU. y otros grandes accionistas
+     bajaron su % mientras China subió de 4,68% a 6,01%). El usuario pidió
+     una **serie histórica año por año**, no una constante. Fuente
+     encontrada: tablas fechadas "Subscriptions and Voting Power of Member
+     Countries" en `thedocs.worldbank.org` (confirmado real, se bajó una
+     versión ~2021 con EE.UU. en 15,98% de voto — ya distinto al ~16,05%
+     de 2025) — pero las URLs de cada tabla anual no siguen un patrón
+     predecible, hay que encontrar la de cada año a mano. Falta terminar
+     esta búsqueda y construir `cuota_capital_bancomundial.py`.
 
 5. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
    Hay dos implementaciones de la dimensión 1 que suben a las mismas
