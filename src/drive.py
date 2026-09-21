@@ -88,6 +88,7 @@ VARIABLE_FOLDER_IDS = {
     ("1_Compromiso_financiero_oficial_limpias", "fa_gov_desembolsos"): "1XZh4cR8mNXNuCb70J-NWqUA038_ivlTn",
     ("1_Compromiso_financiero_oficial_limpias", "usaspending_obligaciones"): "11cN6Qhmdmv6OLkSzFFHa3LZwCFi504rL",
     ("1_Compromiso_financiero_oficial_limpias", "dfc_comprometido"): "1gi1QRZcTF71hD54Q2j-L35WLlwnDnrgO",
+    ("1_Compromiso_financiero_oficial_limpias", "dfc_proyectos_vigentes"): "1-sm2XKaeufg9_ZnwEwYMJ0BLsk1XDejL",
     ("1_Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
     ("1_Compromiso_financiero_oficial_limpias", "exim_desembolsado"): "17zBu-hQgFEz7lKRdwi4o0gsGjNcqpPQi",
     ("1_Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
