@@ -132,9 +132,9 @@ significa que ya se revisó y se puede usar tal cual.
 | 2. Actividad gubernamental y diplomática | state_gov_tias_vigentes (stock acumulado) | En revisión |
 | 3. Compromiso económico privado | **exportaciones** | **Validado** |
 | 3. Compromiso económico privado | **importaciones** | **Validado** |
-| 3. Compromiso económico privado | inversion_directa_bcp | En revisión |
+| 3. Compromiso económico privado | **inversion_directa_bcp** | **Validado** (datos completos hasta 2024; 2025 pendiente de que el BCP publique el desglose por país, esperado octubre 2026 — ver `src/processing/compromiso_economico_privado.py`) |
 | 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
-| 3. Compromiso económico privado | bea_inversion_directa | En revisión |
+| 3. Compromiso económico privado | **bea_inversion_directa** | **Validado** |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles** (BOTH = PY+US) | **Validado** |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_tone_promedio** (BOTH = PY+US) | **Validado** |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles_py** | **Validado** |

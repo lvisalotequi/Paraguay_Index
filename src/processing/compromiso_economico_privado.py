@@ -149,7 +149,33 @@ def _extraer_comercio_exterior():
 
 
 def _extraer_inversion_directa_bcp():
-    """Devuelve {(anio,trim): usd} de flujos de IED de EE.UU. hacia Paraguay (BCP)."""
+    """Devuelve {(anio,trim): usd} de flujos de IED de EE.UU. hacia Paraguay (BCP).
+
+    Validado 2026-09-21, con un hueco real y a propósito: el archivo crudo
+    mas reciente del BCP ("Anexo_estadistico...1995_-_2024.xlsx", publicado
+    2025-10-23) llega solo hasta 2024 - el BCP publica el desglose por pais
+    (Cuadro 4) en octubre del anio siguiente, una vez validada la
+    informacion de empresas no financieras (confirmado en su nota tecnica
+    del 2025-07-25). El dato de 2025 deberia estar disponible en octubre de
+    2026 - esta funcion ya esta lista para recogerlo solo: toma siempre el
+    archivo mas reciente de Drive (`_archivo_mas_reciente()`), asi que basta
+    con volver a correr `src/ingestion/bcp_inversion_directa.py` (para subir
+    el anexo nuevo) y despues este modulo, sin tocar codigo.
+
+    Se evaluo (y se descarto) proyectar 2025 en vez de dejarlo vacio. Se
+    probaron 3 metodos - tendencia de crecimiento interanual, % historico de
+    EE.UU. sobre el total de Paraguay (incluido un 12.5% fijo), y el delta
+    interanual de la posicion de EE.UU. que reporta BEA (`bea_inversion_directa`,
+    que si tiene 2025) - contra los valores YA CONOCIDOS de 2023 y 2024
+    (backtest, no solo teoria). Los tres fallaron por completo: error entre
+    400% y 4200%, porque el flujo de EE.UU. es chico y con signo variable
+    (dominado por eventos puntuales de una sola empresa - ej. repatriacion
+    de capital - no por una tendencia), mientras que los tres metodos
+    asumen sin excepcion un resultado positivo. Con ese resultado, se
+    prefiere dejar 2025 como falta real (sin imputar) hasta que el BCP
+    publique el dato, en vez de reemplazar un hueco visible por un numero
+    con un error esperado de varios cientos por ciento.
+    """
     _, contenido = _archivo_mas_reciente(DIMENSION_CRUDA, "bcp_inversion_directa")
     xls = pd.ExcelFile(io.BytesIO(contenido))
     df = xls.parse("Cuadro 4", header=None)
