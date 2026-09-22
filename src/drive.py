@@ -68,6 +68,7 @@ FOLDER_IDS = {
     ("1_Compromiso_financiero_oficial", "dfc_proyectos_activos"): "1jz2hOG81GGOETPX9JPF0G0L0oTTyt7TA",
     ("1_Compromiso_financiero_oficial", "bid_proyectos"): "1Hc0uqRJA3_4BD7EbnaVDA9TbEy7v-Lc_",
     ("1_Compromiso_financiero_oficial", "cuota_capital_bid"): "1bFpLwDb8KdmKPeJwYSaMgawrg0Z0AWS_",
+    ("1_Compromiso_financiero_oficial", "cuota_capital_bancomundial"): "1M6Ga3oLsQ_W5Cc4oIxmFQ9MacpgUswu9",
     ("1_Compromiso_financiero_oficial", "bancomundial_proyectos"): "1u1eYPMSIHxnySRvK-PEoETIp1rrdJ-bA",
     ("2_Actividad_gubernamental_y_diplomatica", "congreso_menciones_paraguay"): "1V0F9qzym6h83FUYQuy_L7vdJYQ_VeYXS",
     ("2_Actividad_gubernamental_y_diplomatica", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",
@@ -93,7 +94,9 @@ VARIABLE_FOLDER_IDS = {
     ("1_Compromiso_financiero_oficial_limpias", "exim_autorizado"): "1AI277d3J1R-Qxj52S67MZW3qqypwSdfe",
     ("1_Compromiso_financiero_oficial_limpias", "exim_desembolsado"): "17zBu-hQgFEz7lKRdwi4o0gsGjNcqpPQi",
     ("1_Compromiso_financiero_oficial_limpias", "bid_proyectos_aprobados"): "1yrQJ5qp0Ha5_emlQ9XKIzMpH5rqF4MLD",
+    ("1_Compromiso_financiero_oficial_limpias", "bid_proyectos_atribuible_eeuu"): "17lhoYvOmcxm93IUB8cV22zG18wcaImjC",
     ("1_Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_aprobados"): "1vpfBqS9csMIuJn17G_GcaPOQxrKpvkxQ",
+    ("1_Compromiso_financiero_oficial_limpias", "bancomundial_proyectos_atribuible_eeuu"): "1VlWrPGGWxUWFcZunE-B07zBXAWUMerdi",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_mencion_paraguay"): "1TDkovCTe7_HfErPbFzkQzl2z2hq66EbY",  # retirada 2026-09-10, ver src/processing/actividad_gubernamental_y_diplomatica.py
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_proyectos_relevantes_paraguay"): "1hMlEqdFxJFrjWh9dKwgcP1BuNKe3JA3B",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_menciones_totales_paraguay"): "1Z_nmQz66XJGVRYrBVzJGZucUb3IHxaGr",

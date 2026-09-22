@@ -253,24 +253,124 @@ def _extraer_exim():
     return autorizado, desembolsado
 
 
+OPERTYP_CAPITAL_ORDINARIO_BID = ("Loan Operation", "Container")
+
+
+def _cuota_capital_bid_eeuu():
+    """Devuelve el % de capital/poder de voto de EE.UU. en el BID, leido
+    del archivo mas reciente que subio `cuota_capital_bid.py` (no
+    hardcodeado acá, para que una futura actualizacion del valor en
+    ingestion se propague sola sin tocar este archivo)."""
+    _, contenido = _archivo_mas_reciente_por_nombre("cuota_capital_bid")
+    df = pd.read_csv(io.BytesIO(contenido))
+    fila = df[df["pais"] == "Estados Unidos"].iloc[0]
+    return float(fila["porcentaje_capital_voto"])
+
+
 def _extraer_bid():
-    """Devuelve {(anio,trim): usd} sumando el monto originalmente aprobado
-    de cada proyecto (`orig_apprvd_useq_amnt`) por trimestre de `apprvl_dt`.
-    NO esta ponderado por la cuota de capital de EE.UU. (ver docstring)."""
+    """Devuelve (aprobado, atribuible_eeuu).
+
+    `aprobado`: {(anio,trim): usd} sumando el monto originalmente aprobado
+    de CADA proyecto (`orig_apprvd_useq_amnt`) por trimestre de `apprvl_dt`,
+    sin distinguir tipo de operacion - cifra de "actividad multilateral"
+    general, no atribuible a EE.UU. por si sola.
+
+    `atribuible_eeuu`: {(anio,trim): usd} - la porcion de `aprobado`
+    ponderada por la cuota de capital de EE.UU. en el BID
+    (`_cuota_capital_bid_eeuu()`, hoy 30.006%), aplicada SOLO sobre los
+    registros financiados con Capital Ordinario
+    (`OPERTYP_CAPITAL_ORDINARIO_BID` = "Loan Operation" y "Container").
+
+    **Por que solo esos dos tipos (investigado 2026-09-21, ver tambien
+    DICCIONARIO_VARIABLES.md):** 69% de los 940 registros de Paraguay son
+    "Technical Cooperation", financiada en su mayoria por fondos
+    fiduciarios especificos (confirmado un caso real financiado por el
+    Fund for Special Operations) que NO salen de Capital Ordinario -
+    aplicarles el mismo 30% que a un prestamo hubiera sido inventar un
+    numero, porque un fondo fiduciario de otro pais tiene 0% de EE.UU., no
+    30%. El dataset de `bid_proyectos.py` no identifica el fondo exacto de
+    cada Cooperacion Tecnica (esa info vive en la pagina de cada proyecto
+    individual, no es practico revisarla una por una). Quedan
+    deliberadamente afuera del calculo ponderado: Technical Cooperation,
+    Multilateral Investment Fund/IDB Lab, IDB Invest (entidad legal
+    separada, cuota propia sin investigar todavia), Garantias y Equity -
+    `atribuible_eeuu` es por lo tanto un piso (mínimo atribuible), no el
+    total real, que sería más alto si se lograran clasificar esas otras
+    categorías."""
     _, contenido = _archivo_mas_reciente_por_nombre("bid_proyectos")
     registros = json.loads(contenido)["records"]
     df = pd.DataFrame(registros)
-    return _sumar_por_trimestre(df["apprvl_dt"], df["orig_apprvd_useq_amnt"])
+
+    aprobado = _sumar_por_trimestre(df["apprvl_dt"], df["orig_apprvd_useq_amnt"])
+
+    capital_ordinario = df[df["opertyp_nm"].isin(OPERTYP_CAPITAL_ORDINARIO_BID)]
+    aprobado_capital_ordinario = _sumar_por_trimestre(
+        capital_ordinario["apprvl_dt"], capital_ordinario["orig_apprvd_useq_amnt"]
+    )
+    pct_eeuu = _cuota_capital_bid_eeuu()
+    atribuible_eeuu = {clave: valor * pct_eeuu / 100 for clave, valor in aprobado_capital_ordinario.items()}
+
+    return aprobado, atribuible_eeuu
+
+
+def _cuota_capital_bancomundial_por_anio():
+    """Devuelve {anio_fiscal: porcentaje_voto} leido del archivo mas
+    reciente que subio `cuota_capital_bancomundial.py` (historico fijo,
+    editado a mano - ver ese modulo para como agregar un año nuevo)."""
+    _, contenido = _archivo_mas_reciente_por_nombre("cuota_capital_bancomundial")
+    df = pd.read_csv(io.BytesIO(contenido))
+    df = df[df["pais"] == "Estados Unidos"]
+    return dict(zip(df["anio_fiscal"], df["porcentaje_voto"]))
 
 
 def _extraer_bancomundial():
-    """Devuelve {(anio,trim): usd} sumando el monto total del proyecto
-    (`totalamt`) por trimestre de `boardapprovaldate`. NO esta ponderado
-    por la cuota de capital de EE.UU. (ver docstring)."""
+    """Devuelve (aprobado, atribuible_eeuu).
+
+    `aprobado`: {(anio,trim): usd} sumando el monto total del proyecto
+    (`totalamt`) por trimestre de `boardapprovaldate` - sin ponderar,
+    cifra de "actividad multilateral" general.
+
+    `atribuible_eeuu`: {(anio,trim): usd} - `aprobado` ponderado por la
+    cuota de poder de voto de EE.UU. en el IBRD **del año de aprobacion de
+    cada proyecto** (no una constante, a diferencia del BID - la cuota de
+    EE.UU. en IBRD si cambio de verdad entre 2015 y 2026, ver
+    `cuota_capital_bancomundial.py`). Aplica a todo `bancomundial_proyectos_aprobados`
+    sin restriccion de tipo (a diferencia del BID): los proyectos de
+    Paraguay son 100% IBRD, cero IDA (`idacommamt` da 0 en las 133 filas,
+    confirmado 2026-09-21), asi que no hay categorias con otra estructura
+    de capital que excluir.
+
+    Para los años sin dato exacto en el historico de
+    `cuota_capital_bancomundial.py` (2026-09-22: 2015, 2017, 2020, 2021,
+    2026), se usa el % del año confirmado mas cercano (arrastre hacia
+    adelante, o hacia atras si el proyecto es anterior al primer año con
+    dato) - mismo criterio de "repetir el ultimo valor conocido" que ya
+    usa el proyecto para otras fuentes anuales (fa_gov, bea_inversion_directa)."""
     _, contenido = _archivo_mas_reciente_por_nombre("bancomundial_proyectos")
     proyectos = json.loads(contenido)["projects"].values()
     df = pd.DataFrame(proyectos)
-    return _sumar_por_trimestre(df["boardapprovaldate"], df["totalamt"])
+    df["boardapprovaldate"] = pd.to_datetime(df["boardapprovaldate"], errors="coerce")
+    df["totalamt"] = pd.to_numeric(df["totalamt"], errors="coerce")
+
+    aprobado = _sumar_por_trimestre(df["boardapprovaldate"], df["totalamt"])
+
+    pct_por_anio = _cuota_capital_bancomundial_por_anio()
+    anios_disponibles = sorted(pct_por_anio)
+
+    def _pct_para_anio(anio):
+        anteriores = [a for a in anios_disponibles if a <= anio]
+        return pct_por_anio[max(anteriores)] if anteriores else pct_por_anio[min(anios_disponibles)]
+
+    validas = df.dropna(subset=["boardapprovaldate", "totalamt"])
+    validas = validas[validas["boardapprovaldate"].dt.year >= ANIO_MINIMO]
+
+    atribuible_eeuu = {}
+    for fecha, monto in zip(validas["boardapprovaldate"], validas["totalamt"]):
+        clave = (fecha.year, (fecha.month - 1) // 3 + 1)
+        pct = _pct_para_anio(fecha.year)
+        atribuible_eeuu[clave] = atribuible_eeuu.get(clave, 0.0) + float(monto) * pct / 100
+
+    return aprobado, atribuible_eeuu
 
 
 def _archivo_mas_reciente_por_nombre(fuente):
@@ -304,10 +404,22 @@ def run():
     except Exception as exc:  # noqa: BLE001
         print(f"    [!] dfc_proyectos_activos: {exc!r}")
 
+    try:
+        aprobado_bid, atribuible_eeuu_bid = _extraer_bid()
+        fuentes.append(("bid_proyectos_aprobados", aprobado_bid, "USD"))
+        fuentes.append(("bid_proyectos_atribuible_eeuu", atribuible_eeuu_bid, "USD"))
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] bid_proyectos: {exc!r}")
+
+    try:
+        aprobado_bm, atribuible_eeuu_bm = _extraer_bancomundial()
+        fuentes.append(("bancomundial_proyectos_aprobados", aprobado_bm, "USD"))
+        fuentes.append(("bancomundial_proyectos_atribuible_eeuu", atribuible_eeuu_bm, "USD"))
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] bancomundial_proyectos: {exc!r}")
+
     for nombre_variable, extraer in (
         ("usaspending_obligaciones", _extraer_usaspending),
-        ("bid_proyectos_aprobados", _extraer_bid),
-        ("bancomundial_proyectos_aprobados", _extraer_bancomundial),
     ):
         try:
             fuentes.append((nombre_variable, extraer(), "USD"))

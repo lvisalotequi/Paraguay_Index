@@ -388,7 +388,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     el usuario la generó en `apps.bea.gov/API/signup`).
   - Los cuatro probados con datos reales: suben bien y una segunda corrida
     saltea lo que ya está (idempotente).
-- Siete scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
+- Ocho scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
   (2015-actualidad; ver política de filtrado a Paraguay/EE.UU. en sección 4):
   - `fa_gov_asistencia_oficial.py` — API del dashboard de ForeignAssistance.gov,
     ya filtrada a Paraguay por la URL (`.../PRY/...`); un JSON por año+medida
@@ -436,7 +436,27 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     ingestion (`cuota_capital_bancomundial.py`) queda pendiente, necesita
     una serie por año, no una constante (ver pendiente #4 actualizado en
     sección 7).
-  - Los siete probados con datos reales: suben bien (confirmado con datos
+  - `cuota_capital_bancomundial.py` (2026-09-22, resuelve el resto del
+    pendiente #4): histórico fijo, editado a mano, con el % de poder de
+    voto de EE.UU. en el IBRD **por año fiscal** (2016, 2018, 2019, 2022,
+    2023, 2024, 2025 — verificado 2026-09-22, cada valor sacado a mano del
+    "Information Statement" oficial de ese año en `thedocs.worldbank.org`,
+    buscando la oración "The United States is IBRD's largest shareholder,
+    with XX.XX% of total voting power."). **A diferencia del BID, acá SÍ
+    hace falta una serie por año**: el % se mueve de verdad (16,63% en
+    FY2016 → 15,49% en FY2024, sin patrón simple, confirmado con evidencia
+    real). **A diferencia de TIAS/USTR, no hay verificación en vivo en
+    cada corrida** (a pedido del usuario, "no complicar tanto el scrapeo")
+    — cada edición del "Information Statement" vive en una URL con un
+    hash impredecible, sin página índice, así que agregar un año nuevo
+    requiere buscarlo a mano (el propio docstring del módulo trae la
+    receta paso a paso: buscar "IBRD Information Statement FY{año}" en
+    Google, abrir el PDF, copiar el % de esa misma oración). Años sin dato
+    todavía: FY2015, FY2017, FY2020, FY2021, FY2026 — `compromiso_financiero_oficial.py`
+    arrastra el último valor confirmado hacia adelante (o hacia atrás para
+    2015, anterior al primer año con dato) para esos huecos, mismo
+    criterio que ya usa el proyecto para otras fuentes anuales.
+  - Los ocho probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
 - Tres fuentes reales de la dimensión `2_Actividad_gubernamental_y_diplomatica`
   (2026-09-02):
@@ -683,20 +703,24 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   mano. Corridos con `run_processing.py` (auto-descubrimiento, ver sección
   2) — separado del schedule automático de GitHub Actions, se corre a
   mano. Probados con datos reales el 2026-09-03:
-  - `compromiso_financiero_oficial.py` (dimensión 1, 7 variables, todo
-    **monetario en USD sin escalar**): obligaciones/desembolsos de
-    ForeignAssistance.gov (anual, repetido en los 4 trimestres — la fuente
-    no tiene fecha más fina que el año fiscal), obligaciones de
-    USAspending (trimestral real, sumando `federal_action_obligation` de
-    las transacciones Contracts+Assistance por `action_date`), comprometido
-    de DFC (anual repetido — solo ~4 proyectos históricos de Paraguay),
-    autorizado de EXIM (trimestral real por `Decision Date`, solo
-    `Decision == "Approved"`), y aprobado de BID/Banco Mundial (trimestral
-    real por fecha de aprobación del proyecto — **monto total del
-    proyecto, todavía NO ponderado por la cuota de capital de EE.UU.**, ver
-    pendiente #4). Rango 2015-Q1 a 2027-Q1 (el Banco Mundial ya tiene un
-    proyecto con aprobación futura anunciada) — varía por variable, cada
-    una con su propio CSV.
+  - `compromiso_financiero_oficial.py` (dimensión 1, **12 variables** desde
+    el 2026-09-22 — antes 7, ver historial en el módulo y en
+    `DICCIONARIO_VARIABLES.md` —, todo **monetario en USD sin escalar**):
+    obligaciones/desembolsos de ForeignAssistance.gov (anual, repetido en
+    los 4 trimestres — la fuente no tiene fecha más fina que el año
+    fiscal), obligaciones de USAspending (trimestral real, sumando
+    `federal_action_obligation` de las transacciones Contracts+Assistance
+    por `action_date`), comprometido de DFC + `dfc_proyectos_vigentes`
+    (stock de vigencia, ver arriba), autorizado de EXIM + `exim_desembolsado`
+    (trimestral real por `Decision Date`, solo `Decision == "Approved"`), y
+    de BID/Banco Mundial: `bid_proyectos_aprobados`/
+    `bancomundial_proyectos_aprobados` (trimestral real por fecha de
+    aprobación del proyecto, monto total sin ponderar) más
+    **`bid_proyectos_atribuible_eeuu`** y **`bancomundial_proyectos_atribuible_eeuu`**
+    (nuevas, 2026-09-22 — pendiente #4 resuelto por completo, ver la nota
+    de "Resuelto" al final de la sección 7 para el detalle). Rango 2015-Q1
+    a 2027-Q1 (el Banco Mundial ya tiene un proyecto con aprobación futura
+    anunciada) — varía por variable, cada una con su propio CSV.
   - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, **4 variables**
     desde el 2026-09-10 — antes 3, ver más abajo —, todo **cantidad**):
     hitos del Consejo de Comercio e Inversión de USTR (por `fecha`, muy
@@ -959,53 +983,10 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    relacionadas (Dirección de Atracción de Inversiones, Inteligencia,
    Herramientas para Inversionistas) y tampoco hay nada. Falta un link más
    específico o confirmar si esta variable existe como dataset en otro lado.
-4. **Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
-   EE.UU.** — `compromiso_financiero_oficial.py` (processing, dimensión 1)
-   hoy suma el monto TOTAL aprobado de cada proyecto multilateral, no la
-   porción atribuible a EE.UU. según su participación accionaria en cada
-   banco. Es una cifra de "actividad multilateral" general, no una cifra
-   de compromiso de EE.UU. propiamente dicha.
-
-   **Investigado 2026-09-21, en curso — no es un cálculo simple de "% ×
-   monto total".** Hallazgos, con evidencia real:
-   - El método en sí (monto atribuible = % de cuota de capital × monto al
-     país) es el mismo que usa la OCDE/DAC para su estadística de "imputed
-     multilateral ODA" — no es un atajo del proyecto, es una convención
-     estadística reconocida.
-   - **BID**: la cuota de EE.UU. (30,006%) ya está lista
-     (`cuota_capital_bid.py`, ver sección 6) — constante, sin aumento de
-     capital desde 2010. Pero **no se le puede aplicar a todo
-     `bid_proyectos_aprobados` por igual**: de los 940 registros de
-     Paraguay, el 69% son "Technical Cooperation" (cooperación técnica),
-     financiada mayormente por fondos fiduciarios específicos (ej.
-     confirmado un caso real financiado por el Fund for Special
-     Operations) que NO salen del Capital Ordinario — aplicarles 30% sería
-     inventar un número. El dataset actual (`bid_proyectos.py`) no tiene
-     ningún campo que identifique el fondo fiduciario exacto de cada TC —
-     esa info vive en la página de cada proyecto individual, no es
-     práctico revisarla operación por operación (~544 registros sin
-     instrumento identificado). **Decisión (2026-09-21, a pedido del
-     usuario): ponderar por 30% solo `opertyp_nm` "Loan Operation" y
-     "Container"** (préstamos y líneas de crédito de Capital Ordinario,
-     ~US$11.150M de los ~US$10.600M+ del total histórico) — dejar afuera
-     del cálculo ponderado la Cooperación Técnica, el Multilateral
-     Investment Fund/IDB Lab, IDB Invest (entidad legal separada, cuota
-     propia sin investigar), Garantías y Equity, documentados como "no
-     atribuibles de forma confiable con los datos disponibles hoy". Falta
-     implementar esta lógica en `compromiso_financiero_oficial.py`.
-   - **Banco Mundial**: los proyectos de Paraguay son 100% IBRD, cero IDA
-     (`idacommamt` da 0 en las 133 filas) — no hay que mezclar dos cuotas
-     distintas, es más simple que el BID en ese sentido. Pero a diferencia
-     del BID, la cuota de EE.UU. **sí cambió realmente** en 2018 (Selective
-     Capital Increase — confirmado: EE.UU. y otros grandes accionistas
-     bajaron su % mientras China subió de 4,68% a 6,01%). El usuario pidió
-     una **serie histórica año por año**, no una constante. Fuente
-     encontrada: tablas fechadas "Subscriptions and Voting Power of Member
-     Countries" en `thedocs.worldbank.org` (confirmado real, se bajó una
-     versión ~2021 con EE.UU. en 15,98% de voto — ya distinto al ~16,05%
-     de 2025) — pero las URLs de cada tabla anual no siguen un patrón
-     predecible, hay que encontrar la de cada año a mano. Falta terminar
-     esta búsqueda y construir `cuota_capital_bancomundial.py`.
+4. ~~**Desembolsos de BID/Banco Mundial ponderados por cuota de capital de
+   EE.UU.**~~ **Resuelto 2026-09-22** — ver la nota al final de esta
+   sección para el detalle completo (qué se implementó, qué queda fuera del
+   cálculo y por qué, y dónde vive el histórico editable de cada banco).
 
 5. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
    Hay dos implementaciones de la dimensión 1 que suben a las mismas
@@ -1047,3 +1028,51 @@ Sheet de dos pestañas para el dashboard. Se persisten las 10 columnas
 originales, las 10 normalizadas y los 5 índices, todo probado de punta a
 punta con datos reales. Ojo: la carpeta se llama `04_final`, no `03_final`
 como suponía el pendiente. Ver secciones 2, 3 y 6.)*
+
+*(Resuelto 2026-09-22: era el pendiente #4, "Desembolsos de BID/Banco Mundial
+ponderados por cuota de capital de EE.UU.". El método (monto atribuible = %
+de cuota de capital × monto al país) es el mismo que usa la OCDE/DAC para su
+estadística de "imputed multilateral ODA" — no es un atajo del proyecto, es
+una convención estadística reconocida.*
+
+*BID: `_extraer_bid()` en `compromiso_financiero_oficial.py` devuelve
+`bid_proyectos_aprobados` (sin cambios) y la nueva **`bid_proyectos_atribuible_eeuu`**
+— 30,006% aplicado SOLO a `opertyp_nm` "Loan Operation" y "Container"
+(préstamos y líneas de crédito de Capital Ordinario, ~98% del monto 2015-2026).
+Motivo de la restricción: 69% de los 940 registros de Paraguay son "Technical
+Cooperation", financiada mayormente por fondos fiduciarios específicos
+(confirmado un caso real financiado por el Fund for Special Operations) que NO
+salen de Capital Ordinario — aplicarles 30% habría sido inventar un número; el
+dataset no identifica el fondo fiduciario exacto de cada TC como para
+tratarlas caso por caso. Quedan deliberadamente fuera: Cooperación Técnica,
+Multilateral Investment Fund/IDB Lab, IDB Invest (entidad legal separada,
+cuota propia sin investigar), Garantías y Equity — por eso
+`bid_proyectos_atribuible_eeuu` es un **piso** (mínimo atribuible), no el
+total real. Impacto de esa exclusión (investigado 2026-09-22): en dólares
+es marginal (1,9% del total 2015-2026, correlación 0,9999 con la serie sin
+excluir), pero sí reduce la cobertura temporal (26 de 47 trimestres con
+actividad, contra 47 de 47 sin excluir) — ver `DICCIONARIO_VARIABLES.md`
+para el detalle completo. El % se lee en vivo del archivo más reciente de
+`cuota_capital_bid` (no hardcodeado en processing). Verificado con datos
+reales: 26 trimestres (2015-Q2 a 2026-Q1), 0 diffs contra un recálculo
+independiente, US$1.761.829.295 acumulados.*
+
+*Banco Mundial: los proyectos de Paraguay son 100% IBRD, cero IDA
+(`idacommamt` da 0 en las 133 filas) — no hay que mezclar dos cuotas
+distintas. A diferencia del BID, la cuota de EE.UU. en IBRD SÍ cambia año a
+año de verdad (confirmado con 7 años reales: 16,63% en FY2016, 15,98% en
+FY2018, 15,68% en FY2019, 15,79% en FY2022, 15,75% en FY2023, 15,49% en
+FY2024, 15,79% en FY2025 — sin patrón simple). Se creó
+`cuota_capital_bancomundial.py`: histórico fijo editado a mano (no scrapeado
+en vivo, a pedido del usuario — "no complicar tanto el scrapeo"; cada
+"Information Statement" anual del IBRD vive en una URL con hash impredecible
+en `thedocs.worldbank.org`, sin página índice, así que agregar un año nuevo
+requiere buscarlo a mano — el propio docstring del módulo trae la receta paso
+a paso). Años sin dato todavía: FY2015, FY2017, FY2020, FY2021, FY2026 —
+`_extraer_bancomundial()` arrastra el último valor confirmado hacia adelante
+(o hacia atrás para 2015) para esos huecos. Se aplica el % a TODO
+`bancomundial_proyectos_aprobados` sin restricción de tipo (a diferencia del
+BID, acá no hay categorías con otra estructura de capital que excluir).
+Nueva variable: **`bancomundial_proyectos_atribuible_eeuu`**. Verificado con
+datos reales: 12 trimestres (2015-Q1 a 2027-Q1), 0 diffs contra un
+recálculo independiente, US$278.313.250 acumulados.)*
