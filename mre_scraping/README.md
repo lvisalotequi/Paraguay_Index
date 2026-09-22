@@ -72,31 +72,30 @@ mismo, solo cambia dónde se ejecuta. Ver la sección "Windows: rutas largas"
 de `CLAUDE.md` para las dos soluciones (ruta corta, o habilitar
 `LongPathsEnabled`).
 
-## ⏳ Corrida en curso (2026-09-22) — estado para retomar si se corta la sesión
+## ✅ Corrida completa 2015-2025 (2026-09-22) — Validado
 
-Hay una corrida completa 2015-2025 corriendo **en background, fuera del
-repo**, en `C:\mre_test\` (ruta corta, ver la sección de arriba sobre por
-qué no corre desde esta carpeta). Arrancó 2026-09-22 ~08:57. Datos para
-retomar el seguimiento:
+La corrida completa terminó el 2026-09-22 ~14:11 (arrancó ~08:57, ~5h14m en
+total): **9.304/9.304 URLs procesadas**, exit code 0. Clasificación,
+integración y verificación ya hechas, mismo día:
 
-- **Log**: `C:\mre_test\corrida_completa.log`
-- **Salida**: `C:\mre_test\salida_2015_2025\` (checkpoint.ndjson se puede
-  inspeccionar en cualquier momento, aunque el proceso siga corriendo)
-- **Progreso a las 10:20**: 2.700 de 9.304 URLs procesadas (~29%), ritmo
-  estable de ~100 cada 2-3 min → estimado **~3-4 horas más** desde ese
-  momento. Errores puntuales (algunos 404 de Wayback, algún corte de DNS
-  momentáneo) son esperados y no frenan la corrida - ver "Limitaciones
-  conocidas" más abajo.
-- **Cómo confirmar si ya terminó**: `tail` del log busca la línea
-  `INFO Listo: C:\mre_test\salida_2015_2025` (o revisar si el proceso
-  python3 con ese PID ya no existe).
-
-**Pasos que faltan una vez termine** (nada de esto se hizo todavía):
-1. Correr `clasificar_bilateral.py --entrada C:\mre_test\salida_2015_2025\noticias_todas.csv --salida <carpeta>` desde `C:\mre_test\` (con el código YA parcheado ahí, mismo bypass y fix que en este repo).
-2. Copiar `noticias_clasificadas.csv` y `C:\mre_test\salida_2015_2025\manifiesto.json` a `mre_scraping/output/` (dentro del repo).
-3. Correr `src/ingestion/mre_menciones_eeuu.py` (sube a Drive).
-4. Correr `src/processing/actividad_gubernamental_y_diplomatica.py` (genera `mre_noticias_bilaterales`/`mre_menciones_totales_eeuu`).
-5. Verificar con recálculo independiente (mismo patrón que toda otra variable de esta sesión) y recién ahí marcar como Validado en `README.md`/`DICCIONARIO_VARIABLES.md`.
+1. `clasificar_bilateral.py` corrido desde `C:\mre_test\` sobre
+   `salida_2015_2025\noticias_todas.csv` → `noticias_clasificadas.csv`
+   (9.304 filas; `estado`: 7.494 "ok", 1.450 sin fecha extraíble, 330 fuera
+   del período 2015-2025, 29 error de descarga, 1 texto insuficiente).
+2. `noticias_clasificadas.csv` y `manifiesto.json` copiados a
+   `mre_scraping/output/` (dentro del repo).
+3. `src/ingestion/mre_menciones_eeuu.py` corrido — subió los 2 archivos a
+   Drive.
+4. `src/processing/actividad_gubernamental_y_diplomatica.py` corrido —
+   generó `mre_noticias_bilaterales` (28 trimestres, 2017-Q2 a 2025-Q4,
+   suma 91 noticias) y `mre_menciones_totales_eeuu` (42 trimestres, 2015-Q3
+   a 2025-Q4, suma 1.401 menciones).
+5. **Verificado con recálculo independiente antes de subir** (mismo patrón
+   que toda otra variable del proyecto): sobre las 7.494 filas con
+   `estado == "ok"` y fecha válida ≥2015, el recálculo dio exactamente 91
+   noticias con `es_bilateral == 1` y 1.401 en la suma de
+   `numero_menciones_eeuu` — 0 diffs contra lo que subió el pipeline. Ya
+   está marcada como **Validado** en `README.md`/`DICCIONARIO_VARIABLES.md`.
 
 ## Cómo correrlo
 

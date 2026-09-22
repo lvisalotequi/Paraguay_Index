@@ -74,6 +74,7 @@ FOLDER_IDS = {
     ("2_Actividad_gubernamental_y_diplomatica", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",
     ("2_Actividad_gubernamental_y_diplomatica", "state_gov_tias_paraguay"): "1koUH_-Wsij9fM8VVcMQ0Oh1d1cMRAgxD",
     ("2_Actividad_gubernamental_y_diplomatica", "state_gov_tif_vigentes"): "1a9X8szPA8y0vxw8h0xSzU2S6MDyl9Vly",
+    ("2_Actividad_gubernamental_y_diplomatica", "mre_menciones_eeuu"): "15BrMfpMQNddPKDBMOcaa751mXst4UJWf",
     ("3_Compromiso_economico_privado", "bcp_comercio_exterior"): "1HFeiS2Q2Ezi7tZPWZcQvbdo0dbeWCO4u",
     ("3_Compromiso_economico_privado", "bcp_inversion_directa"): "145-zhp9c3hjQtz4vg5EManKsmpE_8r6D",
     ("3_Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",

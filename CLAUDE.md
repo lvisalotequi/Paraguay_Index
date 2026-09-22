@@ -589,7 +589,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     `ustr_consejo_comercio_inversion.py` (correlación en diferencias ~0,07,
     ver DICCIONARIO_VARIABLES.md) — pero la decisión de si `state_gov_tias_paraguay.py`
     queda obsoleta y se elimina se toma más adelante, no ahora.
-  - `mre_menciones_eeuu.py` (2026-09-22, **integración en curso**): sube a
+  - `mre_menciones_eeuu.py` (2026-09-22, **Validado**): sube a
     Drive lo que `mre_scraping/` ya produjo localmente — noticias del MRE de
     Paraguay clasificadas por mención y bilateralidad con EE.UU. Misma
     excepción documentada que `gdelt_proxy_b.py`/`gdelt_extraction/`: el
@@ -614,10 +614,13 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
        (un timeout contra el CDX de Wayback tumbó el proceso). Corregido y
        verificado con un caso forzado.
 
-    Corrida completa 2015-2025 lanzada el 2026-09-22 (dura horas) — estado
-    de la verificación con datos reales pendiente hasta que termine (ver
-    `mre_scraping/README.md` y `DICCIONARIO_VARIABLES.md` para el resultado
-    una vez completada).
+    Corrida completa 2015-2025 terminada el 2026-09-22 (~5h14m, 9.304 URLs,
+    exit 0). De esas, 7.494 quedaron `estado == "ok"` (el resto: sin fecha
+    extraíble, fuera del período, error de descarga o texto insuficiente —
+    descartadas antes de contar). Verificado con recálculo independiente
+    antes de subir: 91 noticias bilaterales, 1.401 menciones totales de
+    EE.UU., 0 diffs (ver `mre_scraping/README.md` y
+    `DICCIONARIO_VARIABLES.md` para el detalle completo).
 - Primera fuente real de la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
@@ -861,20 +864,20 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     acumulado) es directamente relevante para el
     pendiente #6 ("reemplazar conteos de eventos raros por alguna medida de
     intensidad continua") — sigue sin estar incorporada al índice, pero el
-    insumo para intentarlo ya existe. **MRE, agregado 2026-09-22 —
-    integración en curso, ver `mre_menciones_eeuu.py` en la sección de
-    ingestion más arriba para el detalle de origen y los dos cambios
-    hechos**: mismo patrón de dos variables que Congreso —
-    `mre_noticias_bilaterales` (cantidad por trimestre con `es_bilateral
-    == 1`, clasificación ya calculada por reglas explícitas en
-    `mre_scraping/clasificar_bilateral.py` — a diferencia de Congreso, el
-    umbral de relevancia ya viene aplicado en el dato crudo, no se
-    reaplica en processing) y `mre_menciones_totales_eeuu` (suma de
-    `numero_menciones_eeuu` de todas las noticias válidas del trimestre,
-    sin umbral). Es la contraparte del lado paraguayo de USTR/Congreso.
-    Estado: código escrito y listo, pendiente de verificar con datos
-    reales hasta que termine la corrida completa de `mre_scraping/`
-    (lanzada 2026-09-22, dura horas).
+    insumo para intentarlo ya existe. **MRE, agregado y Validado 2026-09-22
+    — ver `mre_menciones_eeuu.py` en la sección de ingestion más arriba
+    para el detalle de origen y los dos cambios hechos**: mismo patrón de
+    dos variables que Congreso — `mre_noticias_bilaterales` (cantidad por
+    trimestre con `es_bilateral == 1`, clasificación ya calculada por
+    reglas explícitas en `mre_scraping/clasificar_bilateral.py` — a
+    diferencia de Congreso, el umbral de relevancia ya viene aplicado en el
+    dato crudo, no se reaplica en processing) y `mre_menciones_totales_eeuu`
+    (suma de `numero_menciones_eeuu` de todas las noticias válidas del
+    trimestre, sin umbral). Es la contraparte del lado paraguayo de
+    USTR/Congreso. Verificado con datos reales (corrida completa
+    2015-2025, 9.304 URLs, terminada 2026-09-22): 91 noticias bilaterales
+    (28 trimestres, 2017-Q2 a 2025-Q4) y 1.401 menciones totales (42
+    trimestres, 2015-Q3 a 2025-Q4), 0 diffs contra recálculo independiente.
   - `compromiso_economico_privado.py` (dimensión 3, 5 variables, todo
     **monetario en USD sin escalar**): exportaciones/importaciones con
     EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
