@@ -345,6 +345,7 @@ ddgs               # búsqueda en DuckDuckGo (state_gov_tias_paraguay.py — sta
 openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
 pandas              # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/)
 pypdf                # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) — no es escaneado, texto real extraible
+pytrends              # scraping no oficial de Google Trends (google_trends_paraguay.py) — sin API oficial
 requests             # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 ```
 
@@ -621,8 +622,8 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     antes de subir: 91 noticias bilaterales, 1.401 menciones totales de
     EE.UU., 0 diffs (ver `mre_scraping/README.md` y
     `DICCIONARIO_VARIABLES.md` para el detalle completo).
-- Primera fuente real de la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
-  (2026-09-01):
+- Dos fuentes reales de la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
+  (2026-09-01, segunda agregada 2026-09-22):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
     `gdelt_extraction/` (ver más abajo), cobertura mediática bilateral PY-US
     según la regla "proxy B" sobre GDELT 2.1 GKG (coocurrencia geográfica
@@ -696,6 +697,35 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     instalado y autenticado aparte (no viene con el repo ni con Python), y
     en Windows puede requerir habilitar rutas largas si el checkout queda en
     una ruta profunda (ver esa misma guía).
+  - `google_trends_paraguay.py` (2026-09-22, **Validado**): interés de
+    búsqueda en Google (`pytrends`, librería no oficial — no hay API
+    oficial de Google Trends) para 3 términos fijos (`Paraguay trade`,
+    `Paraguay tariffs`, `Paraguay embassy`), `geo=US`. Complementa a GDELT:
+    GDELT mide cobertura mediática (oferta), esto mide demanda (cuánto
+    busca el público de EE.UU.) — no verificado todavía si son redundantes
+    entre sí. **Dos decisiones tomadas con datos reales antes de construir
+    el módulo, ver `DICCIONARIO_VARIABLES.md` para el detalle completo**:
+    el filtro geográfico (`US` vs `global`, los números cambian de forma
+    real) y la lista de términos (se probaron 9 candidatos; se descartó
+    "Paraguay visa" pese a tener la mejor cobertura por ser conceptualmente
+    ambiguo, se mantuvo "Paraguay tariffs" pese a ser disperso porque sus
+    picos coinciden con hechos reales). **La lista de términos es FIJA**:
+    Google Trends normaliza los términos de una misma consulta relativos
+    entre sí (0-100 según cuál tuvo más búsquedas en todo el rango), así
+    que agregar/sacar un término reescalaría retroactivamente la serie ya
+    publicada de los demás. Para rangos largos (2015-2025) la fuente
+    devuelve datos **mensuales**, no semanales. **Riesgo operativo
+    documentado, no resuelto**: `pytrends` scrapea el mismo endpoint que la
+    web de Trends, sin API oficial — Google puede bloquear/limitar el
+    scraping, más todavía desde IPs compartidas como GitHub Actions (mismo
+    tipo de riesgo que ya tiene `state_gov_tias_paraguay.py` con
+    DuckDuckGo); el módulo reintenta 3 veces y, si falla igual, no sube
+    nada y avisa por consola sin romper el pipeline. También se encontró un
+    bug real de compatibilidad: la versión instalada de `pytrends` rompe
+    con `urllib3>=2.0` si se le pasan `retries`/`backoff_factor` a
+    `TrendReq` — el módulo no usa esos parámetros y reintenta a mano.
+    Verificado con datos reales: 141 meses (2015-01 a 2026-09), subido a
+    Drive y confirmado en `src/processing/`.
 - **Dos fuentes de la pseudo-dimensión `insumos_indice` (2026-09-22)** —
   deflactores/escalas transversales que usa (o va a usar) la etapa de
   construcción del índice, no atados a ninguna de las 4 dimensiones reales
@@ -897,9 +927,10 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     silencio. Se corrigió normalizando "l" → "I" antes de mapear. Confirmado
     con datos reales: `exportaciones` pasó de 44 a 46 trimestres, ahora
     2015-Q1 a 2026-Q2 igual que `importaciones`.
-  - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, **6
-    variables** desde el 2026-09-09 — antes 2, ver más abajo —, **cantidad +
-    índice**) a partir de `gdelt_proxy_b` (CSV con prefijo `monthly_` —
+  - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, **9
+    variables** desde el 2026-09-22 — 6 de GDELT + 3 nuevas de Google
+    Trends, ver más abajo —, **cantidad + índice**) a partir de
+    `gdelt_proxy_b` (CSV con prefijo `monthly_` —
     cualquier archivo `historical_processed_*.csv` queda afuera a propósito
     porque duplicaría esos mismos meses, ver docstring del módulo): por
     cada trimestre, cantidad de artículos proxy y tono promedio ponderado
@@ -925,6 +956,19 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     sobre todos los artículos de ambos países juntos, así que si un mes
     tiene muchos más artículos de un país que del otro, el tono de BOTH
     queda mucho más cerca del tono de ese país que de un promedio 50/50.
+    **`google_trends_paraguay` (agregada 2026-09-22, 3 variables nuevas —
+    ver `src/ingestion/google_trends_paraguay.py` y
+    `DICCIONARIO_VARIABLES.md` para el detalle completo de las decisiones):**
+    `google_trends_paraguay_trade`/`_tariffs`/`_embassy` — índice mensual
+    (0-100, relativo) de interés de búsqueda en Google, `geo=US`,
+    promediado (no sumado, a diferencia de GDELT) dentro de cada
+    trimestre; se descarta el mes marcado `isPartial` (en curso). Lista de
+    3 términos **fija** — Google Trends normaliza los términos de una
+    misma consulta relativos entre sí, así que agregar/sacar un término
+    reescalaría retroactivamente los ya publicados. No verificado todavía
+    si es redundante con GDELT (a diferencia de la comparación TIF/USTR,
+    que sí se hizo antes de construir esa variable) — pendiente una vez
+    esta fuente esté validada con más corridas.
 
 - **`src/02_cleaning/` — etapa 02 en formato script (2026-09-08/09).** Una
   reescritura de `src/processing/compromiso_financiero_oficial.py` en el

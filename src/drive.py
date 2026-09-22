@@ -80,6 +80,7 @@ FOLDER_IDS = {
     ("3_Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",
     ("3_Compromiso_economico_privado", "bea_inversion_directa"): "1ZMTwLGpNcROTrUmEVDXkX1g7yYumkwon",
     ("4_Visibilidad_mediatica_y_relevancia_publica", "gdelt_proxy_b"): "108u-nqX6hKckFlfv807gZ4p-oHWA-_Ob",
+    ("4_Visibilidad_mediatica_y_relevancia_publica", "google_trends_paraguay"): "1eOfMwq5aiaQjvqqroZWEfmc-Cgu4JaEc",
     # insumos_indice: pseudo-dimension para deflactores/escalas transversales
     # usados por la etapa de construccion del indice, no atados a ninguna de
     # las 4 dimensiones reales (ver docstrings de bls_ipc_eeuu.py/
@@ -122,6 +123,9 @@ VARIABLE_FOLDER_IDS = {
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_py"): "1ksnf--1J-0bGXQOb7SxH9r_-QKkWBA7v",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles_us"): "1PQj2dAUno-c-UbIXf-vMqL5d5Ix1KXZJ",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio_us"): "1WWoWzRRl0gISTUbZPlhhHTMLmtGsYFbY",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "google_trends_paraguay_trade"): "1781O79_x123oA0E5wJeW9M9Yi0inyTMU",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "google_trends_paraguay_tariffs"): "112KEpV76X8AYpXlOS1d-v71aEeo2JRdS",
+    ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "google_trends_paraguay_embassy"): "1jDDciHGjw-Y6laFd4KISroZ2-FC5gm6I",
 }
 
 # Igual que los dos diccionarios de arriba, pero para las carpetas de salida de

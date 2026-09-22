@@ -57,6 +57,19 @@ Para cada uno de los 3, dos variables (mismo calculo, ver `_extraer_gdelt()`):
 Rango: ANIO_MINIMO en adelante. Cada variable se sube por separado, con la
 fecha de la corrida en el nombre (idempotente por dia) - no escribe nada a
 disco local.
+
+**Segunda fuente: google_trends_paraguay (agregada 2026-09-22, ver
+src/ingestion/google_trends_paraguay.py para el detalle completo de las
+decisiones - filtro geografico, lista fija de terminos, riesgos).** Sube un
+Excel con el indice mensual (0-100, relativo) de 3 terminos fijos:
+`Paraguay trade`, `Paraguay tariffs`, `Paraguay embassy`. A diferencia de
+GDELT, esto NO es un conteo (no tiene sentido "sumar" un indice relativo) -
+el trimestre se arma con el PROMEDIO simple de los meses del trimestre
+(tipo "indice", mismo tratamiento que `gdelt_tone_promedio`, no
+`gdelt_proxy_articles`). La fila con `isPartial == True` (el mes en curso,
+todavia acumulando busquedas) se descarta antes de promediar - mismo
+criterio que ya aplica el proyecto a periodos incompletos en otras fuentes
+(ej. el año fiscal en curso de fa_gov, tratado en la etapa de indice).
 """
 import io
 
@@ -68,8 +81,18 @@ from src.processing._common import subir_variable
 DIMENSION_CRUDA = "4_Visibilidad_mediatica_y_relevancia_publica"
 DIMENSION_LIMPIA = "4_Visibilidad_mediatica_y_relevancia_publica_limpias"
 FUENTE = "gdelt_proxy_b"
+FUENTE_TRENDS = "google_trends_paraguay"
 
 ANIO_MINIMO = 2015
+
+# Nombre de columna en el Excel crudo -> nombre de variable limpia. Lista
+# FIJA (ver docstring de google_trends_paraguay.py) - no agregar/sacar
+# terminos aca sin revisar esa justificacion primero.
+TERMINOS_TRENDS = {
+    "Paraguay trade": "google_trends_paraguay_trade",
+    "Paraguay tariffs": "google_trends_paraguay_tariffs",
+    "Paraguay embassy": "google_trends_paraguay_embassy",
+}
 
 
 SUFIJO_VARIABLE = {"BOTH": "", "PY": "_py", "US": "_us"}
@@ -107,18 +130,51 @@ def _extraer_gdelt():
     return resultado
 
 
+def _extraer_google_trends():
+    """Devuelve {nombre_variable: {(anio,trim): promedio}} para cada uno de
+    los 3 terminos fijos - promedio simple de los meses del trimestre
+    (indice relativo, no cantidad - ver docstring del modulo), descartando
+    el mes marcado isPartial (todavia acumulando busquedas)."""
+    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, FUENTE_TRENDS)]
+    archivos = listar_archivos(carpeta_id)
+    archivo = sorted(archivos, key=lambda a: a["name"])[-1]
+    df = pd.read_excel(io.BytesIO(descargar_archivo(archivo["id"])))
+
+    df = df[~df["isPartial"]].copy()
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df = df[df["fecha"].dt.year >= ANIO_MINIMO]
+    df["trimestre_clave"] = list(zip(df["fecha"].dt.year, (df["fecha"].dt.month - 1) // 3 + 1))
+
+    resultado = {}
+    for columna_cruda, nombre_variable in TERMINOS_TRENDS.items():
+        promedios = {}
+        for clave, grupo in df.groupby("trimestre_clave"):
+            promedios[clave] = grupo[columna_cruda].mean()
+        resultado[nombre_variable] = promedios
+
+    return resultado
+
+
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
     try:
         resultado = _extraer_gdelt()
     except Exception as exc:  # noqa: BLE001
         print(f"    [!] gdelt_proxy_b: {exc!r}")
-        return
+        resultado = None
 
-    for pais, sufijo in SUFIJO_VARIABLE.items():
-        articulos, tone_ponderado = resultado[pais]
-        subir_variable(DIMENSION_LIMPIA, f"gdelt_proxy_articles{sufijo}", articulos, "cantidad")
-        subir_variable(DIMENSION_LIMPIA, f"gdelt_tone_promedio{sufijo}", tone_ponderado, "indice")
+    if resultado is not None:
+        for pais, sufijo in SUFIJO_VARIABLE.items():
+            articulos, tone_ponderado = resultado[pais]
+            subir_variable(DIMENSION_LIMPIA, f"gdelt_proxy_articles{sufijo}", articulos, "cantidad")
+            subir_variable(DIMENSION_LIMPIA, f"gdelt_tone_promedio{sufijo}", tone_ponderado, "indice")
+
+    try:
+        trends = _extraer_google_trends()
+        for nombre_variable, valores in trends.items():
+            subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, "indice")
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] google_trends_paraguay: {exc!r}")
 
 
 if __name__ == "__main__":
