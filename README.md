@@ -15,11 +15,11 @@ análisis.
 | # | Dimensión | Estado |
 | --- | --- | --- |
 | 1 | Compromiso financiero oficial | ✅ 6 fuentes activas |
-| 2 | Actividad gubernamental y diplomática | 🟡 3 fuentes activas |
+| 2 | Actividad gubernamental y diplomática | 🟡 4 fuentes activas |
 | 3 | Compromiso económico privado | ✅ 4 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 1 fuente activa |
 
-**16 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**20 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
@@ -30,11 +30,19 @@ GitHub Actions:
   del Congreso de EE.UU. que mencionan a Paraguay (GovInfo.gov + Congress.gov);
   reuniones del Consejo de Comercio e Inversión (TIFA/TIC) Paraguay-EE.UU.
   (USTR); tratados y acuerdos internacionales (TIAS) entre Paraguay y EE.UU.
-  (State.gov).
+  (State.gov, en revisión — candidata a ser reemplazada por el listado más
+  completo de abajo); TODOS los tratados y acuerdos bilaterales que siguen
+  vigentes según "Treaties in Force" (TIF, la publicación oficial anual del
+  Departamento de Estado); noticias del Ministerio de Relaciones Exteriores
+  de Paraguay clasificadas por bilateralidad con EE.UU. (`mre_scraping/`,
+  corrida a mano localmente igual que GDELT).
 - **Compromiso económico privado**: Comercio Exterior (BCP), Inversión
   Directa (BCP + BEA), Remesas Familiares (BCP).
 - **Visibilidad mediática**: cobertura bilateral vía GDELT (regla "proxy B"),
   corrida a mano localmente y centralizada en Drive.
+- **Insumos transversales para el índice** (no pertenecen a ninguna de las 4
+  dimensiones): IPC de EE.UU. (BLS, para deflactar) y población de Paraguay
+  (INE, para expresar variables por habitante).
 
 ## Cómo funciona
 
@@ -60,7 +68,7 @@ ingestion ya subió, aisla la cifra de EE.UU. (o de Paraguay/EE.UU. por
 separado, en el caso de GDELT) de cada fuente, normaliza a trimestres, y
 sube **un CSV por variable** (no un CSV combinado por dimensión) a
 `02_limpias/{dimensión}_limpias/{variable}/` — ya cubre las 4 dimensiones,
-27 variables en total. Todos los CSV comparten el mismo
+29 variables en total (2 en integración, ver tabla abajo). Todos los CSV comparten el mismo
 esquema (`trimestre, anio, trimestre_num, valor, unidad`), y las variables
 de un mismo tipo (monetario/cantidad/índice) quedan en una unidad
 consistente entre sí (ej. todo lo monetario en USD sin escalar, nunca
@@ -114,7 +122,7 @@ sale cada dato sin tener que leer el código.
 
 ## Variables en `02_limpias`
 
-Las 27 variables ya consolidadas por `src/processing/`, con su estado de
+Las 29 variables ya consolidadas por `src/processing/`, con su estado de
 revisión. "En revisión" significa que la metodología de cálculo (fuente,
 fórmula, unidad) todavía no está validada como definitiva; "Validado"
 significa que ya se revisó y se puede usar tal cual.
@@ -134,8 +142,11 @@ significa que ya se revisó y se puede usar tal cual.
 | 1. Compromiso financiero oficial | **bancomundial_proyectos_atribuible_eeuu** (ponderado por cuota anual) | **Validado** |
 | 2. Actividad gubernamental y diplomática | congreso_proyectos_relevantes_paraguay | En revisión |
 | 2. Actividad gubernamental y diplomática | congreso_menciones_totales_paraguay | En revisión |
-| 2. Actividad gubernamental y diplomática | ustr_hitos_consejo_comercio_inversion | En revisión |
-| 2. Actividad gubernamental y diplomática | state_gov_tias_vigentes (stock acumulado) | En revisión |
+| 2. Actividad gubernamental y diplomática | **ustr_hitos_consejo_comercio_inversion** | **Validado** |
+| 2. Actividad gubernamental y diplomática | state_gov_tias_vigentes (stock acumulado) | En revisión (candidata a eliminarse — ver state_gov_tif_vigentes) |
+| 2. Actividad gubernamental y diplomática | **state_gov_tif_vigentes** (stock acumulado, todo tipo de acuerdo vigente) | **Validado** |
+| 2. Actividad gubernamental y diplomática | mre_noticias_bilaterales | En revisión (integración en curso, 2026-09-22) |
+| 2. Actividad gubernamental y diplomática | mre_menciones_totales_eeuu | En revisión (integración en curso, 2026-09-22) |
 | 3. Compromiso económico privado | **exportaciones** | **Validado** |
 | 3. Compromiso económico privado | **importaciones** | **Validado** |
 | 3. Compromiso económico privado | **inversion_directa_bcp** | **Validado** (datos completos hasta 2024; 2025 pendiente de que el BCP publique el desglose por país, esperado octubre 2026 — ver `src/processing/compromiso_economico_privado.py`) |
@@ -175,13 +186,15 @@ Paraguay_Index/
 │   │   ├── cuota_capital_bancomundial.py       # Cuota de EE.UU. en IBRD, historico por año fiscal          (dimensión 1)
 │   │   ├── congreso_menciones_paraguay.py      # GovInfo + Congress.gov: proyectos que mencionan Paraguay  (dimensión 2)
 │   │   ├── ustr_consejo_comercio_inversion.py  # Scraping histórico + en vivo de ustr.gov                  (dimensión 2)
-│   │   ├── state_gov_tias_paraguay.py          # Histórico + búsqueda en vivo (DuckDuckGo) de TIAS         (dimensión 2)
+│   │   ├── state_gov_tias_paraguay.py          # Histórico + búsqueda en vivo (DuckDuckGo) de TIAS, en revisión (dimensión 2)
+│   │   ├── state_gov_tif_vigentes.py           # Parsea el PDF anual "Treaties in Force" del DOS           (dimensión 2)
+│   │   ├── mre_menciones_eeuu.py               # Sube lo ya producido por mre_scraping/                    (dimensión 2)
 │   │   └── gdelt_proxy_b.py                    # Sube los CSV ya extraídos por gdelt_extraction/           (dimensión 4)
 │   │
 │   └── processing/                             # Un script por dimensión: limpia y sube un CSV por variable a 02_limpias/
 │       ├── _common.py                                     # Convención compartida de salida (subir_variable, reescalar)
 │       ├── compromiso_financiero_oficial.py               # 12 variables                   (dimensión 1)
-│       ├── actividad_gubernamental_y_diplomatica.py       # 4 variables                    (dimensión 2)
+│       ├── actividad_gubernamental_y_diplomatica.py       # 7 variables                    (dimensión 2)
 │       ├── compromiso_economico_privado.py                # 5 variables                    (dimensión 3)
 │       └── visibilidad_mediatica_y_relevancia_publica.py  # 6 variables                    (dimensión 4)
 │
@@ -198,6 +211,16 @@ Paraguay_Index/
 │   ├── workflow_config.json
 │   ├── requirements.txt                 # Dependencias propias (Google Cloud SDK se instala aparte)
 │   └── README.md                        # Cómo correrlo en otra computadora
+│
+├── mre_scraping/                        # Scraper de noticias del MRE (dimensión 2) - corre aparte y a mano
+│   ├── scraper_mre.py                   # Recolección: archivo actual (curl_cffi) + Wayback Machine
+│   ├── clasificar_bilateral.py          # Clasificación bilateral por reglas, sin IA
+│   ├── reglas_bilaterales.json          # Señales, puntajes y umbrales de bilateralidad
+│   ├── terminos_eeuu.json               # Variantes textuales de "Estados Unidos"
+│   ├── requirements.txt
+│   ├── test_scraper_mre.py / test_clasificar_bilateral.py
+│   ├── CONTEXTO_ORIGINAL.md             # Diseño original tal como llegó (antes de integrarlo)
+│   └── README.md                        # Cómo correrlo, y el bypass de Cloudflare agregado
 │
 ├── run_pipeline.py                      # Orquestador: descubre (pkgutil) y corre cada módulo de src/ingestion/
 ├── run_processing.py                    # Orquestador: descubre (pkgutil) y corre cada módulo de src/processing/
@@ -241,13 +264,17 @@ Paraguay_Index/
 - **`cuota_capital_bancomundial.py`** — cuota de poder de voto de EE.UU. en el IBRD, histórico fijo por año fiscal (a diferencia del BID, esta cuota sí cambia año a año) — cada fila viene de abrir a mano el "Information Statement" anual del IBRD y buscar el % en el texto (docstring del módulo explica paso a paso cómo agregar un año nuevo) → `run()`.
 - **`congreso_menciones_paraguay.py`** — combina GovInfo (búsqueda de texto completo) + Congress.gov (datos estructurados): `_buscar_proyectos_govinfo()`, `_proyectos_unicos(hits)`, `_enriquecer_proyecto(...)`, `_menciones_paraguay(package_id)` (cuenta todas las menciones, no solo la primera), `_fila_desde_proyecto(...)` → `run()`.
 - **`ustr_consejo_comercio_inversion.py`** — histórico fijo + revisión en vivo de ustr.gov: `_historico_verificado()`, `_verificar_evento_historico(evento)`, `_revisar_sitio_vivo()`, `_buscar_en_mes(anio, mes)`, `_fecha_del_comunicado(url)`, `_titulo_relevante(titulo)` → `run()`.
-- **`state_gov_tias_paraguay.py`** — histórico fijo + búsqueda en vivo (DuckDuckGo) de TIAS en state.gov: `_historico_verificado()`, `_buscar_candidatos_vivo(urls_conocidas)`, `_parsear_pagina_tias(url)`, `_anio_desde_tias(tias)`, `_normalizar_fecha(texto)` → `run()`.
+- **`state_gov_tias_paraguay.py`** — histórico fijo + búsqueda en vivo (DuckDuckGo) de TIAS en state.gov, en revisión: `_historico_verificado()`, `_buscar_candidatos_vivo(urls_conocidas)`, `_parsear_pagina_tias(url)`, `_anio_desde_tias(tias)`, `_normalizar_fecha(texto)` → `run()`.
+- **`state_gov_tif_vigentes.py`** — descarga y parsea el PDF anual "Treaties in Force" del Departamento de Estado (todos los acuerdos bilaterales vigentes, no solo TIAS): `_url_pdf_vigente()`, `_descargar_pdf(url)`, `_paginas_de_texto(contenido_pdf)`, `_aislar_seccion_pais(paginas)`, `_parsear_acuerdos(seccion_texto)` → `run()`.
+- **`mre_menciones_eeuu.py`** — sube a Drive lo que `mre_scraping/` ya produjo localmente (`noticias_clasificadas.csv`, `manifiesto.json`) → `run()`.
+- **`bls_ipc_eeuu.py`** — IPC de EE.UU. (BLS, `CUUR0000SA0`), JSON crudo por tramos de 10 años → `run()`. Insumo transversal (`insumos_indice`), no una variable de dimensión.
+- **`ine_poblacion_paraguay.py`** — población total de Paraguay por año (INE) → `run()`. Insumo transversal (`insumos_indice`), no una variable de dimensión.
 - **`gdelt_proxy_b.py`** — sube a Drive los CSV que ya extrajo `gdelt_extraction/` (`_archivos_a_subir(carpeta_local)`) → `run()`.
 
 ### `src/processing/` — un script por dimensión, limpia y sube un CSV por variable
 
 - **`_common.py`** (helper, no es un módulo de processing) — convención compartida de salida: `subir_variable(dimension_limpia, variable, valores, unidad)` arma y sube el CSV (`trimestre, anio, trimestre_num, valor, unidad`); `reescalar(valores, factor)` convierte unidades nativas (miles/millones) a USD.
 - **`compromiso_financiero_oficial.py`** (dimensión 1) — `_extraer_fa_gov()`, `_extraer_usaspending()`, `_extraer_dfc()`, `_extraer_exim()`, `_extraer_bid()`, `_extraer_bancomundial()`, más los helpers de fecha→trimestre `_sumar_por_trimestre()`/`_repetir_en_trimestres()` → `run()` (12 variables).
-- **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()` (devuelve dos series: relevantes y menciones totales), `_extraer_ustr()`, `_extraer_tias()` (stock acumulado), `_contar_por_trimestre(fechas)`, `_acumular_por_trimestre(fechas)` → `run()` (4 variables).
+- **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()` (devuelve dos series: relevantes y menciones totales), `_extraer_ustr()`, `_extraer_tias()` (stock acumulado, en revisión), `_extraer_tif()` (stock acumulado con base histórica pre-2015), `_extraer_mre()` (devuelve dos series: noticias bilaterales y menciones totales), `_contar_por_trimestre(fechas)`, `_acumular_por_trimestre(fechas)`, `_acumular_con_base_historica(fechas)` → `run()` (7 variables).
 - **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (5 variables).
 - **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` (devuelve BOTH/PY/US por separado) → `run()` (6 variables: cantidad y tono, x3 países).

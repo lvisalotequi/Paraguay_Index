@@ -39,6 +39,21 @@ literalmente "reuniones del Consejo" (2022, 2023, 2024 - primera, segunda y
 tercera reunion). Los otros 2 son hitos previos: el MOU de 2015 y la firma
 del TIFA en 2017 que crea el marco. La columna "tipo" permite filtrar segun
 que definicion de "reunion formal" se quiera usar.
+
+**Como se distingue de `state_gov_tif_vigentes.py` (agregada 2026-09-22):**
+esta fuente mide HITOS puntuales de comercio/inversion (eventos que ocurren
+una vez y no persisten). `state_gov_tif_vigentes.py` mide el STOCK de TODO
+tipo de acuerdo bilateral que sigue vigente hoy (cualquier tema, no solo
+comercio). Verificado que no son redundantes: la correlacion en niveles es
+alta (0,86) pero es un efecto de tendencia compartida (las dos series solo
+crecen en el tiempo) - en primeras diferencias, que es la prueba correcta
+para saber si realmente se mueven juntas, la correlacion cae a 0,07. Son
+estadisticamente independientes (ver DICCIONARIO_VARIABLES.md para el
+detalle del analisis). **Nota de definicion, no inconsistencia:** la TIFA
+es el mismo instrumento en las dos fuentes, pero esta lo fecha por *firma*
+(2017-01-13, el hito historico de abajo) y el TIF lo fecha por *entrada en
+vigor* (2021-03-17) - la diferencia de ~4 anios es el tramite de
+ratificacion entre ambos paises, no un error de ninguna de las dos.
 """
 import io
 import re

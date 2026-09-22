@@ -10,6 +10,7 @@ curl_cffi>=0.7          # requests que bypasea Cloudflare/bot-blocking (bcp.gov.
 ddgs>=9.0                # busqueda en DuckDuckGo (state_gov_tias_paraguay.py - state.gov no tiene indice navegable de TIAS)
 openpyxl>=3.1            # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
 pandas>=2.2           # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/, src/02_cleaning/, src/03_integration/, src/04_analysis_index/)
+pypdf>=5.0               # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) - no es escaneado, texto real extraible
 requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 
 # Techo de pandas en <3 (2026-09-09): con Python 3.14, pip resuelve pandas 3.0.x,

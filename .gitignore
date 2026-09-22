@@ -27,6 +27,10 @@ data/
 *.out
 *.m4a
 
+# Entorno virtual local (pendiente #10 de CLAUDE.md - antes faltaba esta
+# entrada, .venv/ aparecia como untracked)
+.venv/
+
 # Cache de paquetes
 __pycache__/
 *.pyc
@@ -40,5 +44,15 @@ Thumbs.db
 gdelt_extraction/output/
 gdelt_extraction/.venv/
 !gdelt_extraction/*.json
+
+# Scraper MRE (dimensión 2) — mismo criterio: solo código/config se versiona,
+# no la cache de HTML descargado ni las salidas CSV/checkpoint de una corrida
+mre_scraping/cache/
+mre_scraping/output/
+mre_scraping/salida_*/
+mre_scraping/.venv/
+mre_scraping/checkpoint.ndjson
+!mre_scraping/*.json
+
 CONTEXTO_INFORME_AVANCES.md
 DICCIONARIO_VARIABLES.md

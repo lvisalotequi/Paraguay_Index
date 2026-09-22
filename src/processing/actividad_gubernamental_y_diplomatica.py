@@ -44,6 +44,20 @@ congreso_menciones_paraguay rediseñado 2026-09-10):
       2026-09-10, a pedido del usuario - antes era cantidad de TIAS NUEVOS
       ese trimestre, igual de disperso que USTR, lo cual no calzaba con el
       propio nombre de la variable, "vigentes"). Ver `_acumular_por_trimestre()`.
+    - mre_menciones_eeuu (2026-09-22, un CSV `noticias_clasificadas_*.csv`,
+      una fila por noticia del archivo del MRE de Paraguay): **dos
+      variables**, mismo patron que Congreso - `mre_noticias_bilaterales`
+      (cantidad por trimestre con `es_bilateral == 1`, clasificacion ya
+      calculada en `mre_scraping/clasificar_bilateral.py` con reglas
+      explicitas y sin IA - a diferencia de Congreso, el umbral de
+      relevancia ya viene aplicado en el dato crudo, no hace falta
+      reaplicarlo acá) y `mre_menciones_totales_eeuu` (suma de
+      `numero_menciones_eeuu` de todas las noticias validas del trimestre,
+      sin umbral). Es la contraparte del lado paraguayo de USTR/Congreso
+      (que miden actividad diplomatica/legislativa del lado de EE.UU.) -
+      ver `mre_scraping/README.md` para el detalle completo de como se
+      recolecta (scraping local, no vive en `src/ingestion/` por el mismo
+      motivo que `gdelt_extraction/`).
 
 **Por que un stock y no un conteo de eventos, solo para TIAS (2026-09-10):**
 un tratado, a diferencia de una reunion o un proyecto de ley, tiene efecto
@@ -59,16 +73,39 @@ ocurren y terminan, no hay un estado legal que persista despues.
 
 **Limite explicito, no verificado:** `_acumular_por_trimestre()` asume que
 ningun TIAS se da de baja (terminado/reemplazado/vencido) despues de
-entrar en vigor - no hay ningun mecanismo que lo detecte. La fuente que
-trackearia esto formalmente es el reporte anual "Treaties in Force" del
-Departamento de Estado, pero no es lo que scrapea
-`state_gov_tias_paraguay.py` (investigado 2026-09-10: `www.state.gov`
-devuelve 403 al pedirlo sin el bypass de Cloudflare que ya usa el resto de
-state.gov, y una edicion vieja probada es un PDF escaneado como imagen, no
-texto extraible - agregarlo seria un modulo de ingestion nuevo y separado,
-no algo que este calculo resuelva). No es un problema practico hoy (ninguno
-de los 3 TIAS conocidos esta documentado como terminado), pero queda como
-supuesto explicito, no como algo confirmado.
+entrar en vigor - no hay ningun mecanismo que lo detecte. No es un problema
+practico hoy (ninguno de los 3 TIAS conocidos esta documentado como
+terminado), pero queda como supuesto explicito, no como algo confirmado.
+`state_gov_tias_vigentes` queda **en revision** desde el 2026-09-22 (no
+Validado) - ver `state_gov_tif_vigentes` mas abajo, candidata a
+reemplazarla.
+
+**`state_gov_tif_vigentes` (agregada 2026-09-22, a pedido del usuario - se
+AGREGA, no reemplaza a `state_gov_tias_vigentes`):** stock acumulado de
+TODOS los tratados y acuerdos bilaterales EE.UU.-Paraguay que siguen
+vigentes segun "Treaties in Force" (TIF), la publicacion oficial anual del
+Departamento de Estado - ver `state_gov_tif_vigentes.py` para el detalle
+completo de como se extrae (resuelve exactamente el limite de arriba: el
+propio DOS ya excluye lo terminado/reemplazado, no hay que asumir nada). A
+diferencia de `state_gov_tias_vigentes`, no se limita a instrumentos con
+numero TIAS ni a firmas posteriores a 2015 - incluye acuerdos vigentes
+firmados desde 1860. Por eso su acumulado usa
+`_acumular_con_base_historica()` en vez de `_acumular_por_trimestre()`: la
+base de 2015-Q1 ya arranca en 33 (los acuerdos firmados antes de 2015 que
+seguian vigentes), no en 0. **Verificacion de que no es redundante con
+`ustr_hitos_consejo_comercio_inversion` (2026-09-22):** correlacion en
+niveles 0,86 (esperable, ambas series solo crecen en el tiempo - efecto de
+tendencia compartida, no de comovimiento real), pero en primeras
+diferencias (¿coincide el trimestre en que aparece un acuerdo nuevo del TIF
+con el trimestre de un hito de USTR?) la correlacion cae a 0,07 - son
+estadisticamente independientes, confirmando que miden cosas distintas
+(stock legal de cualquier tema vs. hitos diplomaticos puntuales solo de
+comercio/inversion). Ver `DICCIONARIO_VARIABLES.md` para el detalle
+completo del analisis. **Nota de definicion, no inconsistencia:** la TIFA
+es el mismo instrumento en ambas fuentes, pero USTR la fecha por *firma*
+(2017-01-13) y el TIF por *entrada en vigor* (2021-03-17) - los ~4 anios de
+diferencia son el tramite de ratificacion, no un error de ninguna de las
+dos fuentes.
 
 Se usa el archivo mas reciente subido por ingestion de cada fuente (todas
 suben un Excel nuevo por dia con fecha en el nombre).
@@ -98,6 +135,18 @@ def _excel_mas_reciente(fuente):
     archivo = sorted(archivos, key=lambda a: a["name"])[-1]
     contenido = descargar_archivo(archivo["id"])
     return pd.read_excel(io.BytesIO(contenido))
+
+
+def _csv_mas_reciente(fuente, prefijo_nombre):
+    """Igual que _excel_mas_reciente pero para CSV, filtrando primero por
+    prefijo - mre_menciones_eeuu.py sube mas de un archivo por corrida
+    (noticias_clasificadas_*.csv y manifiesto_*.json), hace falta elegir
+    cual de los dos."""
+    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, fuente)]
+    archivos = [a for a in listar_archivos(carpeta_id) if a["name"].startswith(prefijo_nombre)]
+    archivo = sorted(archivos, key=lambda a: a["name"])[-1]
+    contenido = descargar_archivo(archivo["id"])
+    return pd.read_csv(io.BytesIO(contenido))
 
 
 def _contar_por_trimestre(fechas):
@@ -173,9 +222,100 @@ def _acumular_por_trimestre(fechas):
 def _extraer_tias():
     """Devuelve el STOCK acumulado de TIAS vigentes por trimestre (no la
     cantidad de TIAS nuevos ese trimestre) - ver docstring del modulo,
-    politica 2026-09-10."""
+    politica 2026-09-10. En revision (2026-09-22): ver state_gov_tif_vigentes.py,
+    candidata a reemplazar esta variable mas adelante."""
     df = _excel_mas_reciente("state_gov_tias_paraguay")
     return _acumular_por_trimestre(df["fecha_entrada_vigor"])
+
+
+def _acumular_con_base_historica(fechas):
+    """Como _acumular_por_trimestre, pero sin descartar los eventos
+    anteriores a ANIO_MINIMO: los suma todos a una BASE que ya arranca
+    activa en el primer trimestre (2015-Q1), en vez de ignorarlos.
+    _acumular_por_trimestre no sirve para esto porque internamente llama a
+    _contar_por_trimestre, que filtra `anio >= ANIO_MINIMO` antes de
+    contar - correcto para TIAS (no tiene nada anterior a 2015) pero
+    incorrecto para TIF, que trae acuerdos vigentes firmados mucho antes
+    (el mas viejo, 1860) que siguen contando para el stock de hoy."""
+    fechas = pd.to_datetime(fechas, errors="coerce").dropna()
+    base = int((fechas.dt.year < ANIO_MINIMO).sum())
+    fechas_en_rango = fechas[fechas.dt.year >= ANIO_MINIMO]
+
+    nuevos_por_trimestre = {}
+    for fecha in fechas_en_rango:
+        clave = (fecha.year, (fecha.month - 1) // 3 + 1)
+        nuevos_por_trimestre[clave] = nuevos_por_trimestre.get(clave, 0) + 1
+
+    hoy = datetime.now(timezone.utc)
+    ultimo_trim = (hoy.year, (hoy.month - 1) // 3 + 1)
+
+    acumulado = {}
+    total = base
+    anio, trim = ANIO_MINIMO, 1
+    while (anio, trim) <= ultimo_trim:
+        total += nuevos_por_trimestre.get((anio, trim), 0)
+        acumulado[(anio, trim)] = total
+        trim += 1
+        if trim > 4:
+            trim = 1
+            anio += 1
+    return acumulado
+
+
+def _extraer_tif():
+    """Devuelve el STOCK acumulado de TODOS los tratados y acuerdos
+    bilaterales vigentes EE.UU.-Paraguay por trimestre (no solo
+    publicaciones TIAS, cualquier tipo de cita - ver
+    state_gov_tif_vigentes.py). A diferencia de _extraer_tias(), la base
+    incluye los acuerdos firmados ANTES de 2015 que seguian vigentes (33 de
+    los 39 conocidos al 2026-09-22) - por eso usa
+    _acumular_con_base_historica() en vez de _acumular_por_trimestre()."""
+    df = _excel_mas_reciente("state_gov_tif_vigentes")
+    return _acumular_con_base_historica(df["fecha_entrada_vigor"])
+
+
+def _extraer_mre():
+    """Devuelve (noticias_bilaterales, menciones_totales), cada una
+    {(anio,trim): cantidad} - mismo patron que Congreso (una fuente, dos
+    variables: conteo con umbral de relevancia + volumen total sin umbral).
+
+    Fuente: mre_scraping/ (scraper de noticias del MRE de Paraguay +
+    clasificacion bilateral, ver mre_scraping/README.md), subido por
+    src/ingestion/mre_menciones_eeuu.py como `noticias_clasificadas_*.csv` -
+    una fila por noticia, con columnas `estado` (solo "ok" entra al calculo,
+    mismo criterio que descarta "error_descarga"/"fuera_periodo"/etc en el
+    propio scraper), `es_bilateral` (0/1, ya calculado por
+    mre_scraping/clasificar_bilateral.py con reglas explicitas, sin IA) y
+    `numero_menciones_eeuu` (cuantas veces aparece una variante de "Estados
+    Unidos" en titulo+texto).
+
+    `noticias_bilaterales`: cantidad de noticias por trimestre (segun
+    `fecha`) con `es_bilateral == 1` - la clasificacion ya incorpora el
+    umbral de relevancia (puntaje >= `umbral_bilateral` en
+    reglas_bilaterales.json), asi que a diferencia de Congreso acá no hace
+    falta aplicar un segundo umbral en processing, ya viene aplicado.
+    `menciones_totales`: suma de `numero_menciones_eeuu` de TODAS las
+    noticias validas del trimestre (bilaterales o no) - medida continua de
+    volumen, sin umbral, igual que `congreso_menciones_totales_paraguay`."""
+    df = _csv_mas_reciente("mre_menciones_eeuu", "noticias_clasificadas")
+    df = df[df["estado"] == "ok"].copy()
+    fechas = pd.to_datetime(df["fecha"], errors="coerce")
+    es_bilateral = pd.to_numeric(df["es_bilateral"], errors="coerce")
+    menciones = pd.to_numeric(df["numero_menciones_eeuu"], errors="coerce")
+
+    valido = fechas.notna() & (fechas.dt.year >= ANIO_MINIMO)
+    fechas = fechas[valido]
+    es_bilateral = es_bilateral[valido]
+    menciones = menciones[valido]
+
+    noticias_bilaterales, menciones_totales = {}, {}
+    for fecha, bilateral, cantidad in zip(fechas, es_bilateral, menciones):
+        clave = (fecha.year, (fecha.month - 1) // 3 + 1)
+        menciones_totales[clave] = menciones_totales.get(clave, 0) + (cantidad if pd.notna(cantidad) else 0)
+        if bilateral == 1:
+            noticias_bilaterales[clave] = noticias_bilaterales.get(clave, 0) + 1
+
+    return noticias_bilaterales, menciones_totales
 
 
 def run():
@@ -191,11 +331,19 @@ def run():
     for nombre_variable, extraer in (
         ("ustr_hitos_consejo_comercio_inversion", _extraer_ustr),
         ("state_gov_tias_vigentes", _extraer_tias),
+        ("state_gov_tif_vigentes", _extraer_tif),
     ):
         try:
             subir_variable(DIMENSION_LIMPIA, nombre_variable, extraer(), "cantidad")
         except Exception as exc:  # noqa: BLE001
             print(f"    [!] {nombre_variable}: {exc!r}")
+
+    try:
+        noticias_bilaterales, menciones_totales_mre = _extraer_mre()
+        subir_variable(DIMENSION_LIMPIA, "mre_noticias_bilaterales", noticias_bilaterales, "cantidad")
+        subir_variable(DIMENSION_LIMPIA, "mre_menciones_totales_eeuu", menciones_totales_mre, "cantidad")
+    except Exception as exc:  # noqa: BLE001
+        print(f"    [!] mre_menciones_eeuu: {exc!r}")
 
 
 if __name__ == "__main__":

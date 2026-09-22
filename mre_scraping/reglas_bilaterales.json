@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "umbral_bilateral": 5,
+  "umbral_peso_alto": 8,
+  "grupos": {
+    "paraguay": ["\\bparaguay\\b", "\\bparaguay[oa]s?\\b", "\\bcanciller(?:ía|es)?\\b", "\\bpresidente\\s+(?:del\\s+)?paraguay\\b"],
+    "actor_eeuu": ["\\b(?:embajador|embajadora|encargad[oa] de negocios|delegaci[oó]n|gobierno|autoridad(?:es)?|funcionari[oa]s?|congresista|senador(?:a)?|representante)\\s+(?:de|del|estadounidense(?:s)?)\\s+(?:los\\s+)?(?:estados unidos|ee\\s*\\.?\\s*uu\\s*\\.?)\\b", "\\b(?:secretari[oa]|subsecretari[oa]) de estado de (?:los )?estados unidos\\b", "\\busaid\\b", "\\bc[aá]mara de comercio paraguayo americana\\b"],
+    "accion_bilateral": ["\\bagenda bilateral\\b", "\\brelaci[oó]n bilateral\\b", "\\bcooperaci[oó]n bilateral\\b", "\\bdi[aá]logo bilateral\\b", "\\breuni[oó]n\\b", "\\baudiencia\\b", "\\bvisita oficial\\b", "\\bconversaci[oó]n telef[oó]nica\\b", "\\bencuentro\\b"],
+    "instrumento": ["\\bacuerdo\\b", "\\bmemorando(?: de entendimiento)?\\b", "\\bdeclaraci[oó]n conjunta\\b", "\\btratado\\b", "\\bfirma(?:ron|do|r)?\\b", "\\bnegociaci[oó]n\\b", "\\bcompromiso\\b"],
+    "alto_nivel": ["\\bpresidente\\b", "\\bcanciller\\b", "\\bsecretari[oa] de estado\\b", "\\bsubsecretari[oa] de estado\\b", "\\bembajador(?:a)?\\b", "\\bencargad[oa] de negocios\\b"],
+    "areas_sustantivas": ["\\bseguridad\\b", "\\bdefensa\\b", "\\bcomercio\\b", "\\binversion(?:es)?\\b", "\\bmigraci[oó]n\\b", "\\bcooperaci[oó]n\\b", "\\bmercado\\b", "\\bfinanciamiento\\b"],
+    "multilateral": ["\\bmercosur\\b", "\\boea\\b", "\\bnaciones unidas\\b", "\\bonu\\b", "\\bcumbre de las am[eé]ricas\\b"]
+  }
+}

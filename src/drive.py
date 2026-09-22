@@ -73,11 +73,18 @@ FOLDER_IDS = {
     ("2_Actividad_gubernamental_y_diplomatica", "congreso_menciones_paraguay"): "1V0F9qzym6h83FUYQuy_L7vdJYQ_VeYXS",
     ("2_Actividad_gubernamental_y_diplomatica", "ustr_consejo_comercio_inversion"): "1URturmvdk_Ki5j_oFRKORHWrNYbqZ0co",
     ("2_Actividad_gubernamental_y_diplomatica", "state_gov_tias_paraguay"): "1koUH_-Wsij9fM8VVcMQ0Oh1d1cMRAgxD",
+    ("2_Actividad_gubernamental_y_diplomatica", "state_gov_tif_vigentes"): "1a9X8szPA8y0vxw8h0xSzU2S6MDyl9Vly",
     ("3_Compromiso_economico_privado", "bcp_comercio_exterior"): "1HFeiS2Q2Ezi7tZPWZcQvbdo0dbeWCO4u",
     ("3_Compromiso_economico_privado", "bcp_inversion_directa"): "145-zhp9c3hjQtz4vg5EManKsmpE_8r6D",
     ("3_Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",
     ("3_Compromiso_economico_privado", "bea_inversion_directa"): "1ZMTwLGpNcROTrUmEVDXkX1g7yYumkwon",
     ("4_Visibilidad_mediatica_y_relevancia_publica", "gdelt_proxy_b"): "108u-nqX6hKckFlfv807gZ4p-oHWA-_Ob",
+    # insumos_indice: pseudo-dimension para deflactores/escalas transversales
+    # usados por la etapa de construccion del indice, no atados a ninguna de
+    # las 4 dimensiones reales (ver docstrings de bls_ipc_eeuu.py/
+    # ine_poblacion_paraguay.py)
+    ("insumos_indice", "bls_ipc_eeuu"): "1-ekpGgjadAhTPudm9kPKJDtyskr-NYQ-",
+    ("insumos_indice", "ine_poblacion_paraguay"): "1dlV7wO6XLE28tGR4gKwLCFR7g7sugPSM",
 }
 
 # Igual que FOLDER_IDS pero para las carpetas de salida de processing
@@ -102,6 +109,7 @@ VARIABLE_FOLDER_IDS = {
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "congreso_menciones_totales_paraguay"): "1Z_nmQz66XJGVRYrBVzJGZucUb3IHxaGr",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "ustr_hitos_consejo_comercio_inversion"): "1JGXXrWqPA7gYHzOuhaVcDPnJyFKCj-dx",
     ("2_Actividad_gubernamental_y_diplomatica_limpias", "state_gov_tias_vigentes"): "1JvNvfSbalrOv0TfpxKQbCCn9-jGXR0mW",
+    ("2_Actividad_gubernamental_y_diplomatica_limpias", "state_gov_tif_vigentes"): "17Wy_2hdziz559HllEJ0tZKO4jSoMbZXm",
     ("3_Compromiso_economico_privado_limpias", "exportaciones"): "1R7RGu_NJ4pzo_0Y56lADLNUn3O6J1KOx",
     ("3_Compromiso_economico_privado_limpias", "importaciones"): "1yyry1LlAUZVSfwXkJ-LjZ8sY4t6hURl0",
     ("3_Compromiso_economico_privado_limpias", "inversion_directa_bcp"): "1HKc9ZONIfM7EMkUjusxVzUtrtg1tLBVk",

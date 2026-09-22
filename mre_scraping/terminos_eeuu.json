@@ -1,0 +1,13 @@
+{
+  "descripcion": "Reglas deterministas y editables para identificar menciones a Estados Unidos.",
+  "patrones": [
+    "\\bestados\\s+unidos(?:\\s+de\\s+am[eé]rica)?\\b",
+    "\\bee\\s*\\.?\\s*uu\\s*\\.?\\b",
+    "\\be\\s*\\.?\\s*u\\s*\\.?\\s*a\\s*\\.?\\b",
+    "\\busa\\b",
+    "\\bu\\s*\\.?\\s*s\\s*\\.?\\s*a\\s*\\.?\\b",
+    "\\bestadounidens(?:e|es)\\b",
+    "\\bnorteamerican(?:o|a|os|as)\\b"
+  ]
+}
+

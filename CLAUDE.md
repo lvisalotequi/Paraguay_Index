@@ -344,6 +344,7 @@ curl_cffi         # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, st
 ddgs               # búsqueda en DuckDuckGo (state_gov_tias_paraguay.py — state.gov no tiene índice navegable de TIAS)
 openpyxl           # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
 pandas              # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/)
+pypdf                # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) — no es escaneado, texto real extraible
 requests             # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
 ```
 
@@ -458,7 +459,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     criterio que ya usa el proyecto para otras fuentes anuales.
   - Los ocho probados con datos reales: suben bien (confirmado con datos
     reales) y una segunda corrida saltea lo que ya está.
-- Tres fuentes reales de la dimensión `2_Actividad_gubernamental_y_diplomatica`
+- Cuatro fuentes reales de la dimensión `2_Actividad_gubernamental_y_diplomatica`
   (2026-09-02):
   - `congreso_menciones_paraguay.py` — a diferencia de las demás fuentes, no
     existe como archivo descargable en ningún sitio: se **construye** acá
@@ -523,9 +524,12 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     on Trade and Investment"), no la fecha del comunicado. La verificación
     distingue esto de un error real (fecha que sí aparece pero no coincide)
     y lo marca como "no se pudo confirmar", no como "dato incorrecto".
-  - `state_gov_tias_paraguay.py` — publicaciones TIAS (Treaties and Other
-    International Acts Series) entre Paraguay y EE.UU., desde el Office of
-    Treaty Affairs de state.gov. state.gov no tiene un índice navegable de
+  - `state_gov_tias_paraguay.py` — **en revisión desde 2026-09-22** (no
+    Validado): ver `state_gov_tif_vigentes.py` más abajo, agregada el mismo
+    día y candidata a reemplazarla más adelante (decisión pendiente,
+    todavía no tomada — por ahora coexisten). Publicaciones TIAS (Treaties
+    and Other International Acts Series) entre Paraguay y EE.UU., desde el
+    Office of Treaty Affairs de state.gov. state.gov no tiene un índice navegable de
     TIAS por país ni un buscador propio que sirva para esto (confirmado
     2026-09-02) — la única forma de encontrarlas es buscando por texto. Es
     otro diseño **híbrido**, igual que `ustr_consejo_comercio_inversion.py`:
@@ -560,6 +564,60 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     corridas hubo hits sueltos pero ninguno matcheó el patrón real de URL
     de un TIAS de Paraguay. No hay ningún TIAS de Paraguay perdido en ese
     rango.
+  - `state_gov_tif_vigentes.py` (2026-09-22, **Validado**): descarga el PDF
+    anual "Treaties in Force" (TIF) del Departamento de Estado — la
+    publicación oficial que lista TODOS los tratados y acuerdos bilaterales
+    de EE.UU. que siguen vigentes a esa fecha (el propio DOS ya excluye lo
+    terminado/reemplazado/superado). El link al PDF del año vigente se
+    busca en `state.gov/treaties-in-force/` (no se hardcodea el año). **No
+    es un PDF escaneado como imagen** — contra lo que se creía cuando se
+    investigó `state_gov_tias_vigentes` (nota de la sección 6, más abajo);
+    la edición 2026 se probó de nuevo y tiene texto real, extraíble con
+    `pypdf` (551 páginas, ~5 MB). La sección bilateral de Paraguay se aísla
+    usando la tabla de contenidos propia del documento (no números de
+    página fijos, que cambian de edición a edición) y se parsea línea por
+    línea (categoría, fecha de entrada en vigor, cita) — ver el docstring
+    del módulo para el detalle completo de los casos raros que maneja
+    (categorías en 2 líneas, fechas partidas en 2 líneas, enmiendas que no
+    cuentan como acuerdo nuevo). Verificado a mano, entrada por entrada,
+    contra el texto del PDF antes de escribir el parser: **39 acuerdos**
+    para Paraguay, 1860-03-07 a 2025-08-14. **Por qué se agrega y no
+    reemplaza a `state_gov_tias_paraguay.py`** (decisión del usuario,
+    2026-09-22): esta fuente es mucho más completa (cualquier tipo de cita,
+    cualquier fecha de firma, no solo TIAS post-2015), y un análisis de
+    correlación confirmó que no es redundante con
+    `ustr_consejo_comercio_inversion.py` (correlación en diferencias ~0,07,
+    ver DICCIONARIO_VARIABLES.md) — pero la decisión de si `state_gov_tias_paraguay.py`
+    queda obsoleta y se elimina se toma más adelante, no ahora.
+  - `mre_menciones_eeuu.py` (2026-09-22, **integración en curso**): sube a
+    Drive lo que `mre_scraping/` ya produjo localmente — noticias del MRE de
+    Paraguay clasificadas por mención y bilateralidad con EE.UU. Misma
+    excepción documentada que `gdelt_proxy_b.py`/`gdelt_extraction/`: el
+    scraping (archivo actual + índice CDX de Wayback Machine, con demora
+    entre pedidos) tarda horas para el rango completo 2015-2025, no tiene
+    sentido en GitHub Actions — corre a mano, localmente, desde
+    `mre_scraping/` (ver `mre_scraping/README.md`). **Origen**: el usuario
+    trajo el scraper ya armado y probado (`mre_eeuu_scraper_portable.zip`,
+    dos etapas — `scraper_mre.py` recolecta, `clasificar_bilateral.py`
+    clasifica por reglas explícitas sin IA). Dos cambios hechos para
+    integrarlo (2026-09-22):
+    1. **Bypass de Cloudflare**: el sitio actual (`mre.gov.py`) devolvía 403
+       con `requests` normal — mismo bloqueo que `bcp.gov.py`/`state.gov`,
+       corregido con `curl_cffi` `impersonate="chrome"` en la clase
+       `Fetcher`. Verificado: 403 → 200.
+    2. **Bug real encontrado al cambiar de librería**: el manejo de errores
+       capturaba `requests.RequestException` (nombre que no existe en
+       `curl_cffi.requests` al mismo nivel — queda en
+       `requests.exceptions.RequestException`) — con el cambio, un timeout
+       real de red terminaba en `AttributeError` sin manejar en vez de
+       reintentar; apareció en la práctica al correr la extracción completa
+       (un timeout contra el CDX de Wayback tumbó el proceso). Corregido y
+       verificado con un caso forzado.
+
+    Corrida completa 2015-2025 lanzada el 2026-09-22 (dura horas) — estado
+    de la verificación con datos reales pendiente hasta que termine (ver
+    `mre_scraping/README.md` y `DICCIONARIO_VARIABLES.md` para el resultado
+    una vez completada).
 - Primera fuente real de la dimensión `4_Visibilidad_mediatica_y_relevancia_publica`
   (2026-09-01):
   - `gdelt_proxy_b.py` — sube a Drive los CSV mensuales ya extraídos por
@@ -635,6 +693,33 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     instalado y autenticado aparte (no viene con el repo ni con Python), y
     en Windows puede requerir habilitar rutas largas si el checkout queda en
     una ruta profunda (ver esa misma guía).
+- **Dos fuentes de la pseudo-dimensión `insumos_indice` (2026-09-22)** —
+  deflactores/escalas transversales que usa (o va a usar) la etapa de
+  construcción del índice, no atados a ninguna de las 4 dimensiones reales
+  del vínculo bilateral (ver el docstring de cada módulo para la
+  justificación completa):
+  - `bls_ipc_eeuu.py` — serie mensual `CUUR0000SA0` (IPC de EE.UU.) de la
+    API pública del BLS, en tramos de 10 años calculados dinámicamente
+    (límite de la API sin credencial) — JSON crudo, sin transformar, mismo
+    criterio que `fa_gov_asistencia_oficial.py`/`bid_proyectos.py` (ver
+    `feedback_json_raw_is_source_of_truth` en memoria). Probado con datos
+    reales: 140 puntos mensuales, 2015-2026 (un 503 transitorio de la API
+    del BLS en el primer intento, resuelto reintentando).
+  - `ine_poblacion_paraguay.py` — Excel único "Estimaciones y Proyecciones
+    de la Población Nacional... 1950-2050. Revisión 2024" del INE de
+    Paraguay (post-Censo 2022), fila "Total País" de la hoja "Poblac a
+    mitad de año 1950-2050". **Investigado si había corte trimestral (a
+    pedido del usuario)**: no existe — es una estimación/proyección
+    demográfica anual ("a mitad de año"), igual que la mayoría de los
+    institutos de estadística de la región; se usa anual. Complementa (no
+    reemplaza todavía) al `SP.POP.TOTL` del Banco Mundial que ya usa
+    `04_construccion_indice.qmd` — es la fuente oficial paraguaya.
+    Verificado con datos reales contra la propia fuente: 2015=5.912.082,
+    2024=6.372.623, 2026=6.460.159 habitantes.
+  - **Ninguna de las dos está conectada todavía a `04_construccion_indice.qmd`**
+    (que sigue pidiendo IPC a la API del BLS y población a la API del Banco
+    Mundial en tiempo de render) — no se tocó el `.qmd` porque esa sección
+    está en pausa. Ver pendiente #7 (sección 7) para el detalle.
 - Repo limpiado de artefactos que ya no aplican: el pipeline en R, el
   workflow de otro proyecto, todo lo de RStudio, y `.env.example` — el
   proyecto es 100% Python.
@@ -721,8 +806,8 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     de "Resuelto" al final de la sección 7 para el detalle). Rango 2015-Q1
     a 2027-Q1 (el Banco Mundial ya tiene un proyecto con aprobación futura
     anunciada) — varía por variable, cada una con su propio CSV.
-  - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, **4 variables**
-    desde el 2026-09-10 — antes 3, ver más abajo —, todo **cantidad**):
+  - `actividad_gubernamental_y_diplomatica.py` (dimensión 2, **7 variables**
+    desde el 2026-09-22 — antes 4, ver más abajo —, todo **cantidad**):
     hitos del Consejo de Comercio e Inversión de USTR (por `fecha`, muy
     disperso — 5 trimestres con datos en 10 años, sin cambios), y TIAS de
     Paraguay (rediseñada, ver más abajo). **Congreso, rediseñado
@@ -747,13 +832,49 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     reunión no tiene "vigencia" que persista después de ocurrir, a
     diferencia de un tratado. **Límite explícito y no verificado**: el
     stock de TIAS asume que ninguno se da de baja después de entrar en
-    vigor — no hay ningún mecanismo que lo detecte (el reporte formal que
-    lo trackearía, "Treaties in Force", no es lo que scrapea
-    `state_gov_tias_paraguay.py`). Esta redirección hacia medidas continuas
-    (menciones totales, stock acumulado) es directamente relevante para el
+    vigor — no hay ningún mecanismo que lo detecte. `state_gov_tias_vigentes`
+    queda **en revisión** desde 2026-09-22 (no Validado) — ver
+    `state_gov_tif_vigentes` justo abajo, que sí resuelve ese límite.
+
+    **`state_gov_tif_vigentes` (agregada 2026-09-22, Validado — se AGREGA,
+    no reemplaza a `state_gov_tias_vigentes`, decisión del usuario)**:
+    stock acumulado de TODOS los tratados/acuerdos bilaterales vigentes
+    según "Treaties in Force" (TIF), la publicación oficial anual del
+    Departamento de Estado — resuelve directamente el límite de arriba,
+    porque el propio DOS ya excluye lo terminado antes de publicar la
+    lista, no hay que asumir nada. A diferencia de `state_gov_tias_vigentes`,
+    no se limita a instrumentos con número TIAS ni a firmas posteriores a
+    2015 (incluye acuerdos vigentes firmados desde 1860) — por eso usa
+    `_acumular_con_base_historica()` en vez de `_acumular_por_trimestre()`:
+    la base de 2015-Q1 ya arranca en 33 (lo firmado antes de 2015 que
+    seguía vigente), no en 0. Verificado con datos reales: 47 trimestres
+    (2015-Q1 a 2026-Q3), de 33 a 39 acuerdos vigentes, 0 diffs contra un
+    recálculo independiente. **Verificación de que no es redundante con
+    USTR**: correlación en niveles 0,86 (efecto de tendencia compartida,
+    ambas series solo crecen) pero en primeras diferencias cae a 0,07 — son
+    estadísticamente independientes (ver DICCIONARIO_VARIABLES.md para el
+    detalle del análisis y la nota sobre la TIFA, que aparece en las dos
+    fuentes con fechas distintas — firma en USTR, entrada en vigor en TIF —
+    por diseño, no por error).
+
+    Esta redirección hacia medidas continuas (menciones totales, stock
+    acumulado) es directamente relevante para el
     pendiente #6 ("reemplazar conteos de eventos raros por alguna medida de
     intensidad continua") — sigue sin estar incorporada al índice, pero el
-    insumo para intentarlo ya existe.
+    insumo para intentarlo ya existe. **MRE, agregado 2026-09-22 —
+    integración en curso, ver `mre_menciones_eeuu.py` en la sección de
+    ingestion más arriba para el detalle de origen y los dos cambios
+    hechos**: mismo patrón de dos variables que Congreso —
+    `mre_noticias_bilaterales` (cantidad por trimestre con `es_bilateral
+    == 1`, clasificación ya calculada por reglas explícitas en
+    `mre_scraping/clasificar_bilateral.py` — a diferencia de Congreso, el
+    umbral de relevancia ya viene aplicado en el dato crudo, no se
+    reaplica en processing) y `mre_menciones_totales_eeuu` (suma de
+    `numero_menciones_eeuu` de todas las noticias válidas del trimestre,
+    sin umbral). Es la contraparte del lado paraguayo de USTR/Congreso.
+    Estado: código escrito y listo, pendiente de verificar con datos
+    reales hasta que termine la corrida completa de `mre_scraping/`
+    (lanzada 2026-09-22, dura horas).
   - `compromiso_economico_privado.py` (dimensión 3, 5 variables, todo
     **monetario en USD sin escalar**): exportaciones/importaciones con
     EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
@@ -1002,20 +1123,28 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    normalizarse producirían saltos enormes. La vía más prometedora es
    reemplazar conteos de eventos raros por alguna medida de intensidad
    continua.
-7. **Mover la descarga del IPC a `src/ingestion/`.** Hoy la etapa 04 baja la
-   serie de BLS en tiempo de render, lo que hace que el documento dependa de
-   una API externa para poder compilarse. Debería ser un módulo de ingestion
-   más, con su archivo versionado en Drive.
+7. ~~**Mover la descarga del IPC a `src/ingestion/`.**~~ **Resuelto
+   2026-09-22** — `bls_ipc_eeuu.py` (ver sección 6) ya sube el JSON crudo de
+   la serie a Drive. **Falta un paso más, no incluido en esto**: la etapa 04
+   (`04_construccion_indice.qmd`) todavía pide la serie en vivo a la API del
+   BLS en tiempo de render — no se tocó el `.qmd` porque esa sección está en
+   pausa (ajuste metodológico en curso, a pedido del usuario). Cuando se
+   retome, hay que cambiar `descargar_ipc()` para que lea de Drive en vez de
+   llamar a la API. Mismo caso para la población: se agregó
+   `ine_poblacion_paraguay.py` (fuente oficial del INE, alternativa/
+   complemento al `SP.POP.TOTL` del Banco Mundial que ya usa el `.qmd`) —
+   tampoco está conectada todavía, mismo motivo.
 8. **Contrastar el índice con indicadores externos** — es el paso 9 del
    manual de la OCDE y el único de los diez que hoy no se cumple.
 9. **Definir la política de re-basificación**: cada cuántos años se
    actualiza el período base 2015-2019 del índice y cómo se publica la
    transición (la práctica estándar es publicar ambas series durante un
    tiempo).
-10. **Higiene del repo**: `.env.example` está borrado en el working tree
-    (es la plantilla versionada que el README y la sección 5 citan para que
-    otra persona pueda correr el proyecto), y `.venv/` no está en
-    `.gitignore` (solo lo está `gdelt_extraction/.venv/`).
+10. ~~**Higiene del repo**~~ **Resuelto 2026-09-22**: `.env.example`
+    restaurado (las 4 variables reales confirmadas con
+    `grep -rn "os\.environ\[" src/ *.py` — sin sorpresas respecto a lo que
+    ya decía la sección 5), y `.venv/` agregado a `.gitignore` en la raíz
+    (antes solo estaban `gdelt_extraction/.venv/` y `mre_scraping/.venv/`).
 
 *(Resuelto 2026-08-26: `bea_inversion_directa.py` escrito y probado en local
 con la `BEA_API_KEY` que generó el usuario — falta confirmar que el secret
