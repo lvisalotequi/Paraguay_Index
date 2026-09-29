@@ -542,10 +542,12 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     on Trade and Investment"), no la fecha del comunicado. La verificación
     distingue esto de un error real (fecha que sí aparece pero no coincide)
     y lo marca como "no se pudo confirmar", no como "dato incorrecto".
-  - `state_gov_tias_paraguay.py` — **en revisión desde 2026-09-22** (no
-    Validado): ver `state_gov_tif_vigentes.py` más abajo, agregada el mismo
-    día y candidata a reemplazarla más adelante (decisión pendiente,
-    todavía no tomada — por ahora coexisten). Publicaciones TIAS (Treaties
+  - `state_gov_tias_paraguay.py` — **ya no es la fuente de
+    `state_gov_tias_vigentes` (rediseñada 2026-09-29)**: ver
+    `state_gov_tif_vigentes.py` más abajo y la nota de processing en la
+    sección 6 (`actividad_gubernamental_y_diplomatica.py`) — la variable se
+    reconstruyó para leer de ahí en vez de este módulo, que queda en el
+    repo sin usar (el usuario decidió no eliminarlo por ahora). Publicaciones TIAS (Treaties
     and Other International Acts Series) entre Paraguay y EE.UU., desde el
     Office of Treaty Affairs de state.gov. state.gov no tiene un índice navegable de
     TIAS por país ni un buscador propio que sirva para esto (confirmado
