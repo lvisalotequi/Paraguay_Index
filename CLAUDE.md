@@ -827,8 +827,24 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     obligaciones/desembolsos de ForeignAssistance.gov (anual, repetido en
     los 4 trimestres — la fuente no tiene fecha más fina que el año
     fiscal), obligaciones de USAspending (trimestral real, sumando
-    `federal_action_obligation` de las transacciones Contracts+Assistance
-    por `action_date`), comprometido de DFC + `dfc_proyectos_vigentes`
+    `federal_action_obligation` por `action_date` de: TODAS las
+    transacciones de Contracts, más solo las de Assistance cuya
+    `awarding_agency_name` sea Social Security Administration, Railroad
+    Retirement Board o Department of Veterans Affairs — **rediseñada
+    2026-09-28, a pedido del usuario, "excluir toda la asistencia
+    extranjera, quedarnos con el resto"**: el resto de Assistance (USAID,
+    Departamento de Estado, USDA/Food for Progress, IAF, HHS, Interior —
+    ~US$118,9M 2015-2026) se excluye porque ya lo mide `fa_gov_obligaciones`/
+    `fa_gov_desembolsos`; las tres agencias que sí se mantienen no son
+    asistencia extranjera pese a estar clasificadas como "Assistance" por
+    USAspending — son pagos de beneficios individuales (jubilación, pensión,
+    compensación por discapacidad) a personas que residen en Paraguay, sin
+    relación con cooperación bilateral (~US$30,4M 2015-2026, ver
+    `AGENCIAS_NO_ASISTENCIA_EXTRANJERA` en el código y
+    `DICCIONARIO_VARIABLES.md` para el detalle completo con montos por
+    agencia); total de la variable tras el cambio: ~US$313,5M, antes
+    ~US$431,8M con Assistance completo, 47 trimestres, 2015-Q1 a 2026-Q3),
+    comprometido de DFC + `dfc_proyectos_vigentes`
     (stock de vigencia, ver arriba), autorizado de EXIM + `exim_desembolsado`
     (trimestral real por `Decision Date`, solo `Decision == "Approved"`), y
     de BID/Banco Mundial: `bid_proyectos_aprobados`/

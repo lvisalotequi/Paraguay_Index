@@ -18,7 +18,11 @@ Fuentes y como se tratan (confirmado con datos reales el 2026-09-03):
       transacciones en si, no los subawards), sumando
       `federal_action_obligation` por trimestre segun `action_date`. A
       diferencia de fa_gov, esta SI tiene fecha de transaccion real -
-      trimestral autentico.
+      trimestral autentico. **Assistance se filtra (2026-09-28, a pedido
+      del usuario) para no duplicar lo que ya mide `fa_gov` - ver
+      `AGENCIAS_NO_ASISTENCIA_EXTRANJERA` y el docstring de
+      `_extraer_usaspending()` para el detalle completo y los montos reales
+      que respaldan la decision.**
     - dfc_proyectos_activos (Excel unico, todos los paises, hoja
       "Project Data"): se filtra a `Country == "Paraguay"` y se suman DOS
       variables por trimestre: `dfc_comprometido` (`Committed` por `Fiscal
@@ -158,17 +162,62 @@ def _extraer_fa_gov():
     return _repetir_en_trimestres(totales["Obligations"]), _repetir_en_trimestres(totales["Disbursements"])
 
 
+
+# Agencias cuyas filas de Assistance se MANTIENEN (2026-09-28, a pedido del
+# usuario - "excluir toda la asistencia extranjera, quedarnos con el
+# resto"). Estas tres NO son asistencia extranjera pese a estar clasificadas
+# como "Assistance" por USAspending: son pagos de beneficios individuales
+# (jubilacion, pension, compensacion por discapacidad) de EE.UU. a personas
+# que residen en Paraguay - no tienen nada que ver con cooperacion
+# bilateral ni se solapan con lo que reporta fa_gov (que solo trackea
+# programas de USAID/Departamento de Estado, no beneficios individuales).
+# Verificado con datos reales 2015-2026, por `awarding_agency_name`:
+#   Social Security Administration      $29.600.411 (417 transacciones)
+#   Railroad Retirement Board              $209.718 (219 transacciones)
+#   Department of Veterans Affairs         $566.102 (74 transacciones -
+#     "Pension to Veterans...", "Veterans Compensation for Service-Connected
+#     Disability...", "Post-9/11 Veterans Educational Assistance")
+# Todas las demas agencias que aparecen en Assistance para Paraguay SI son
+# asistencia extranjera propiamente dicha y quedan excluidas:
+#   Agency for International Development   $70.797.374
+#   Department of State                     $24.084.099
+#   Department of Agriculture               $14.710.573 (Food for Progress)
+#   Inter-American Foundation                $3.968.504
+#   Department of Health and Human Services  $3.536.686 (salud publica global)
+#   Department of the Interior               $1.218.990 (conservacion/vida silvestre)
+AGENCIAS_NO_ASISTENCIA_EXTRANJERA = (
+    "Social Security Administration",
+    "Railroad Retirement Board",
+    "Department of Veterans Affairs",
+)
+
+
 def _extraer_usaspending():
-    """Devuelve {(anio,trim): usd} sumando `federal_action_obligation` de
-    las transacciones (Contracts + Assistance) por trimestre de `action_date`."""
+    """Devuelve {(anio,trim): usd} sumando `federal_action_obligation` por
+    trimestre de `action_date`, de:
+    - TODAS las transacciones de Contracts (compras directas del gobierno
+      de EE.UU. con desempeño en Paraguay - no se solapan con fa_gov).
+    - Solo las transacciones de Assistance cuya `awarding_agency_name` esta
+      en AGENCIAS_NO_ASISTENCIA_EXTRANJERA (ver esa constante para el
+      detalle completo). El resto de Assistance (USAID, Departamento de
+      Estado, y otros programas de cooperacion/ayuda internacional) se
+      excluye a proposito porque ya lo mide `fa_gov_obligaciones`/
+      `fa_gov_desembolsos` - sumarlo aca duplicaria esa plata."""
     acumulado = {}
     for archivo in _archivos("usaspending_obligaciones"):
         contenido = descargar_archivo(archivo["id"])
         z = zipfile.ZipFile(io.BytesIO(contenido))
         for nombre in z.namelist():
-            if "PrimeTransactions" not in nombre:
+            if "Contracts_PrimeTransactions" in nombre:
+                df = pd.read_csv(z.open(nombre), usecols=["action_date", "federal_action_obligation"])
+            elif "Assistance_PrimeTransactions" in nombre:
+                df = pd.read_csv(
+                    z.open(nombre),
+                    usecols=["action_date", "federal_action_obligation", "awarding_agency_name"],
+                )
+                df = df[df["awarding_agency_name"].isin(AGENCIAS_NO_ASISTENCIA_EXTRANJERA)]
+            else:
                 continue
-            df = pd.read_csv(z.open(nombre), usecols=["action_date", "federal_action_obligation"])
             parcial = _sumar_por_trimestre(df["action_date"], df["federal_action_obligation"])
             for clave, valor in parcial.items():
                 acumulado[clave] = acumulado.get(clave, 0.0) + valor
