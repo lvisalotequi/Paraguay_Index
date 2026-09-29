@@ -39,11 +39,15 @@ congreso_menciones_paraguay rediseñado 2026-09-10):
       Consejo de Comercio e Inversion o antecedente): cantidad de hitos por
       trimestre segun `fecha`. Fuente muy dispersa (pocos eventos en total
       desde 2015) - la mayoria de los trimestres van a quedar en 0/ausentes.
-    - state_gov_tias_paraguay (un Excel, una fila por TIAS de Paraguay):
-      **stock acumulado** de TIAS vigentes por trimestre (politica
-      2026-09-10, a pedido del usuario - antes era cantidad de TIAS NUEVOS
-      ese trimestre, igual de disperso que USTR, lo cual no calzaba con el
-      propio nombre de la variable, "vigentes"). Ver `_acumular_por_trimestre()`.
+    - state_gov_tias_paraguay: **rediseñada 2026-09-29, ya no es la fuente
+      de datos de `state_gov_tias_vigentes`** (a pedido del usuario - "no
+      eliminemos la variable, pero reconstruyamosla con la info del TIF").
+      `_extraer_tias()` ahora filtra el archivo de `state_gov_tif_vigentes`
+      (ver mas abajo) a las filas cuya `cita` contiene "TIAS", en vez de
+      leer el Excel que sube este modulo - ver el detalle completo mas
+      abajo, junto a `state_gov_tif_vigentes`. El modulo de ingestion
+      (`src/ingestion/state_gov_tias_paraguay.py`) queda en el repo sin
+      tocar, simplemente processing ya no lo usa.
     - mre_menciones_eeuu (2026-09-22, un CSV `noticias_clasificadas_*.csv`,
       una fila por noticia del archivo del MRE de Paraguay): **dos
       variables**, mismo patron que Congreso - `mre_noticias_bilaterales`
@@ -71,28 +75,17 @@ relaciones bilaterales). Congreso y USTR NO se cambiaron a este enfoque:
 una reunion o un proyecto de ley no tiene "vigencia" en el mismo sentido -
 ocurren y terminan, no hay un estado legal que persista despues.
 
-**Limite explicito, no verificado:** `_acumular_por_trimestre()` asume que
-ningun TIAS se da de baja (terminado/reemplazado/vencido) despues de
-entrar en vigor - no hay ningun mecanismo que lo detecte. No es un problema
-practico hoy (ninguno de los 3 TIAS conocidos esta documentado como
-terminado), pero queda como supuesto explicito, no como algo confirmado.
-`state_gov_tias_vigentes` queda **en revision** desde el 2026-09-22 (no
-Validado) - ver `state_gov_tif_vigentes` mas abajo, candidata a
-reemplazarla.
-
-**`state_gov_tif_vigentes` (agregada 2026-09-22, a pedido del usuario - se
-AGREGA, no reemplaza a `state_gov_tias_vigentes`):** stock acumulado de
+**`state_gov_tif_vigentes` (agregada 2026-09-22):** stock acumulado de
 TODOS los tratados y acuerdos bilaterales EE.UU.-Paraguay que siguen
 vigentes segun "Treaties in Force" (TIF), la publicacion oficial anual del
 Departamento de Estado - ver `state_gov_tif_vigentes.py` para el detalle
-completo de como se extrae (resuelve exactamente el limite de arriba: el
-propio DOS ya excluye lo terminado/reemplazado, no hay que asumir nada). A
-diferencia de `state_gov_tias_vigentes`, no se limita a instrumentos con
-numero TIAS ni a firmas posteriores a 2015 - incluye acuerdos vigentes
-firmados desde 1860. Por eso su acumulado usa
-`_acumular_con_base_historica()` en vez de `_acumular_por_trimestre()`: la
-base de 2015-Q1 ya arranca en 33 (los acuerdos firmados antes de 2015 que
-seguian vigentes), no en 0. **Verificacion de que no es redundante con
+completo de como se extrae. A diferencia del enfoque original de
+`state_gov_tias_vigentes`, no se limita a instrumentos con numero TIAS ni a
+firmas posteriores a 2015 - incluye acuerdos vigentes firmados desde 1860.
+Por eso su acumulado usa `_acumular_con_base_historica()` en vez de
+`_acumular_por_trimestre()`: la base de 2015-Q1 ya arranca en 33 (los
+acuerdos firmados antes de 2015 que seguian vigentes), no en 0.
+**Verificacion de que no es redundante con
 `ustr_hitos_consejo_comercio_inversion` (2026-09-22):** correlacion en
 niveles 0,86 (esperable, ambas series solo crecen en el tiempo - efecto de
 tendencia compartida, no de comovimiento real), pero en primeras
@@ -106,6 +99,34 @@ es el mismo instrumento en ambas fuentes, pero USTR la fecha por *firma*
 (2017-01-13) y el TIF por *entrada en vigor* (2021-03-17) - los ~4 anios de
 diferencia son el tramite de ratificacion, no un error de ninguna de las
 dos fuentes.
+
+**`state_gov_tias_vigentes`, rediseñada 2026-09-29 para usar el TIF como
+fuente (a pedido del usuario - no se elimina la variable, se reconstruye):**
+antes leia el Excel que sube `state_gov_tias_paraguay.py` (busqueda en vivo
+por DuckDuckGo, encontraba solo 3 TIAS, los 3 posteriores a 2015 - por eso
+el stock arrancaba en 0 en 2015-Q1 y el docstring de `_extraer_tias()`
+dejaba explicito el supuesto no verificado de que ningun TIAS se daba de
+baja). Ahora `_extraer_tias()` filtra el mismo archivo de
+`state_gov_tif_vigentes` a las filas cuya columna `cita` contiene "TIAS"
+(29 de los 39 acuerdos - el resto son citas "TS"/"NP"/sin numero, no TIAS)
+y les aplica `_acumular_con_base_historica()`, el mismo metodo que usa
+`_extraer_tif()`. Dos mejoras de una sola vez, verificadas con datos reales
+2026-09-29:
+    1. **Base historica real**: de los 29 TIAS filtrados, 26 son anteriores
+       a 2015 (el mas viejo, 1947) y 3 son 2015 en adelante - la base de
+       2015-Q1 pasa de 0 a **26**, en vez de ignorar todo lo firmado antes.
+    2. **Se hereda la garantia de "vigente" del TIF**: como el DOS ya
+       excluye del TIF lo terminado/reemplazado antes de publicarlo, el
+       supuesto de "ningun TIAS se da de baja" que tenia la version vieja
+       queda resuelto, no solo documentado - la misma razon por la que TIF
+       no lo necesita.
+    Los 3 TIAS posteriores a 2015 que arroja el filtro son exactamente los
+    mismos 3 que ya conocia el scraper original (TIFA 2021-03-17, cooperacion
+    aduanera/policial 2021-10-22, migracion 2025-08-14) - confirma que no se
+    pierde ningun TIAS conocido al cambiar de fuente, solo se gana la base
+    pre-2015. El modulo `state_gov_tias_paraguay.py` (ingestion) queda en el
+    repo sin usar por processing - el usuario decidio no eliminarlo por
+    ahora ("vamos a dejarlo").
 
 Se usa el archivo mas reciente subido por ingestion de cada fuente (todas
 suben un Excel nuevo por dia con fecha en el nombre).
@@ -189,54 +210,31 @@ def _extraer_ustr():
     return _contar_por_trimestre(df["fecha"])
 
 
-def _acumular_por_trimestre(fechas):
-    """Devuelve {(anio,trim): cantidad ACUMULADA} - a diferencia de
-    _contar_por_trimestre, no es cuantos eventos son NUEVOS ese trimestre,
-    es un stock: cuantos ya estaban vigentes a esa fecha, repitiendo el
-    ultimo acumulado en los trimestres sin eventos nuevos (para que no
-    queden huecos entre un evento y el siguiente). Cubre desde el trimestre
-    del primer evento hasta el trimestre actual (no hasta donde llega la
-    fuente - el stock sigue siendo valido despues del ultimo evento
-    conocido). Ver docstring del modulo para el supuesto de que ningun
-    evento se da de baja."""
-    eventos = _contar_por_trimestre(fechas)
-    if not eventos:
-        return {}
-
-    anio, trim = min(eventos)
-    hoy = datetime.now(timezone.utc)
-    ultimo_trim = (hoy.year, (hoy.month - 1) // 3 + 1)
-
-    acumulado = {}
-    total = 0
-    while (anio, trim) <= ultimo_trim:
-        total += eventos.get((anio, trim), 0)
-        acumulado[(anio, trim)] = total
-        trim += 1
-        if trim > 4:
-            trim = 1
-            anio += 1
-    return acumulado
-
-
 def _extraer_tias():
-    """Devuelve el STOCK acumulado de TIAS vigentes por trimestre (no la
-    cantidad de TIAS nuevos ese trimestre) - ver docstring del modulo,
-    politica 2026-09-10. En revision (2026-09-22): ver state_gov_tif_vigentes.py,
-    candidata a reemplazar esta variable mas adelante."""
-    df = _excel_mas_reciente("state_gov_tias_paraguay")
-    return _acumular_por_trimestre(df["fecha_entrada_vigor"])
+    """Devuelve el STOCK acumulado de TIAS (Treaties and Other International
+    Acts Series) de Paraguay vigentes por trimestre, con base historica
+    pre-2015 - rediseñada 2026-09-29 para leer de `state_gov_tif_vigentes`
+    en vez de `state_gov_tias_paraguay` (ver docstring del modulo para el
+    detalle completo de por que y que cambia).
+
+    Filtra el archivo ya subido por state_gov_tif_vigentes.py (39 acuerdos,
+    cualquier tipo de cita) a solo las filas cuya `cita` contiene "TIAS" (29
+    de 39 - verificado 2026-09-29: 26 anteriores a 2015, que pasan a formar
+    la base de 2015-Q1 via _acumular_con_base_historica(), y 3 desde 2015 en
+    adelante, los mismos 3 que ya encontraba el scraper original)."""
+    df = _excel_mas_reciente("state_gov_tif_vigentes")
+    es_tias = df["cita"].astype(str).str.contains("TIAS", na=False)
+    return _acumular_con_base_historica(df.loc[es_tias, "fecha_entrada_vigor"])
 
 
 def _acumular_con_base_historica(fechas):
-    """Como _acumular_por_trimestre, pero sin descartar los eventos
-    anteriores a ANIO_MINIMO: los suma todos a una BASE que ya arranca
-    activa en el primer trimestre (2015-Q1), en vez de ignorarlos.
-    _acumular_por_trimestre no sirve para esto porque internamente llama a
-    _contar_por_trimestre, que filtra `anio >= ANIO_MINIMO` antes de
-    contar - correcto para TIAS (no tiene nada anterior a 2015) pero
-    incorrecto para TIF, que trae acuerdos vigentes firmados mucho antes
-    (el mas viejo, 1860) que siguen contando para el stock de hoy."""
+    """Devuelve el STOCK acumulado por trimestre, igual que un conteo con
+    stock normal, pero sin descartar los eventos anteriores a ANIO_MINIMO:
+    los suma todos a una BASE que ya arranca activa en el primer trimestre
+    (2015-Q1), en vez de ignorarlos. Usada por _extraer_tif() (39 acuerdos,
+    el mas viejo de 1860) y por _extraer_tias() (el subconjunto de esos 39
+    con cita TIAS) - las dos fuentes de esta dimension que tienen eventos
+    anteriores a 2015 que siguen vigentes hoy."""
     fechas = pd.to_datetime(fechas, errors="coerce").dropna()
     base = int((fechas.dt.year < ANIO_MINIMO).sum())
     fechas_en_rango = fechas[fechas.dt.year >= ANIO_MINIMO]
@@ -266,10 +264,10 @@ def _extraer_tif():
     """Devuelve el STOCK acumulado de TODOS los tratados y acuerdos
     bilaterales vigentes EE.UU.-Paraguay por trimestre (no solo
     publicaciones TIAS, cualquier tipo de cita - ver
-    state_gov_tif_vigentes.py). A diferencia de _extraer_tias(), la base
-    incluye los acuerdos firmados ANTES de 2015 que seguian vigentes (33 de
-    los 39 conocidos al 2026-09-22) - por eso usa
-    _acumular_con_base_historica() en vez de _acumular_por_trimestre()."""
+    state_gov_tif_vigentes.py). La base de 2015-Q1 incluye los 33 (de 39
+    conocidos al 2026-09-22) acuerdos firmados ANTES de 2015 que seguian
+    vigentes - por eso usa _acumular_con_base_historica(). _extraer_tias()
+    es el mismo calculo sobre el subconjunto de estos 39 con cita TIAS."""
     df = _excel_mas_reciente("state_gov_tif_vigentes")
     return _acumular_con_base_historica(df["fecha_entrada_vigor"])
 

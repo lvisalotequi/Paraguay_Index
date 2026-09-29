@@ -888,40 +888,53 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     continua de volumen. La variable vieja (conteo simple de proyectos, sin
     distinguir mención central de mención de paso) queda retirada — su
     carpeta de Drive quedó huérfana (el servicio no puede borrarla, rol
-    Writer). **TIAS, política 2026-09-10**: `state_gov_tias_vigentes` pasó
-    de contar TIAS *nuevos* por trimestre (disperso — 3 trimestres con
-    datos, no calzaba con el propio nombre "vigentes") a un **stock
-    acumulado** de TIAS vigentes (`_acumular_por_trimestre()` — mismo
-    enfoque que usa el Departamento de Estado en su reporte anual
-    "Treaties in Force" y el World Treaty Index para operacionalizar
-    relaciones bilaterales). USTR no se cambió a stock a propósito: una
-    reunión no tiene "vigencia" que persista después de ocurrir, a
-    diferencia de un tratado. **Límite explícito y no verificado**: el
-    stock de TIAS asume que ninguno se da de baja después de entrar en
-    vigor — no hay ningún mecanismo que lo detecte. `state_gov_tias_vigentes`
-    queda **en revisión** desde 2026-09-22 (no Validado) — ver
-    `state_gov_tif_vigentes` justo abajo, que sí resuelve ese límite.
+    Writer). **TIAS, política 2026-09-10, rediseñada 2026-09-29**:
+    `state_gov_tias_vigentes` pasó primero (2026-09-10) de contar TIAS
+    *nuevos* por trimestre (disperso — 3 trimestres con datos, no calzaba
+    con el propio nombre "vigentes") a un **stock acumulado** de TIAS
+    vigentes, pero sin base pre-2015 (`_acumular_por_trimestre()`, leyendo
+    el Excel de `state_gov_tias_paraguay.py` — histórico fijo + búsqueda en
+    vivo por DuckDuckGo, solo encontraba 3 TIAS, todos ≥2015) y con un
+    límite explícito y no verificado: asumía que ningún TIAS se daba de
+    baja después de entrar en vigor, sin ningún mecanismo que lo detectara.
 
-    **`state_gov_tif_vigentes` (agregada 2026-09-22, Validado — se AGREGA,
-    no reemplaza a `state_gov_tias_vigentes`, decisión del usuario)**:
-    stock acumulado de TODOS los tratados/acuerdos bilaterales vigentes
-    según "Treaties in Force" (TIF), la publicación oficial anual del
-    Departamento de Estado — resuelve directamente el límite de arriba,
-    porque el propio DOS ya excluye lo terminado antes de publicar la
-    lista, no hay que asumir nada. A diferencia de `state_gov_tias_vigentes`,
-    no se limita a instrumentos con número TIAS ni a firmas posteriores a
-    2015 (incluye acuerdos vigentes firmados desde 1860) — por eso usa
-    `_acumular_con_base_historica()` en vez de `_acumular_por_trimestre()`:
-    la base de 2015-Q1 ya arranca en 33 (lo firmado antes de 2015 que
-    seguía vigente), no en 0. Verificado con datos reales: 47 trimestres
-    (2015-Q1 a 2026-Q3), de 33 a 39 acuerdos vigentes, 0 diffs contra un
-    recálculo independiente. **Verificación de que no es redundante con
-    USTR**: correlación en niveles 0,86 (efecto de tendencia compartida,
-    ambas series solo crecen) pero en primeras diferencias cae a 0,07 — son
-    estadísticamente independientes (ver DICCIONARIO_VARIABLES.md para el
-    detalle del análisis y la nota sobre la TIFA, que aparece en las dos
-    fuentes con fechas distintas — firma en USTR, entrada en vigor en TIF —
-    por diseño, no por error).
+    **`state_gov_tif_vigentes` (agregada 2026-09-22, Validado)**: stock
+    acumulado de TODOS los tratados/acuerdos bilaterales vigentes según
+    "Treaties in Force" (TIF), la publicación oficial anual del
+    Departamento de Estado — resuelve el límite de arriba, porque el propio
+    DOS ya excluye lo terminado antes de publicar la lista, no hay que
+    asumir nada. No se limita a instrumentos con número TIAS ni a firmas
+    posteriores a 2015 (incluye acuerdos vigentes firmados desde 1860) —
+    por eso usa `_acumular_con_base_historica()` en vez de
+    `_acumular_por_trimestre()`: la base de 2015-Q1 ya arranca en 33 (lo
+    firmado antes de 2015 que seguía vigente), no en 0. Verificado con
+    datos reales: 47 trimestres (2015-Q1 a 2026-Q3), de 33 a 39 acuerdos
+    vigentes, 0 diffs contra un recálculo independiente. **Verificación de
+    que no es redundante con USTR**: correlación en niveles 0,86 (efecto de
+    tendencia compartida, ambas series solo crecen) pero en primeras
+    diferencias cae a 0,07 — son estadísticamente independientes (ver
+    DICCIONARIO_VARIABLES.md para el detalle del análisis y la nota sobre
+    la TIFA, que aparece en las dos fuentes con fechas distintas — firma en
+    USTR, entrada en vigor en TIF — por diseño, no por error).
+
+    **`state_gov_tias_vigentes`, rediseñada 2026-09-29 (a pedido del
+    usuario — "no eliminar la variable, reconstruirla con la información
+    del TIF")**: `_extraer_tias()` ya no lee el Excel de
+    `state_gov_tias_paraguay.py` — filtra el archivo ya subido por
+    `state_gov_tif_vigentes.py` a las filas cuya columna `cita` contiene
+    "TIAS" (29 de los 39 acuerdos) y les aplica `_acumular_con_base_historica()`,
+    el mismo método que usa `_extraer_tif()`. Resuelve las dos limitaciones
+    de una sola vez: la base de 2015-Q1 pasa de 0 a **26** (los TIAS
+    firmados antes de 2015 que seguían vigentes, el más viejo de 1947), y
+    el supuesto de "ningún TIAS se da de baja" queda resuelto en vez de
+    solo documentado, porque se hereda directamente de la garantía del TIF.
+    Verificado con datos reales: los 3 TIAS posteriores a 2015 que arroja
+    el filtro (TIFA 2021-03-17, cooperación aduanera/policial 2021-10-22,
+    migración 2025-08-14) son exactamente los mismos 3 que ya conocía el
+    scraper original — no se pierde ningún TIAS conocido al cambiar de
+    fuente. `state_gov_tias_vigentes` pasa a **Validado**;
+    `src/ingestion/state_gov_tias_paraguay.py` queda en el repo sin usar
+    por processing (el usuario decidió no eliminarlo por ahora).
 
     Esta redirección hacia medidas continuas (menciones totales, stock
     acumulado) es directamente relevante para el
