@@ -16,10 +16,10 @@ análisis.
 | --- | --- | --- |
 | 1 | Compromiso financiero oficial | ✅ 6 fuentes activas |
 | 2 | Actividad gubernamental y diplomática | 🟡 5 fuentes activas |
-| 3 | Compromiso económico privado | ✅ 4 fuentes activas |
+| 3 | Compromiso económico privado | ✅ 5 fuentes activas |
 | 4 | Visibilidad mediática y relevancia pública | 🟡 2 fuentes activas |
 
-**21 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
+**22 fuentes de datos corriendo hoy**, automáticamente cada 3 meses vía
 GitHub Actions:
 
 - **Compromiso financiero oficial**: ForeignAssistance.gov, USAspending,
@@ -37,7 +37,9 @@ GitHub Actions:
   de Paraguay clasificadas por bilateralidad con EE.UU. (`mre_scraping/`,
   corrida a mano localmente igual que GDELT).
 - **Compromiso económico privado**: Comercio Exterior (BCP), Inversión
-  Directa (BCP + BEA), Remesas Familiares (BCP).
+  Directa (BCP + BEA), Remesas Familiares (BCP), Turismo receptivo de
+  EE.UU. (INE — falta 2016 en la fuente, estimado con promedio aritmético
+  de 2015/2017).
 - **Visibilidad mediática**: cobertura bilateral vía GDELT (regla "proxy B"),
   corrida a mano localmente y centralizada en Drive; interés de búsqueda en
   Google (Google Trends, `geo=US`, 3 términos fijos: trade/tariffs/embassy).
@@ -153,6 +155,7 @@ significa que ya se revisó y se puede usar tal cual.
 | 3. Compromiso económico privado | **inversion_directa_bcp** | **Validado** (datos completos hasta 2024; 2025 pendiente de que el BCP publique el desglose por país, esperado octubre 2026 — ver `src/processing/compromiso_economico_privado.py`) |
 | 3. Compromiso económico privado | **remesas** (Remesas internacionales) | **Validado** |
 | 3. Compromiso económico privado | **bea_inversion_directa** | **Validado** |
+| 3. Compromiso económico privado | **turismo_receptivo_eeuu** | **Validado** (2016 estimado, ver DICCIONARIO_VARIABLES.md) |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles** (BOTH = PY+US) | **Validado** |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_tone_promedio** (BOTH = PY+US) | **Validado** |
 | 4. Visibilidad mediática y relevancia pública | **gdelt_proxy_articles_py** | **Validado** |
@@ -180,6 +183,7 @@ Paraguay_Index/
 │   │   ├── bcp_inversion_directa.py            # Anexo Estadístico de Inversión Directa del BCP          (dimensión 3)
 │   │   ├── bcp_remesas_familiares.py           # Excel de Remesas Familiares del BCP                      (dimensión 3)
 │   │   ├── bea_inversion_directa.py            # API de BEA, dataset MNE                                  (dimensión 3)
+│   │   ├── ine_turismo_receptivo.py            # Histórico fijo, Cuadro 2.4.2 del Anuario INE              (dimensión 3)
 │   │   ├── fa_gov_asistencia_oficial.py        # API de ForeignAssistance.gov                             (dimensión 1)
 │   │   ├── usaspending_obligaciones.py         # API asíncrona de USAspending                             (dimensión 1)
 │   │   ├── dfc_proyectos_activos.py            # Excel de proyectos activos de DFC                        (dimensión 1)
@@ -200,7 +204,7 @@ Paraguay_Index/
 │       ├── _common.py                                     # Convención compartida de salida (subir_variable, reescalar)
 │       ├── compromiso_financiero_oficial.py               # 12 variables                   (dimensión 1)
 │       ├── actividad_gubernamental_y_diplomatica.py       # 7 variables                    (dimensión 2)
-│       ├── compromiso_economico_privado.py                # 5 variables                    (dimensión 3)
+│       ├── compromiso_economico_privado.py                # 6 variables                    (dimensión 3)
 │       └── visibilidad_mediatica_y_relevancia_publica.py  # 9 variables                    (dimensión 4)
 │
 ├── gdelt_extraction/                    # Extractor de GDELT (dimensión 4) - corre aparte y a mano, no vía run_pipeline.py
@@ -259,6 +263,7 @@ Paraguay_Index/
 - **`bcp_inversion_directa.py`** — Anexo Estadístico de Inversión Directa del BCP (`_obtener_archivo()`) → `run()`.
 - **`bcp_remesas_familiares.py`** — Excel de Remesas Familiares del BCP (`_obtener_archivo()`) → `run()`.
 - **`bea_inversion_directa.py`** — API de BEA, dataset MNE (`_pedir_datos()`) → `run()`.
+- **`ine_turismo_receptivo.py`** — histórico fijo de 9 años (2015, 2017-2024) del Cuadro 2.4.2 del Anuario del INE: `_fila_eeuu_desde_xlsx(contenido)`, `_fila_eeuu_desde_pdf_2015(contenido)` (2015 solo existe adentro del PDF completo) → `run()`.
 - **`fa_gov_asistencia_oficial.py`** — API de ForeignAssistance.gov, un JSON por año+medida (`_pedir_medida(anio, medida)`) → `run()`.
 - **`usaspending_obligaciones.py`** — API asíncrona de USAspending, un ZIP por año (`_pedir_descarga(anio)`, `_esperar_archivo(file_name)`) → `run()`.
 - **`dfc_proyectos_activos.py`** — Excel único de proyectos activos de DFC (`_obtener_archivo()`) → `run()`.
@@ -282,5 +287,5 @@ Paraguay_Index/
 - **`_common.py`** (helper, no es un módulo de processing) — convención compartida de salida: `subir_variable(dimension_limpia, variable, valores, unidad)` arma y sube el CSV (`trimestre, anio, trimestre_num, valor, unidad`); `reescalar(valores, factor)` convierte unidades nativas (miles/millones) a USD.
 - **`compromiso_financiero_oficial.py`** (dimensión 1) — `_extraer_fa_gov()`, `_extraer_usaspending()`, `_extraer_dfc()`, `_extraer_exim()`, `_extraer_bid()`, `_extraer_bancomundial()`, más los helpers de fecha→trimestre `_sumar_por_trimestre()`/`_repetir_en_trimestres()` → `run()` (12 variables).
 - **`actividad_gubernamental_y_diplomatica.py`** (dimensión 2) — `_extraer_congreso()` (devuelve dos series: relevantes y menciones totales), `_extraer_ustr()`, `_extraer_tias()` (stock acumulado, en revisión), `_extraer_tif()` (stock acumulado con base histórica pre-2015), `_extraer_mre()` (devuelve dos series: noticias bilaterales y menciones totales), `_contar_por_trimestre(fechas)`, `_acumular_por_trimestre(fechas)`, `_acumular_con_base_historica(fechas)` → `run()` (7 variables).
-- **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (5 variables).
+- **`compromiso_economico_privado.py`** (dimensión 3) — `_extraer_comercio_exterior()`, `_extraer_inversion_directa_bcp()`, `_extraer_remesas()`, `_extraer_bea_posicion()`, `_extraer_turismo_receptivo()` (incluye `_estimar_2016_turismo()`, promedio aritmético), más los helpers de parseo del formato BCP `_mapear_columnas_trimestre()`/`_extraer_fila_pais_trimestral()`/`_sin_acentos()` → `run()` (6 variables).
 - **`visibilidad_mediatica_y_relevancia_publica.py`** (dimensión 4) — `_extraer_gdelt()` (devuelve BOTH/PY/US por separado), `_extraer_google_trends()` (promedio trimestral por término, descarta el mes `isPartial`) → `run()` (9 variables: 6 de GDELT (cantidad y tono ×3 países) + 3 de Google Trends).

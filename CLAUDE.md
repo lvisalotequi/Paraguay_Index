@@ -354,7 +354,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
 - Pipeline maestro (`run_pipeline.py`), helper de Sheets (`src/sheets.py`) y
   helper de Drive (`src/drive.py`): probados de punta a punta, en local y en
   GitHub Actions.
-- Cuatro scripts de ingestion reales, todos de la dimensión
+- Cinco scripts de ingestion reales, todos de la dimensión
   `3_Compromiso_economico_privado`:
   - `bcp_comercio_exterior.py` — **cambiada de fuente el 2026-09-02** (a
     pedido del usuario, para poder alimentar `src/processing/`): antes
@@ -388,7 +388,24 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     del BCP, esta viene ANUAL, no trimestral** — es el corte más fino que
     expone la API para datos por país. Requiere `BEA_API_KEY` (gratuita,
     el usuario la generó en `apps.bea.gov/API/signup`).
-  - Los cuatro probados con datos reales: suben bien y una segunda corrida
+  - `ine_turismo_receptivo.py` (2026-09-29, **Validado**): Cuadro 2.4.2
+    "Turismo receptivo por mes, según nacionalidad" del Anuario Estadístico
+    del INE — fila "Estados Unidos" filtrada antes de subir (mismo
+    criterio que `exim_autorizaciones.py`: filtrar en el origen, no es
+    "tratamiento"). **Histórico fijo de 9 años** (2015, 2017-2024) — el
+    buscador del sitio del INE es JavaScript puro, no devuelve resultados
+    a `requests`/`curl_cffi` (mismo límite que `state_gov_tias_paraguay.py`
+    con DuckDuckGo) — cada corrida vuelve a pedir los 9 archivos para
+    confirmar que sigan existiendo. **Falta 2016** (investigado a fondo,
+    ver el docstring del módulo para el detalle completo: se revisaron el
+    Anuario 2016 completo, el Compendio 2017 completo, Migraciones, y el
+    Observatorio de SENATUR en Wayback Machine — ninguno tiene ese año; el
+    convenio SENATUR-DGEEC de 2017-02-08 "para fortalecer su sistema de
+    estadísticas turísticas" sugiere que 2016 fue justo el año de
+    transición). Ese hueco se completa en `src/processing/` con un
+    promedio aritmético (ver más abajo), no en ingestion — acá solo se
+    sube el dato puro. Verificado con datos reales: 9/9 años.
+  - Los cinco probados con datos reales: suben bien y una segunda corrida
     saltea lo que ya está (idempotente).
 - Ocho scripts de ingestion reales de la dimensión `1_Compromiso_financiero_oficial`
   (2015-actualidad; ver política de filtrado a Paraguay/EE.UU. en sección 4):
@@ -924,8 +941,9 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     2015-2025, 9.304 URLs, terminada 2026-09-22): 91 noticias bilaterales
     (28 trimestres, 2017-Q2 a 2025-Q4) y 1.401 menciones totales (42
     trimestres, 2015-Q3 a 2025-Q4), 0 diffs contra recálculo independiente.
-  - `compromiso_economico_privado.py` (dimensión 3, 5 variables, todo
-    **monetario en USD sin escalar**): exportaciones/importaciones con
+  - `compromiso_economico_privado.py` (dimensión 3, **6 variables** desde
+    el 2026-09-29 — antes 5, ver más abajo — 5 **monetarias en USD sin
+    escalar** + 1 de **cantidad**): exportaciones/importaciones con
     EE.UU. del Boletín de Comercio Exterior, flujo de IED de EE.UU. del
     Cuadro 4 del anexo del BCP, remesas desde EE.UU. (sumando meses en
     trimestre), y posición de IED de BEA (anual repetido). Rango 2015-Q1
@@ -943,6 +961,29 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     silencio. Se corrigió normalizando "l" → "I" antes de mapear. Confirmado
     con datos reales: `exportaciones` pasó de 44 a 46 trimestres, ahora
     2015-Q1 a 2026-Q2 igual que `importaciones`.
+    **`turismo_receptivo_eeuu` (agregada 2026-09-29, ver
+    `src/ingestion/ine_turismo_receptivo.py` y `DICCIONARIO_VARIABLES.md`
+    para el detalle completo):** turistas de EE.UU. que ingresaron a
+    Paraguay, sumando los 3 meses de cada trimestre (tipo "cantidad", no
+    se reescala). Fuente: Cuadro 2.4.2 "Turismo receptivo por mes, según
+    nacionalidad" del Anuario Estadístico del INE — histórico fijo de 9
+    años (2015, 2017-2024), re-verificado en cada corrida, mismo patrón
+    híbrido que USTR/TIAS (el buscador del sitio del INE es JavaScript
+    puro, no se puede automatizar el descubrimiento de años nuevos). **2016
+    no existe en la fuente** (investigado a fondo — ni el Anuario 2016 ni
+    el Compendio 2017 ni Migraciones ni el Observatorio de SENATUR tienen
+    ese año; encaja con que SENATUR firmó recién en 2017-02-08 un convenio
+    con la entonces DGEEC para "fortalecer su sistema de estadísticas
+    turísticas", justo en el año de transición) — se completa con un
+    **promedio aritmético simple mes a mes de 2015 y 2017**, decisión
+    tomada con datos reales: comparada contra la media geométrica (0,79%
+    de diferencia en el total) y validada con un piloto de backtesting
+    sobre las 6 tripletas de años consecutivos conocidos — en la única
+    tripleta comparable (sin shock externo, 2017+2019→2018) el resultado
+    es casi un empate, pero el aritmético fue más robusto en las 5
+    tripletas que tocan la caída de COVID-19 (la geométrica es muy
+    sensible a meses con valores muy bajos o en cero). Verificado con
+    datos reales: 40 trimestres (2015-Q1 a 2024-Q4), suma total 141.331,5.
   - `visibilidad_mediatica_y_relevancia_publica.py` (dimensión 4, **9
     variables** desde el 2026-09-22 — 6 de GDELT + 3 nuevas de Google
     Trends, ver más abajo —, **cantidad + índice**) a partir de

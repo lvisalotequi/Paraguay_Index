@@ -32,6 +32,30 @@ Fuentes y como se tratan (confirmado con datos reales el 2026-09-02):
       fuente simplemente no tiene ese detalle disponible. Nativo en
       millones de USD. Se usa el archivo diario mas reciente subido por
       ingestion.
+    - ine_turismo_receptivo (un unico Excel, una fila por año, con el
+      total y los 12 meses de turistas de EE.UU. que ingresaron a
+      Paraguay - ver `src/ingestion/ine_turismo_receptivo.py`): se suman
+      los 3 meses de cada trimestre, tipo "cantidad" (no es monetario, no
+      se reescala). **Falta 2016 en la fuente original** (investigado a
+      fondo, ver el docstring de ingestion) - se completa con un
+      **promedio aritmético simple, mes a mes, de 2015 y 2017**
+      (`_estimar_2016_turismo()`). Decisión tomada con datos reales
+      2026-09-28: se comparó contra la media geométrica mes a mes
+      (`√(2015×2017)`) - la diferencia entre ambas es mínima (0,79% en el
+      total anual) - y se corrió un piloto de backtesting con las 6
+      tripletas de años consecutivos ya conocidos (2017-2018-2019,
+      2018-2019-2020, ..., 2022-2023-2024): en la única tripleta
+      realmente comparable (años "normales", sin shock externo,
+      2017+2019→2018) el resultado es casi un empate, pero en las 5
+      tripletas que tocan la caída de COVID-19 el aritmético fue
+      consistentemente más robusto (la media geométrica es muy sensible a
+      meses con valores muy bajos o en cero, que sobran en 2020-2021) - se
+      eligió el aritmético por ser igual de bueno en el caso limpio y más
+      robusto en general. **Esto es una estimación, no un dato real** - no
+      hay columna que lo marque en el esquema fijo de `02_limpias`
+      (trimestre/anio/trimestre_num/valor/unidad no tiene lugar para
+      eso), así que queda documentado acá y en `DICCIONARIO_VARIABLES.md`,
+      no en el dato mismo.
 
 **Unidades (politica 2026-09-03, a pedido del usuario):** todas las
 variables monetarias se suben en USD sin escalar, aunque la fuente nativa
@@ -244,6 +268,40 @@ def _extraer_bea_posicion():
     return resultado
 
 
+MESES_ORDEN = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"]
+
+
+def _estimar_2016_turismo(serie_por_anio):
+    """Devuelve los 12 valores mensuales de 2016 - promedio aritmetico
+    simple, mes a mes, de 2015 y 2017. Ver el docstring del modulo para la
+    justificacion completa (comparacion contra la media geometrica +
+    piloto de backtesting con datos reales, 2026-09-28)."""
+    meses_2015 = serie_por_anio[2015]
+    meses_2017 = serie_por_anio[2017]
+    return [(a + b) / 2 for a, b in zip(meses_2015, meses_2017)]
+
+
+def _extraer_turismo_receptivo():
+    """Devuelve {(anio,trim): cantidad} de turistas de EE.UU. que
+    ingresaron a Paraguay, sumando los 3 meses de cada trimestre. Incluye
+    2016 estimado (ver `_estimar_2016_turismo()` y el docstring del
+    modulo)."""
+    _, contenido = _archivo_mas_reciente(DIMENSION_CRUDA, "ine_turismo_receptivo")
+    df = pd.read_excel(io.BytesIO(contenido))
+
+    serie_por_anio = {int(fila["anio"]): [fila[m] for m in MESES_ORDEN] for _, fila in df.iterrows()}
+    serie_por_anio[2016] = _estimar_2016_turismo(serie_por_anio)
+
+    resultado = {}
+    for anio, meses in serie_por_anio.items():
+        if anio < ANIO_MINIMO:
+            continue
+        for trim in (1, 2, 3, 4):
+            valores_trim = meses[(trim - 1) * 3: trim * 3]
+            resultado[(anio, trim)] = sum(valores_trim)
+    return resultado
+
+
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
     errores = []
@@ -274,7 +332,13 @@ def run():
         errores.append(("bea_inversion_directa", repr(exc)))
         print(f"    [!] bea_inversion_directa: {exc!r}")
 
-    if errores and len(errores) == 4:
+    try:
+        subir_variable(DIMENSION_LIMPIA, "turismo_receptivo_eeuu", _extraer_turismo_receptivo(), "cantidad")
+    except Exception as exc:  # noqa: BLE001
+        errores.append(("turismo_receptivo_eeuu", repr(exc)))
+        print(f"    [!] turismo_receptivo_eeuu: {exc!r}")
+
+    if errores and len(errores) == 5:
         raise RuntimeError(f"Fallaron todas las fuentes de {DIMENSION_LIMPIA}: {errores}")
 
 

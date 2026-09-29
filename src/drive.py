@@ -79,6 +79,7 @@ FOLDER_IDS = {
     ("3_Compromiso_economico_privado", "bcp_inversion_directa"): "145-zhp9c3hjQtz4vg5EManKsmpE_8r6D",
     ("3_Compromiso_economico_privado", "bcp_remesas_familiares"): "1Bk0fHMJz5WceE4vMugRThte4xAiW_RBc",
     ("3_Compromiso_economico_privado", "bea_inversion_directa"): "1ZMTwLGpNcROTrUmEVDXkX1g7yYumkwon",
+    ("3_Compromiso_economico_privado", "ine_turismo_receptivo"): "1ER7p_y88E5ikTqQB5r68aSWmt5abj_MU",
     ("4_Visibilidad_mediatica_y_relevancia_publica", "gdelt_proxy_b"): "108u-nqX6hKckFlfv807gZ4p-oHWA-_Ob",
     ("4_Visibilidad_mediatica_y_relevancia_publica", "google_trends_paraguay"): "1eOfMwq5aiaQjvqqroZWEfmc-Cgu4JaEc",
     # insumos_indice: pseudo-dimension para deflactores/escalas transversales
@@ -117,6 +118,7 @@ VARIABLE_FOLDER_IDS = {
     ("3_Compromiso_economico_privado_limpias", "inversion_directa_bcp"): "1HKc9ZONIfM7EMkUjusxVzUtrtg1tLBVk",
     ("3_Compromiso_economico_privado_limpias", "remesas"): "1YXlotyhgt_rbyr5GOp4O1rty8UlJKwYQ",
     ("3_Compromiso_economico_privado_limpias", "bea_inversion_directa"): "1M6IvbQK4ShQwrLQtHyhMAkKCORw95oOC",
+    ("3_Compromiso_economico_privado_limpias", "turismo_receptivo_eeuu"): "1GPsLuqW_iuUsDTVvB5mCwlqsS-z7FhPr",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles"): "1es-fZCxupBXBkhtL4rg0LIhcdWriforY",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_tone_promedio"): "1YfWSeWAVULcUh9bS1WiYy5rDFH-yu3DI",
     ("4_Visibilidad_mediatica_y_relevancia_publica_limpias", "gdelt_proxy_articles_py"): "1e-0fTbbr3skSOTt2D6x2dMhlSgpXU9KO",
