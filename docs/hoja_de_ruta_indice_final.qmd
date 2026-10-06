@@ -1,0 +1,1332 @@
+---
+title: "US-PY Engagement Index"
+subtitle: "Hoja de ruta para la construcción final del índice"
+author: "Equilibrium BDC"
+date: "2026-10-05"
+lang: es
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Contenido"
+    number-sections: false
+    theme: cosmo
+    page-layout: full
+---
+
+# Cómo se usa esta hoja de ruta
+
+Este documento traduce el prompt maestro `prompt_construccion_indice_final.md` en un plan ejecutable. Define qué se calcula en cada etapa, con qué parámetros, con qué criterio se decide y en qué situaciones el ejecutor debe detenerse. No contiene resultados, porque los resultados dependen de los datos y se obtienen durante la ejecución.
+
+En cada sesión el ejecutor lee cuatro piezas, en este orden.
+
+1. La parte 1 del prompt maestro, con el contexto y las reglas de oro.
+2. Las secciones G1 y G3 de este documento, que fijan la arquitectura de archivos y el registro de decisiones. Son comunes a todas las etapas.
+3. La sección de este documento que corresponde a la etapa asignada.
+4. El archivo de traspaso `ESTADO_INDICE_FINAL.md`.
+
+Las referencias del tipo «regla de oro 9» remiten a la numeración de la parte 1 del prompt maestro.
+
+## Principio de datos
+
+Los únicos insumos del análisis son los datos y el diccionario de variables. Los datos son el panel de integración y los insumos auxiliares publicados en Drive. Ninguna tabla, cifra o descripción de los datos que aparezca en el prompt maestro o en la hoja de ruta es un insumo, porque esos textos pueden contener errores.
+
+Cuando un texto de instrucciones menciona un tipo de serie o un caso, lo hace para ilustrar un criterio. El ejecutor clasifica cada serie, mide cada cobertura y detecta cada caso calculándolo desde los datos y leyéndolo en el diccionario. Si el diccionario y los datos no coinciden, se detiene e informa.
+
+La documentación del repositorio, como `CLAUDE.md` y los comentarios de los módulos, solo sirve para explicar un patrón que ya se encontró en los datos. Nunca aporta una cifra ni reemplaza un cálculo.
+
+## Relación con la versión anterior
+
+`src/analysis_index/04_construccion_indice.qmd` es la versión anterior del índice, revisada y aprobada por el usuario. Es la plantilla de esta versión. Se replican su estructura, sus explicaciones de cada técnica, el diseño de sus tablas y figuras, y sus criterios de decisión. No se replican sus resultados. Todas las cifras, clasificaciones y conclusiones se vuelven a calcular con los datos actuales, porque el panel ahora tiene más series y los resultados pueden cambiar.
+
+Las demás versiones de la carpeta (`04_analysis_index.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`) no son plantilla y no se usan.
+
+### Cómo se usan las decisiones de la versión anterior
+
+Las 44 decisiones de la versión anterior son criterios ya tomados por el usuario. En esta hoja de ruta cada decisión tiene uno de tres estados respecto de ellas.
+
+- **Heredada.** El criterio de la versión anterior se aplica a los datos nuevos como una Regla, sin volver a consultar al usuario. El resultado puede cambiar, pero el criterio no.
+- **Reabierta.** El criterio anterior no alcanza para los datos nuevos, porque entraron series que la versión anterior no tenía. El ejecutor aplica el criterio anterior hasta donde llega y presenta como Juicio solo la parte nueva.
+- **Nueva.** La versión anterior no enfrentó la pregunta. Es Juicio.
+
+Un criterio heredado se reabre únicamente si los datos nuevos lo vuelven inaplicable, y el ejecutor tiene que mostrar con los datos por qué. Ningún criterio heredado se cambia por preferencia.
+
+### Correspondencia con las decisiones anteriores
+
+| Decisión anterior | Criterio | Código en esta hoja de ruta | Estado |
+|---|---|---|---|
+| 0.1 | El análisis parte del panel de integración | D0.1a | Heredada |
+| 1.1 | El índice es un modelo formativo | D1.2 | Heredada |
+| 1.2 | Las cuatro dimensiones integran el análisis | D1.3 | Heredada |
+| 1.3 | El registro de decisiones es una tabla dentro del documento | D1.4 | Heredada |
+| Constructo, corregido por el usuario el 2026-09-11 | El índice mide la fortaleza del vínculo con dirección interpretable | D1.1 | Heredada |
+| 2.1 | Ninguna serie se excluye por redundancia ni por cobertura sin evidencia | D2.2 y D4.6 | Heredada para las series anteriores, reabierta para las nuevas |
+| 2.2 | El alcance respecto del marco se declara | D2.3a | Heredada |
+| 2.3 | El inventario de derivados se decide en la Etapa 6 | 2.4 | Heredada |
+| 3.1 | No se aplica imputación estadística ni interpolación | D3.2 | Heredada |
+| 3.2 | Los hechos con fecha reciben ceros hasta el límite de cobertura de su fuente | D3.3 | Heredada |
+| 3.3 | Las series de nivel publicado conservan sus vacíos | D3.4 | Heredada |
+| 4.1 | La desviación absoluta mediana es el método de referencia para valores extremos | 4.4 | Heredada |
+| 4.2 y 4.4 | El año fiscal en curso y el último trimestre se marcan como provisionales | D5.6a | Heredada |
+| 4.3 | La ventana se fija sin imputar, conservando las series | D4.6 | Reemplazada por la ventana que fijó el usuario el 2026-10-05 |
+| 5.1 | Deflactar por el IPC de EE.UU., las series anuales con el promedio anual del deflactor | D5.1a | Heredada |
+| 5.2 | Expresar por habitante las series monetarias | D5.2a | Heredada |
+| 5.3 | Logaritmo por asimetría, armonizado dentro del indicador, sin Box-Cox ni Yeo-Johnson | D5.3 | Heredada |
+| 5.4 | Los valores extremos no se tratan | D5.4 | Heredada |
+| 5.5 | Las series de conteo disperso se conservan sin transformar | D5.5 | Heredada |
+| 5.6 | El trimestre provisional se conserva y se excluye del período de referencia | D5.6a | Heredada |
+| 6.1 | Spearman es la medida de referencia | D6.1 | Heredada |
+| 6.2 | La redundancia se evalúa sobre cambios | D6.2 | Heredada |
+| 6.3 | Ninguna serie se excluye por redundancia por debajo de 0,90 | D2.2 y D6.4 | Heredada |
+| 6.4 | Los derivados candidatos se descartan si duplican a sus componentes | D6.3 | Heredada, con el criterio aplicado a los derivados posibles con los datos nuevos |
+| 6.5 y 6.6 | El alfa es descriptivo, y los pesos no se derivan de factores si no hay estructura | D6.5 | Heredada |
+| 7.1 | El tono entra con polaridad positiva | D7.1a | Heredada |
+| 7.2 | La atención legislativa se conserva como aproximación | D7.1b | Resuelta el 2026-10-05 con la tabla de dirección de 7.1 |
+| 7.3 | La referencia se congela | D7.2 | Heredada |
+| 7.4 | Puntaje z reescalado a media 100 y desvío 10 | D7.3 | Heredada |
+| 7.5 | El período de referencia es la década completa anterior sin los años deprimidos | D7.4 | Heredada como regla, con el resultado recalculado |
+| 7.6 | Las series de pocos niveles se normalizan igual que las demás | D7.5 | Heredada |
+| 8.1 a 8.3 | Pesos por niveles, partes iguales, dimensiones con el mismo peso | D8.1 a D8.3 | Heredadas |
+| 8.4 | Se conservan los pesos declarados y se publica la divergencia con la influencia | D8.4 | Heredada |
+| 9.1 | Agregación lineal | D9.1 | Heredada |
+| 9.2 y 9.3 | Se publican las dimensiones y el desbalance | D9.3 | Heredadas |
+| 9.4 | Sin desestacionalizar ni suavizar | D9.4 | Heredada |
+| 10.1 a 10.4 | Sensibilidad, banda de incertidumbre y afirmaciones con su respaldo | D10.1 a D10.4 | Heredadas |
+
+### Decisiones del usuario del 2026-10-05
+
+El usuario respondió el 2026-10-05 las decisiones que la versión anterior no había resuelto. Desde esa fecha son reglas, y el ejecutor no vuelve a consultarlas.
+
+| Tema | Decisión del usuario | Código |
+|---|---|---|
+| Versión de cada variable | Se usa siempre la última versión publicada en `02_limpias`. Todo lo que está en `02_limpias` está listo para usar, incluida `usaspending_operativo`. | P2, P7 |
+| Origen de los datos | Todos los datos se leen desde Drive, a través del panel de integración. Ningún dato se descarga de una API ni de otra fuente externa durante el análisis. La población es la del INE y el IPC es el del BLS, ambos publicados en `02_limpias/insumos_indice_limpias`. | P5, D0.1b, D5.2c |
+| Año fiscal | No se corrige el desfase entre año fiscal y año calendario. Los datos se usan como están, y el desfase se declara como limitación. | D2.1b |
+| Series redundantes | Si un par es redundante, se conserva la serie que aporta más valor e interpretación al índice, según los criterios de 2.2. | D2.2b, D6.3b, D6.4 |
+| Indicadores | Todas las candidatas tienen indicador en la `Matriz`. | D2.3b |
+| Quiebres | El ejecutor los trata según lo que muestran los datos, con el procedimiento de 4.5. | D4.5 |
+| Ventana | 2015-Q1 a 2025-Q4. | D4.6 |
+| Deflactación | Se comparan ambas versiones, con y sin deflactar, y se adopta la técnicamente correcta según el criterio de 5.1. | D5.1 |
+| Dirección | La dirección de cada serie se determina por su definición y su indicador, según la tabla de 7.1. | D7.1b |
+| Coherencia del índice con sus series | Obligatoria. Si un movimiento del índice contradice a las series que lo producen, el índice está mal construido y se corrige antes de continuar. | D11.3 |
+| Contraste externo | Se pospone. La Etapa 12 no se ejecuta en esta versión. | D12 |
+| Actualización de la base | Se define según la práctica de los índices de la misma metodología, con el procedimiento de 13.5. | D13.5 |
+| Selección de series | No se incluyen todas las candidatas por defecto. El análisis de los datos decide qué series entran y cuáles salen. El objetivo es un índice útil e interpretable, con el menor número de series necesario. La evaluación se hace en 6.7, la decisión en 6.8 y la verificación del aporte efectivo en 9.5. | D6.8, D9.5 |
+
+## Convenciones de esta hoja de ruta
+
+Cada decisión tiene un código con la forma `D` seguida del número de la subpregunta. Por ejemplo, `D2.2` es la decisión de la subpregunta 2.2. Si una subpregunta produce más de una decisión, se agrega una letra, como `D5.1a` y `D5.1b`.
+
+Cada decisión lleva una de tres categorías, definidas en la regla de oro 3.
+
+- **Regla.** El ejecutor aplica el criterio y registra la decisión sin intervención del usuario.
+- **Juicio.** El ejecutor calcula la evidencia, escribe las fases A y B, y se detiene antes de la fase C para que decida el usuario.
+- **Diferida.** El ejecutor calcula lo especificado y registra la decisión como factor de la Etapa 10, sin elegir.
+
+Cada subpregunta se describe con catorce campos. Son la pregunta, por qué importa, las dependencias, las opciones, la evidencia, el criterio, la categoría, las condiciones de detención, las salidas, los objetos de código, las validaciones, los errores conocidos, el contenido mínimo del texto y el criterio de terminado.
+
+Las subpreguntas descriptivas, que no toman decisiones, omiten algunos campos. En ese caso cada campo omitido vale lo siguiente.
+
+- **Categoría.** Sin decisión.
+- **Detención.** No tiene condiciones propias, y rige la regla de oro 33.
+- **Objetos.** Las tablas y figuras de la subpregunta, guardadas en `_salidas/`.
+- **Validaciones.** Las tablas no tienen valores faltantes inesperados, y cada figura cumple la regla de oro 11.
+- **Errores conocidos.** Los de la regla de oro 6 que apliquen.
+- **Texto mínimo.** Qué se calcula, por qué, y qué muestra el resultado.
+- **Terminado.** Las salidas existen, las cifras del texto se calculan en línea y la decisión, si la hay, está registrada.
+
+Los umbrales numéricos de este documento tienen siempre una justificación. Cuando un umbral es una convención del proyecto y no proviene de la literatura, se dice expresamente, y la decisión que depende de él entra al análisis de sensibilidad o se clasifica como Juicio en su zona límite.
+
+# Sección global
+
+## G1 · Arquitectura del documento y de la ejecución
+
+### Un solo documento
+
+El análisis completo es un único documento Quarto, `src/analysis_index/04_indice_final.qmd`, que se renderiza a HTML y a Word en la misma carpeta. Los demás archivos de `src/analysis_index/` son versiones anteriores y quedan intactos, según la regla de oro 31.
+
+### Organización interna
+
+1. Al inicio, la presentación del documento.
+2. Después, la Etapa 0, cuyos bloques de código cargan los paquetes, definen las funciones comunes, declaran los parámetros y cargan los datos.
+3. Una sección de primer nivel por cada etapa, en el orden de la estructura obligatoria.
+4. Dentro de cada etapa, una sección de segundo nivel por subpregunta, con las fases A, B y C de la regla de oro 2. La fase A lleva el título «En qué consiste», la fase B «Qué muestran los datos» y la fase C «La decisión». Debajo de la fase C va la tabla de opciones evaluadas.
+5. Al cierre de cada etapa, un resumen de sus decisiones generado desde el registro.
+
+Como es un solo documento, todos los bloques de código comparten el mismo intérprete de Python y los objetos pasan de una etapa a la siguiente en memoria.
+
+### Ejecución bloque por bloque
+
+El usuario corre el documento bloque por bloque en Positron, de arriba hacia abajo. Por eso el documento cumple cinco condiciones, además de renderizar sin errores.
+
+1. Correr todos los bloques en orden en la consola produce los mismos objetos y las mismas cifras que el render.
+2. Las rutas se resuelven desde la raíz del repositorio, que se encuentra subiendo desde el directorio actual hasta hallar la carpeta `src`. Ninguna ruta depende de la ubicación del archivo `.qmd`, porque la consola de Positron puede estar en otra carpeta.
+3. Ningún cálculo depende de una función que solo existe durante el render. Las expresiones en línea `{python} ...` solo muestran valores que ya calculó un bloque anterior.
+4. Cada bloque deja sus objetos en memoria con un nombre que indica su etapa, para poder abrirlos en el panel de variables de Positron.
+5. Cada bloque de validación imprime su resultado en la consola, para que el usuario lo vea al correrlo.
+
+### Funciones comunes
+
+Se definen en un bloque de código de la Etapa 0, dentro del documento, y no en un módulo aparte.
+
+- `num(valor, decimales)` devuelve el número con coma decimal para las cifras en línea.
+- `numero_largo(valor, decimales)` agrega el punto de miles.
+- `tabla(datos, decimales)` emite una tabla como markdown, porque es el único formato que Word convierte en tabla nativa.
+- `ANCHO_FIGURA` fija el ancho de las figuras, y un bloque fija el estilo gráfico común.
+- `registrar_decision(...)` y `registrar_opcion(...)` mantienen el registro de G3.
+- `tabla_opciones(id_decision)` produce la tabla de opciones evaluadas de la regla de oro 27.
+
+### Archivos que acompañan al documento
+
+- `registro_decisiones_indice_final.csv` y `opciones_evaluadas_indice_final.csv` se exportan al final de cada render desde el registro en memoria. Son salidas para revisar, no insumos.
+- `ESTADO_INDICE_FINAL.md` es el archivo de traspaso entre sesiones, en la misma carpeta.
+- El validador del documento Word es un script temporal que vive fuera del repositorio.
+
+### Cómo se trabaja por sesiones con un solo documento
+
+Cada sesión agrega la etapa asignada a continuación de las anteriores. Para no cargar el documento entero en el contexto, el ejecutor lee solo las líneas de la etapa anterior que necesita, buscando su título. Al cerrar, renderiza el documento completo.
+
+Si el render completo supera los diez minutos, el ejecutor lo informa. En ese caso se puede activar la caché de ejecución con el paquete `jupyter-cache`, con autorización del usuario.
+
+Los bloques de validación van dentro de `::: {.content-visible when-format="html"}`, para que no aparezcan como cajas grises en Word.
+
+## G2 · Mapa de dependencias entre decisiones
+
+El mapa indica qué decisión alimenta a cuál. Si una decisión se reabre, todas las que dependen de ella deben revisarse.
+
+```{mermaid}
+flowchart LR
+  D0["Etapa 0 · insumos"] --> D2_1["D2.1 · familia y cobertura"]
+  D1_2["D1.2 · modelo formativo"] --> D6_5["D6.5 · factores"]
+  D1_2 --> D8_2["D8.2 · procedimiento de pesos"]
+  D2_1 --> D3_1["D3.1 · tipo de vacío"]
+  D2_1 --> D3_3["D3.3 · límite del cero"]
+  D2_2["D2.2 · redundancia por indicador"] --> D6_3["D6.3 · derivados"]
+  D2_3["D2.3 · cobertura del marco"] --> D8_1["D8.1 · nivel de los pesos"]
+  D3_1 --> D4_6["D4.6 · ventana"]
+  D3_3 --> D4_6
+  D3_2["D3.2 · imputación"] --> D4_6
+  D4_2["D4.2 · forma"] --> D5_3["D5.3 · transformación"]
+  D4_3["D4.3 · ceros y negativos"] --> D5_3
+  D4_4["D4.4 · extremos detectados"] --> D5_4["D5.4 · tratamiento de extremos"]
+  D4_5["D4.5 · quiebres"] --> D7_4["D7.4 · período de referencia"]
+  D4_5 --> D9_4["D9.4 · estacionalidad"]
+  D4_6 --> D5_6["D5.6 · trimestre provisional"]
+  D4_6 --> D7_4
+  D5_1["D5.1 · precios"] --> F1["Factor ajuste monetario"]
+  D5_2["D5.2 · tamaño"] --> F1
+  D5_3 --> D6_2["D6.2 · niveles o cambios"]
+  D5_3 --> D7_5["D7.5 · pocos niveles"]
+  D5_5["D5.5 · conteo disperso"] --> D7_5
+  D6_2 --> D6_4["D6.4 · información compartida"]
+  D6_4 --> D6_5
+  D2_2 --> D6_7["D6.7 · evidencia por serie"]
+  D4_5 --> D6_7
+  D4_6 --> D6_7
+  D6_4 --> D6_7
+  D7_1["D7.1 · dirección"] --> D6_7
+  D6_7 --> D6_8["D6.8 · series del índice"]
+  D6_8 --> D8_1
+  D9_1 --> D9_5["D9.5 · aporte efectivo"]
+  D9_5 --> D10
+  D6_5 --> D8_2
+  D7_3["D7.3 · método de normalización"] --> D9_1["D9.1 · regla de agregación"]
+  D8_1 --> D9_2["D9.2 · orden de agregación"]
+  D8_2 --> D9_1
+  D9_1 --> D10["Etapa 10 · sensibilidad"]
+  F1 --> D10
+```
+
+Hay tres dependencias que la versión anterior pasó por alto y que este mapa hace explícitas.
+
+- La exclusión por cobertura (D2.1) se mide contra la ventana de análisis (D4.6). Como el usuario fijó la ventana, la cobertura de cada serie se mide contra ese período y no hay circularidad.
+- La escala de intervalo que produce el puntaje z (D7.3) restringe las reglas de agregación admisibles (D9.1).
+- El ajuste por precios (D5.1) y el ajuste por tamaño (D5.2) no son independientes, porque expresar por habitante sin descontar precios no es una alternativa defendible. Por eso entran a la Etapa 10 como un único factor.
+
+## G3 · Esquema del registro de decisiones
+
+### El archivo `registro_decisiones.csv`
+
+Tiene una fila por decisión, con estas columnas.
+
+| Columna | Contenido |
+|---|---|
+| `id` | El código de la decisión, por ejemplo `D2.2`. |
+| `etapa` | El número de la etapa. |
+| `subpregunta` | El título de la subpregunta. |
+| `pregunta` | La pregunta que resuelve, en una oración. |
+| `decision` | Lo que se decidió, en una oración. Si la categoría es Juicio y el usuario no decidió todavía, el texto es «pendiente de decisión del usuario». |
+| `categoria` | Regla, Juicio o Diferida. |
+| `justificacion` | Por qué se decidió así, en oraciones completas. |
+| `costo` | Qué se pierde o qué riesgo se asume con la decisión. |
+| `evidencia` | Los nombres de los objetos, tablas y figuras en que se apoya. |
+| `depende_de` | Los códigos de las decisiones previas de las que depende, separados por punto y coma. |
+| `estado` | Tomada, pendiente de juicio, diferida o reabierta. |
+| `fecha` | La fecha en que se registró o modificó. |
+
+### El archivo `opciones_evaluadas.csv`
+
+Tiene una fila por cada opción evaluada en cada decisión, con estas columnas.
+
+| Columna | Contenido |
+|---|---|
+| `id_decision` | El código de la decisión a la que pertenece. |
+| `opcion` | El nombre de la opción. |
+| `que_hace` | Qué hace la opción, en una oración. |
+| `resultado` | Adoptada, descartada o diferida. |
+| `motivo` | El motivo del descarte o del diferimiento, en oraciones completas. Para la opción adoptada, por qué se adoptó. |
+
+### Las funciones de registro
+
+`registrar_decision(...)` recibe los campos del registro y escribe o reemplaza la fila de ese `id`. Si la fila ya existía con otra decisión, cambia el estado a «reabierta» y conserva la decisión anterior en la justificación, para que quede la traza del cambio.
+
+`registrar_opcion(...)` hace lo mismo con cada opción.
+
+Una validación al cierre de cada etapa verifica que toda decisión de la etapa tenga al menos dos opciones evaluadas y exactamente una adoptada, salvo las Diferidas y las de Juicio pendientes, que no tienen opción adoptada.
+
+## G4 · Catálogo de factores para la Etapa 10
+
+La Etapa 10 recalcula el índice bajo combinaciones de decisiones alternativas. Este catálogo reúne los factores candidatos que se anticipan a partir de la estructura del procedimiento. La lista definitiva se cierra en la subpregunta 10.1 con las decisiones efectivamente registradas como Diferidas.
+
+| Factor | Decisión de origen | Niveles anticipados |
+|---|---|---|
+| Ajuste monetario | D5.1 y D5.2 combinadas | Sin ajustar, solo deflactado, deflactado y por habitante |
+| Transformación | D5.3 | Según criterio, ninguna, logaritmo en toda serie admisible |
+| Valores extremos | D5.4 | Sin tratar, winsorizados al percentil 1 y 99 |
+| Período de referencia | D7.4 | El adoptado y dos alternativas definidas en 7.4 |
+| Ponderación | D8.1 y D8.2 | Jerárquica igualitaria, igual por serie, proporcional a la cantidad de series |
+| Agregación | D9.1 | Lineal y geométrica, esta última solo donde la escala la admita según G4 |
+| Exclusión de la atención legislativa | D7.1b | Con y sin las series del Congreso |
+| Conjunto de series | D6.8 y D9.5 | El conjunto seleccionado, y todas las candidatas que cumplen la cobertura de 4.6 |
+| Decisiones de selección inestables | D6.8 | Para cada serie cuya decisión no es estable en el remuestreo de 6.7, con y sin esa serie |
+
+Estos son los factores de la versión anterior. La versión anterior declaró además dos factores que el panel no permite variar, porque se fijan antes de la integración. Son el criterio de corte de los ceros estructurales y el umbral de tres menciones que define los proyectos relevantes del Congreso. Se vuelven a declarar del mismo modo.
+
+### Reglas que el catálogo debe cumplir
+
+- **Independencia.** Dos factores que no pueden variar por separado se fusionan en un factor con niveles combinados. Es el caso del ajuste monetario y el de normalización con agregación, porque la media geométrica solo es admisible sobre una escala con cero natural. La versión anterior no fusionó factores dependientes, y su descomposición de la varianza sumó 115%.
+- **Equilibrio.** Cada nivel de cada factor aparece en la misma cantidad de combinaciones. Un diseño factorial completo cumple esta condición por construcción.
+- **Tamaño.** Si el producto de los niveles es igual o menor que 10.000 combinaciones, se usa el diseño factorial completo. Si lo supera, se usa el muestreo de Saltelli para índices de Sobol, con el tamaño de muestra fijado en 10.1. El umbral de 10.000 es una convención de costo de cómputo y no afecta la validez del resultado.
+
+## G5 · Prerrequisitos antes de la Etapa 0
+
+Estos pasos se resuelven antes de abrir la primera sesión de ejecución. Varios requieren la autorización o la acción directa del usuario, porque modifican el pipeline o publican en Drive.
+
+| # | Prerrequisito | Quién lo resuelve | Cómo se verifica |
+|---|---|---|---|
+| P1 | Confirmar que cada nombre de variable del diccionario coincida con el nombre de su carpeta en `02_limpias`. Un reemplazo de texto pudo haber alterado nombres. | El usuario, a mano en Excel | La Etapa 0 compara los nombres del diccionario con los del panel y se detiene ante cualquier diferencia. |
+| P2 | Resuelto el 2026-10-05. `usaspending_operativo` se usa tal como está publicada en `02_limpias`. Su regeneración la resuelve el usuario por separado. | Hecho | La variable figura en el panel. |
+| P3 | Resuelto el 2026-10-05. `src/integration/03_integration.py` descubre en Drive todas las variables de `02_limpias`, incluidos los insumos del índice, y se detiene si alguna no tiene declarados su grano y su agregación. | Hecho | La corrida en seco del 2026-10-05 produjo un panel sin duplicados con las once columnas de trazabilidad. |
+| P4 | Publicar los insumos en `02_limpias` corriendo `src/processing/insumos_indice.py`, y después volver a publicar el panel en `03_integracion` corriendo `03_integration.py` con `SUBIR_A_DRIVE = True`. | El usuario lo corre | El panel publicado contiene `ipc_eeuu` y `poblacion_paraguay` además de las variables de las cuatro dimensiones. |
+| P5 | Resuelto el 2026-10-05. La población es la del INE publicada en Drive. No se agrega la del Banco Mundial. | Hecho | `poblacion_paraguay` figura en el panel. |
+| P6 | Confirmar que estén instalados los paquetes que exige la Etapa 0, y agregarlos a `requirements.txt` si faltan. | El usuario autoriza | La Etapa 0 imprime la versión de cada paquete sin errores. |
+| P7 | Resuelto el 2026-10-05. De cada variable se usa la última versión publicada en `02_limpias`, que es la que toma el script de integración. | Hecho | La columna `archivo_origen` del panel muestra el CSV más reciente de cada variable. |
+
+## G6 · Plan de sesiones
+
+El trabajo se divide en once sesiones de ejecución. Cada sesión cierra con una revisión según la parte 4 del prompt maestro antes de abrir la siguiente.
+
+| Sesión | Etapas | Motivo de la agrupación |
+|---|---|---|
+| S1 | Presentación, Etapa 0 y Etapa 1 | La Etapa 1 es conceptual y breve, y comparte contexto con la configuración. |
+| S2 | Etapa 2 | Concentra las decisiones sobre qué variante de cada indicador se conserva. |
+| S3 | Etapa 3 | Define los ceros estructurales, de los que depende todo lo posterior. |
+| S4 | Etapa 4 | Es la etapa con más tablas y figuras por serie. |
+| S5 | Etapa 5 | Concentra las transformaciones. |
+| S6 | Etapa 6 | Requiere todo el panel ya transformado. |
+| S7 | Etapa 7 | La normalización depende de la ventana y del período de referencia. |
+| S8 | Etapas 8 y 9 | La agregación depende directamente de la ponderación. |
+| S9 | Etapa 10 | Es la etapa de mayor costo de cómputo. |
+| S10 | Etapa 11 | Contrasta el resultado con los datos. La Etapa 12 se pospuso. |
+| S11 | Etapa 13 | Cierra el documento y su comunicación. |
+
+### Contenido de `ESTADO_INDICE_FINAL.md` al cierre de cada sesión
+
+1. La última etapa terminada y su estado de revisión.
+2. Las decisiones tomadas en la sesión, con su código y su categoría.
+3. Las decisiones de Juicio pendientes, con la evidencia que ya se calculó para cada una.
+4. Los desvíos respecto de esta hoja de ruta, con su motivo.
+5. Los objetos guardados en `_salidas/`, con su ruta.
+6. Lo que la etapa siguiente necesita y todavía no existe.
+7. Las diferencias entre el diccionario y los datos encontradas en la sesión.
+
+## G7 · Protocolo de revisión
+
+El revisor aplica la parte 4 del prompt maestro y, además, esta lista común a todas las etapas.
+
+1. Cada subpregunta tiene sus tres fases, y la fase C solo existe si la decisión no es de Juicio pendiente.
+2. Cada decisión de la etapa figura en `registro_decisiones.csv` con sus doce columnas completas.
+3. Cada decisión tiene su tabla de opciones evaluadas, con al menos dos opciones.
+4. Ninguna cifra de la prosa está escrita a mano. Se verifica buscando dígitos en el texto renderizado fuera de las expresiones en línea, de los títulos y de las referencias bibliográficas.
+5. Cada subsección tiene al menos una tabla o una figura.
+6. Las correlaciones usadas para decidir se calcularon sobre cambios, según la regla de oro 6.
+7. El documento Word pasa el validador sin hallazgos.
+8. El criterio de terminado de cada subpregunta de la etapa se cumple.
+
+## G8 · Referencias
+
+Las referencias de esta lista se identificaron con certeza. Las marcadas como «a verificar» deben confirmarse antes de citarse en el documento.
+
+- Bai, J. y Perron, P. (2003). Computation and analysis of multiple structural change models. *Journal of Applied Econometrics*, 18(1), 1-22.
+- Bailey, M. A., Strezhnev, A. y Voeten, E. (2017). Estimating dynamic state preferences from United Nations voting data. *Journal of Conflict Resolution*, 61(2), 430-456.
+- Becker, W., Saisana, M., Paruolo, P. y Vandecasteele, I. (2017). Weights and importance in composite indicators: Closing the gap. *Ecological Indicators*, 80, 12-22.
+- Box, G. E. P. y Cox, D. R. (1964). An analysis of transformations. *Journal of the Royal Statistical Society, Series B*, 26(2), 211-252.
+- Bayley, G. V. y Hammersley, J. M. (1946). The «effective» number of independent observations in an autocorrelated time series. *Supplement to the Journal of the Royal Statistical Society*, 8(2), 184-197. A verificar.
+- Bulmer, M. G. (1979). *Principles of Statistics*. Dover. A verificar la página de la regla de asimetría.
+- Cleveland, R. B., Cleveland, W. S., McRae, J. E. y Terpenning, I. (1990). STL: A seasonal-trend decomposition procedure based on loess. *Journal of Official Statistics*, 6(1), 3-73.
+- Cronbach, L. J. (1951). Coefficient alpha and the internal structure of tests. *Psychometrika*, 16(3), 297-334.
+- Diamantopoulos, A. y Winklhofer, H. M. (2001). Index construction with formative indicators: An alternative to scale development. *Journal of Marketing Research*, 38(2), 269-277.
+- Diamantopoulos, A. y Siguaw, J. A. (2006). Formative versus reflective indicators in organizational measure development. *British Journal of Management*, 17(4), 263-282.
+- Granger, C. W. J. y Newbold, P. (1974). Spurious regressions in econometrics. *Journal of Econometrics*, 2(2), 111-120.
+- Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics*, 6(2), 65-70.
+- Iglewicz, B. y Hoaglin, D. C. (1993). *How to Detect and Handle Outliers*. ASQC Quality Press. A verificar.
+- Jarvis, C. B., MacKenzie, S. B. y Podsakoff, P. M. (2003). A critical review of construct indicators and measurement model misspecification. *Journal of Consumer Research*, 30(2), 199-218.
+- Kaiser, H. F. (1974). An index of factorial simplicity. *Psychometrika*, 39(1), 31-36.
+- Kraskov, A., Stögbauer, H. y Grassberger, P. (2004). Estimating mutual information. *Physical Review E*, 69(6), 066138.
+- Kursa, M. B. y Rudnicki, W. R. (2010). Feature selection with the Boruta package. *Journal of Statistical Software*, 36(11), 1-13.
+- Little, R. J. A. y Rubin, D. B. (2019). *Statistical Analysis with Missing Data* (3.ª ed.). Wiley.
+- Ljung, G. M. y Box, G. E. P. (1978). On a measure of lack of fit in time series models. *Biometrika*, 65(2), 297-303.
+- Meinshausen, N. y Bühlmann, P. (2010). Stability selection. *Journal of the Royal Statistical Society, Series B*, 72(4), 417-473.
+- Mazziotta, M. y Pareto, A. (2016). On a generalized non-compensatory composite index for measuring socio-economic phenomena. *Social Indicators Research*, 127(3), 983-1003. A verificar.
+- Morris, M. D. (1991). Factorial sampling plans for preliminary computational experiments. *Technometrics*, 33(2), 161-174.
+- OECD/JRC (2008). *Handbook on Constructing Composite Indicators: Methodology and User Guide*. OECD Publishing.
+- Paruolo, P., Saisana, M. y Saltelli, A. (2013). Ratings and rankings: Voodoo or science? *Journal of the Royal Statistical Society, Series A*, 176(3), 609-634.
+- Politis, D. N. y Romano, J. P. (1994). The stationary bootstrap. *Journal of the American Statistical Association*, 89(428), 1303-1313.
+- Saaty, T. L. (1980). *The Analytic Hierarchy Process*. McGraw-Hill.
+- Saisana, M., Saltelli, A. y Tarantola, S. (2005). Uncertainty and sensitivity analysis techniques as tools for the quality assessment of composite indicators. *Journal of the Royal Statistical Society, Series A*, 168(2), 307-323.
+- Saltelli, A. y otros (2008). *Global Sensitivity Analysis: The Primer*. Wiley.
+- Shapiro, S. S. y Wilk, M. B. (1965). An analysis of variance test for normality. *Biometrika*, 52(3-4), 591-611.
+- Sobol', I. M. (2001). Global sensitivity indices for nonlinear mathematical models and their Monte Carlo estimates. *Mathematics and Computers in Simulation*, 55(1-3), 271-280.
+- Tukey, J. W. (1977). *Exploratory Data Analysis*. Addison-Wesley.
+- Yeo, I.-K. y Johnson, R. A. (2000). A new family of power transformations to improve normality or symmetry. *Biometrika*, 87(4), 954-959.
+
+
+# Presentación del documento
+
+Esta sección no toma decisiones. Introduce al lector en qué es un índice compuesto y cómo leer el resto del documento. Es la primera sección del documento.
+
+## Qué es un índice compuesto
+
+- **Contenido mínimo del texto.** La definición de un índice compuesto como la combinación de varias series en un número único. Por qué se construye uno para la relación bilateral. Qué ventaja ofrece frente a leer las series por separado y qué información pierde al resumirlas.
+- **Salidas.** Una figura que muestre la idea con un ejemplo de tres series ficticias combinadas en un índice. La figura usa datos sintéticos y lo declara en su leyenda.
+- **Terminado.** El texto no usa ningún término técnico sin definirlo.
+
+## El resultado no se descubre en los datos, se construye
+
+- **Contenido mínimo del texto.** Cada etapa obligó a elegir entre alternativas, y el índice es el resultado de esas elecciones tanto como de los datos. Por eso cada decisión queda registrada con sus alternativas, y la Etapa 10 mide cuánto cambiaría el resultado con otras elecciones.
+- **Salidas.** Una tabla con los diez pasos del manual de la OCDE y la etapa de este documento que corresponde a cada uno.
+- **Terminado.** La tabla cubre los diez pasos sin omitir ninguno.
+
+## El insumo, que son las series candidatas del panel de integración
+
+- **Contenido mínimo del texto.** De dónde salen las series, qué significa que una variable sea candidata y por qué la inclusión definitiva se decide durante el análisis.
+- **Salidas.** La tabla de las series candidatas, con dimensión, indicador, definición operativa, fuente con enlace, unidad, grano y cobertura. Las cifras de cobertura se calculan desde el panel cargado en la Etapa 0, no se copian del prompt.
+- **Dependencias.** Las salidas de la Etapa 0. Por eso esta sección se escribe al final de la sesión S1.
+- **Terminado.** Cada candidata aparece con su fuente y su enlace.
+
+## Cómo está organizada cada etapa
+
+- **Contenido mínimo del texto.** La estructura de tres fases, las tres categorías de decisión y la tabla de opciones evaluadas debajo de cada decisión.
+- **Salidas.** Una figura con el esquema de las catorce etapas y sus dependencias principales.
+
+## Sobre el nivel de detalle de las explicaciones
+
+- **Contenido mínimo del texto.** El documento asume un lector sin formación estadística. Cada técnica se explica antes de aplicarse, y el código está disponible para quien quiera replicar cada paso.
+
+# Etapa 0 · Configuración
+
+La Etapa 0 deja el entorno listo y carga los insumos. No toma decisiones metodológicas, salvo las dos que fijan de dónde se leen los datos.
+
+## 0.1 · De dónde se leen los datos
+
+- **Pregunta.** Desde qué archivo concreto se leen las series del índice y los insumos auxiliares.
+- **Por qué importa.** Un índice citable tiene que poder reconstruirse contra una versión identificable de los datos. Si cada render leyera una fuente distinta, las cifras no podrían reproducirse.
+- **Dependencias.** Los prerrequisitos P1 a P4 resueltos.
+- **Opciones.**
+  - Leer el panel publicado en `03_integracion/panel_trimestral_largo.csv`.
+  - Ejecutar `03_integration.py` dentro del render.
+  - Leer directamente los CSV de `02_limpias`.
+- **Evidencia.** No requiere cálculo. Se apoya en la regla de oro 7.
+- **Criterio.** Se adopta la opción que apunta a un único archivo versionado y deja registrada su versión. Leer el panel publicado cumple esa condición. Ejecutar la integración dentro del render hace que dos renders puedan leer paneles distintos sin advertirlo. Leer `02_limpias` duplica la lógica de la integración.
+- **Categoría.** Regla. Código `D0.1a`.
+- **Decisión complementaria.** Los insumos auxiliares, que son el IPC de Estados Unidos (`ipc_eeuu`) y la población de Paraguay (`poblacion_paraguay`), se leen del mismo panel, donde figuran con la dimensión `insumos`. Así todo el análisis parte de un único archivo, según la decisión del usuario del 2026-10-05. Ningún dato se descarga de una API durante el análisis. Los insumos no son candidatas del índice. Código `D0.1b`, categoría Regla.
+- **Detención.** El panel publicado no contiene todas las variables que declara el prerrequisito P3, o no contiene `ipc_eeuu` y `poblacion_paraguay`.
+- **Salidas.** Una tabla con cada insumo, su archivo de origen, la fecha que lleva el nombre del archivo y su ruta en Drive.
+- **Objetos.** `panel_crudo_largo`, `ipc_trimestral` y `poblacion_anual`, estos dos últimos separados del panel de candidatas.
+- **Validaciones.** El panel se leyó desde Drive y no desde un caché viejo, salvo que el interruptor de caché esté activado, en cuyo caso se imprime la fecha del caché.
+- **Errores conocidos.** La versión anterior leía el IPC y la población en vivo desde las API, y no registraba qué versión del dato usaba.
+- **Texto mínimo.** Qué archivo se lee, por qué ese y no otro, y cómo se identifica la versión.
+- **Terminado.** La tabla de insumos tiene una fila por insumo, con su fecha.
+
+## Entorno y paquetes
+
+- **Contenido.** El bloque importa `pandas`, `numpy`, `scipy`, `statsmodels`, `matplotlib`, `tabulate` y `python-dotenv`, más los módulos de Drive del repositorio. Si la Etapa 10 requiere muestreo de Sobol, se agrega `SALib` en ese momento.
+- **Salidas.** Una tabla con la versión de Python y de cada paquete, para la regla de oro 7.
+- **Validaciones.** `pandas` es de la serie 2, porque el repositorio fija `pandas<3`.
+
+## Rutas y credenciales
+
+- **Contenido.** La raíz del repositorio se encuentra subiendo desde el directorio actual hasta hallar la carpeta `src`. Las credenciales se leen con `os.environ`, según la regla de oro 24, desde el archivo `.env`.
+- **Validaciones.** Si falta `GOOGLE_APPLICATION_CREDENTIALS` o el archivo al que apunta, la etapa se detiene con un mensaje que dice qué falta.
+
+## Parámetros configurables
+
+El bloque `0.3` de la Etapa 0 declara los parámetros globales del documento.
+
+- `CANDIDATAS`, leída de la hoja `Diccionario`, con las variables que tienen **Sí** en la columna `En índice`. No se escribe a mano.
+- `INDICADOR_DE_SERIE`, construido desde la hoja `Matriz`. Cada indicador de la `Matriz` nombra sus variables en la columna de definición operacional, que es texto libre. El ejecutor lee la hoja, escribe el mapeo de forma explícita en el bloque `0.3` y verifica contra la hoja que cada candidata aparezca en exactamente un indicador. Una candidata sin indicador, o con más de uno, detiene la Etapa 0. Las dos series del MRE pertenecen al indicador 2.2 de la dimensión 2, porque la `Matriz` declara el sitio del MRE como su fuente.
+- `ETIQUETA_DIMENSION` y `COLOR_DIMENSION`, fijos en todo el documento.
+- `RANGO_PANEL`, deducido del panel cargado.
+- `VENTANA`, fija en 2015-Q1 a 2025-Q4 por decisión del usuario.
+- `USAR_CACHE`, el interruptor de caché local, en `False` por defecto.
+
+## Carga del panel
+
+- **Contenido.** Se lee el panel largo, se reconstruye el catálogo de variables con su dimensión, grano, agregación, unidad y archivo de origen, y se arma la versión ancha con una fila por trimestre y una columna por variable. Al catálogo se le agregan la definición operativa y el indicador, leídos desde el diccionario.
+- **Objetos.** `panel_crudo_largo`, `panel_crudo_ancho`, `catalogo_series`, `trimestres_panel`.
+
+## Validación de la carga
+
+- **Validaciones.**
+  - El panel tiene exactamente tantas filas como variables por trimestres, sin pares duplicados de variable y trimestre.
+  - Cada candidata del diccionario existe en el panel con el mismo nombre.
+  - Cada variable tiene una sola unidad, y esa unidad coincide con la que declara el diccionario.
+  - Cada candidata tiene exactamente un indicador en `INDICADOR_DE_SERIE`.
+- **Salidas.** Una tabla de concordancia entre el diccionario y los datos. Tiene una fila por candidata, con el nombre, la unidad, la granularidad y el período según el diccionario, y los mismos atributos observados en el panel.
+- **Detención.** Un nombre del diccionario no existe en el panel. Una unidad no coincide. Las diferencias de período no detienen la etapa, porque pueden deberse a series de eventos, y se examinan en 2.1.
+- **Terminado.** Las cuatro validaciones pasan, y cada diferencia de la tabla de concordancia queda registrada en `ESTADO_INDICE_FINAL.md`.
+
+# Etapa 1 · Marco teórico y registro de decisiones
+
+La Etapa 1 fija qué se mide y cómo se documenta cada elección. No usa datos, salvo para describir el panel.
+
+## 1.1 · Qué magnitud pretende medir el índice
+
+- **Pregunta.** Cuál es la definición precisa de la magnitud que el índice resume.
+- **Por qué importa.** Todas las decisiones posteriores de selección, dirección y ponderación se justifican contra esta definición.
+- **Dependencias.** La hoja `Matriz` del diccionario y la versión anterior.
+- **Criterio heredado.** El índice mide la **fortaleza del vínculo bilateral con dirección interpretable**. Un valor más alto significa un relacionamiento más denso y en mejores términos. El usuario corrigió esta definición el 2026-09-11, y descartó la formulación que decía que el índice mide intensidad y no calidad. Por eso las series que miden si la relación es favorable, como el tono, pertenecen al índice.
+- **Opciones evaluadas.** Las mismas de la versión anterior. Se presentan en la tabla de opciones con su motivo de descarte.
+- **Categoría.** Regla heredada. Código `D1.1`.
+- **Salidas.** Una tabla con la definición de cada dimensión según la `Matriz`, y la definición del constructo.
+- **Errores conocidos.** Reintroducir la formulación de intensidad sin calidad.
+- **Texto mínimo.** Qué significa fortaleza con dirección interpretable, con un ejemplo de serie que mide volumen y otro de serie que mide dirección.
+- **Terminado.** La definición está registrada y el texto no la contradice en ninguna etapa.
+
+## 1.2 · Si los indicadores reflejan el constructo o lo definen
+
+- **Pregunta.** Si el modelo de medición es reflectivo o formativo.
+- **Por qué importa.** En un modelo reflectivo los indicadores son efectos de una causa común y deben correlacionar entre sí. En un modelo formativo los indicadores constituyen el constructo y pueden no correlacionar. La elección determina si el alfa de Cronbach y la ponderación por componentes principales son válidos.
+- **Dependencias.** D1.1.
+- **Opciones.** Modelo reflectivo, modelo formativo, modelo mixto con dimensiones de distinto tipo.
+- **Evidencia.** Las cuatro reglas de decisión de Jarvis, MacKenzie y Podsakoff (2003), aplicadas a cada dimensión. Son la dirección de la causalidad entre constructo e indicador, la intercambiabilidad de los indicadores, la covariación esperada entre ellos y si comparten antecedentes y consecuencias.
+- **Criterio.** Una dimensión es formativa si responde en sentido formativo a la mayoría de las cuatro reglas. Si las respuestas se reparten dos a dos, la dimensión se trata como formativa, porque un error en ese sentido no invalida el índice y un error en el sentido contrario sí.
+- **Categoría.** Regla, con la tabla de respuestas a la vista del usuario. Código `D1.2`.
+- **Detención.** Alguna dimensión resulta reflectiva. En ese caso cambia el tratamiento de la Etapa 6 y el ejecutor informa antes de seguir.
+- **Salidas.** Una tabla con las cuatro reglas por dimensión, con la respuesta y su argumento en una oración.
+- **Errores conocidos.** Interpretar una correlación baja entre indicadores formativos como un defecto del índice.
+- **Texto mínimo.** La diferencia entre los dos modelos con un ejemplo cotidiano, y la consecuencia práctica para las etapas 6 y 8.
+- **Terminado.** Cada dimensión tiene su clasificación con sus cuatro respuestas.
+
+## 1.3 · Qué dimensiones integran el análisis
+
+- **Pregunta.** Si las cuatro dimensiones del marco entran al análisis.
+- **Por qué importa.** Una versión anterior excluyó una dimensión entera por falta de datos. Esta subpregunta verifica con los datos actuales cuántas candidatas e indicadores tiene cada dimensión.
+- **Dependencias.** D1.1 y el catálogo de la Etapa 0.
+- **Opciones.** Las cuatro dimensiones, o un subconjunto con su justificación.
+- **Evidencia.** El número de candidatas e indicadores por dimensión.
+- **Criterio.** Las cuatro dimensiones entran al análisis. Su permanencia en el índice final depende de que conserven al menos un indicador después de la Etapa 2 y de la subpregunta 4.6. Una dimensión sin ningún indicador sobreviviente queda fuera y se declara como limitación.
+- **Categoría.** Regla. Código `D1.3`.
+- **Salidas.** Una tabla con las dimensiones, sus indicadores y el número de candidatas de cada uno.
+- **Terminado.** La decisión está registrada con su condición de permanencia.
+
+## 1.4 · Cómo queda constancia de cada decisión
+
+- **Pregunta.** Con qué estructura se registra cada decisión.
+- **Opciones.** Tabla estructurada dentro del documento, texto libre en cada etapa, archivo externo sin vínculo con el documento.
+- **Criterio.** Se adopta el esquema de G3, porque permite generar automáticamente las tablas de opciones y el resumen de cada etapa, y porque un revisor puede leerlo sin abrir el documento.
+- **Categoría.** Regla. Código `D1.4`.
+- **Salidas.** La tabla con las columnas del registro y su contenido, y la primera versión del registro con las decisiones de las etapas 0 y 1.
+- **Validaciones.** El registro tiene las doce columnas de G3. Cada decisión de las etapas 0 y 1 aparece una sola vez.
+- **Terminado.** Las funciones de registro de `_comun.py` funcionan y el registro existe en disco.
+
+# Etapa 2 · Selección de datos
+
+La Etapa 2 decide qué variante de cada indicador se conserva. No decide todavía las exclusiones por cobertura, porque dependen de la ventana de análisis, que se fija en 4.6.
+
+## 2.1 · Cobertura de cada serie
+
+- **Pregunta.** Qué período cubre cada fuente y a qué familia pertenece cada serie.
+- **Por qué importa.** La familia determina qué significa una casilla vacía. En una serie que cuenta hechos fechados, un trimestre sin registro dentro del período consultado es un cero. En una serie que lee un nivel publicado, es un dato desconocido. Confundirlas produce ceros falsos o vacíos falsos.
+- **Dependencias.** El catálogo y la tabla de concordancia de la Etapa 0.
+- **Opciones.** La clasificación no tiene alternativas metodológicas. Se deriva del diccionario y de los datos.
+- **Cómo se deriva la familia.** Se aplican estas reglas en orden, y para cada serie se muestra el fragmento del diccionario y la evidencia de los datos que sostienen su clasificación.
+  1. **Anual repetida.** Los datos lo muestran si, en al menos el 90% de los años con dato, todos los trimestres del año tienen el mismo valor. Se registra además si el diccionario declara una granularidad anual.
+  2. **Stock.** La definición operacional del diccionario describe una cantidad acumulada, vigente o una posición a una fecha.
+  3. **Promedio.** La definición operacional describe un promedio de otra magnitud.
+  4. **Hechos fechados.** La definición operacional describe una suma o un conteo de hechos con fecha, y los datos tienen trimestres sin registro o en cero dentro de su período.
+  5. **Nivel publicado.** Las series que no cumplen ninguna de las reglas anteriores.
+  Si el diccionario y los datos apuntan a familias distintas, prevalece lo que muestran los datos, y la discrepancia se registra en `ESTADO_INDICE_FINAL.md`.
+- **Cómo se deriva la cobertura de la fuente.** Para las series de hechos fechados, la cobertura es el período en que se consultó la fuente, no el rango entre el primer y el último evento. Se toma del período que declara el diccionario, acotado por el último trimestre terminado antes de la fecha del archivo de origen. Si el último evento de una serie está más de cuatro trimestres antes del final de esa cobertura, el ejecutor lo marca, porque puede indicar que la fuente se consultó solo hasta una fecha anterior, y pide confirmación al usuario.
+- **Alineación temporal.** Si el diccionario indica que una serie anual repetida se publica por año fiscal, el ejecutor documenta el desfase entre el año fiscal y los trimestres a los que se asignó. El desfase no se corrige, por decisión del usuario, y se declara como limitación.
+- **Categoría.** Regla para la clasificación de familias, código `D2.1a`. Regla para la alineación del año fiscal, código `D2.1b`.
+- **Detención.** Una serie sin período declarado en el diccionario. Un conflicto de familia entre el diccionario y los datos. Una serie de eventos con su último evento muy anterior al final de su cobertura.
+- **Salidas.** La tabla de familias y coberturas, con su evidencia. Una figura de barras horizontales con el período de cobertura de cada fuente y los trimestres con dato marcados encima.
+- **Objetos.** `FAMILIA_SERIE`, `COBERTURA_FUENTE` y `tabla_cobertura`.
+- **Validaciones.** Cada candidata tiene exactamente una familia. Ninguna serie tiene datos fuera de la cobertura derivada de su fuente.
+- **Errores conocidos.** Medir la cobertura de una serie de eventos entre el primer y el último evento. Tratar un promedio como cero cuando su magnitud base vale cero, cuando en realidad está indefinido.
+- **Texto mínimo.** Por qué una casilla vacía no significa lo mismo en todas las series, con un ejemplo de cada familia tomado de los datos.
+- **Terminado.** Todas las candidatas tienen familia, cobertura y, si corresponde, su desfase documentado.
+
+## 2.2 · Redundancia entre series del mismo indicador
+
+- **Pregunta.** Cuando un indicador tiene dos o más series, si aportan información distinta o miden lo mismo.
+- **Por qué importa.** Dos series que miden lo mismo duplican el peso de ese contenido si ambas entran al índice. A la vez, descartar una serie que aporta información distinta empobrece la medición.
+- **Dependencias.** D2.1, D1.1.
+- **Pares a evaluar.** Todos los pares de series que comparten indicador en `INDICADOR_DE_SERIE`. La lista se genera desde ese mapeo, no se escribe a mano.
+- **Opciones.** Conservar ambas series, conservar una, o combinarlas en una sola serie.
+- **Evidencia.** Para cada par se calculan cuatro medidas.
+  - La correlación de Spearman sobre cambios, y también sobre niveles para mostrar la diferencia.
+  - Su intervalo de confianza al 95%, calculado con la transformación de Fisher.
+  - Para pares de series de eventos, la proporción de trimestres en que ambas tienen eventos sobre los trimestres en que al menos una los tiene.
+  - Para pares de montos, la proporción del monto de una que se explica por la otra, cuando una es subconjunto de la otra.
+- **Tratamiento de la mezcla de granos.** Si alguna serie del par es anual repetida, la correlación se calcula sobre valores anuales, con unos once años de datos. Calcularla sobre trimestres cuenta cuatro veces cada observación y produce una correlación y una significancia infladas.
+- **Criterio heredado.** Un par es redundante si la correlación de Spearman sobre cambios es igual o mayor que 0,90. Por debajo de ese umbral ambas series se conservan. El umbral es el de la Decisión 6.3 de la versión anterior. El intervalo de confianza se informa para que el lector vea la precisión de cada estimación, en especial en los pares con series anuales, pero no cambia el criterio.
+
+- **Indicadores con una sola serie.** Cuando la `Matriz` indica «Solo se elige uno» en un indicador, el par se marca para que 6.8 conserve una sola serie aunque no sea redundante.
+- **Qué serie se conserva.** Esta subpregunta solo clasifica los pares. La elección de la serie que se conserva se hace en 6.8, con la evidencia de los datos de 6.7, porque requiere las series ya transformadas y comparadas con todo el resto de su dimensión.
+- **Categoría.** Regla heredada para la clasificación del par, código `D2.2a`. La elección se registra en `D6.8`.
+
+- **Salidas.** La tabla de pares con las cuatro medidas y la clasificación. Una figura de dispersión de los cambios de cada par, con la correlación anotada.
+- **Objetos.** `redundancia_por_indicador` y `series_conservadas_d2`.
+- **Validaciones.** Cada par tiene su correlación sobre cambios. Ningún par con una serie anual se calculó sobre trimestres.
+- **Errores conocidos.** Juzgar la redundancia sobre niveles, según la regla de oro 6. Calcular sobre trimestres una correlación que involucra una serie anual.
+- **Texto mínimo.** Por qué dos series con tendencia correlacionan aunque no se muevan juntas, con un ejemplo gráfico.
+- **Terminado.** Cada par está clasificado y los pares marcados pasan a 6.8.
+
+## 2.3 · Qué parte del marco conceptual cubre el panel
+
+- **Pregunta.** Qué indicadores del marco tienen series y cuáles no.
+- **Por qué importa.** La regla de oro del estándar de documentación exige declarar qué parte del marco no está en el resultado.
+- **Dependencias.** D1.1, D2.2.
+- **Evidencia.** La matriz de indicadores del marco contra las series conservadas.
+- **Decisiones.**
+  - Los indicadores de la `Matriz` que no tienen ninguna serie se declaran como limitación. Código `D2.3a`, Regla.
+  - Todas las candidatas tienen indicador en la `Matriz`. Las series del MRE cubren el indicador 2.2 solo de forma parcial, porque cuentan noticias bilaterales de la Cancillería y no visitas de autoridades. La tabla lo declara como cobertura parcial. Código `D2.3b`, Regla.
+  - Las series que miden si la relación es favorable permanecen en el índice, según la definición heredada de D1.1.
+
+- **Salidas.** Una figura de matriz con los indicadores en filas, las dimensiones en bloques y una marca de cobertura por indicador.
+- **Terminado.** Cada indicador del marco figura como cubierto, cubierto parcialmente o no cubierto.
+
+## 2.4 · Los indicadores derivados candidatos
+
+- **Pregunta.** Qué series derivadas de las candidatas podrían medir mejor un indicador que sus componentes.
+- **Por qué importa.** Un derivado bien elegido puede representar el constructo con más fidelidad. Un derivado mal elegido duplica información o mide otra cosa.
+- **Dependencias.** D2.2.
+- **Candidatos.**
+  - La intensidad comercial, que es la suma de exportaciones e importaciones.
+  - La balanza comercial, que es la diferencia entre exportaciones e importaciones.
+  - El grado de ejecución de la asistencia, que es el cociente entre desembolsos y obligaciones.
+  - El volumen total de cobertura, que es la suma de los artículos paraguayos y estadounidenses.
+  - El financiamiento multilateral atribuible total, que es la suma de BID y Banco Mundial.
+- **Fuera de alcance.** Cualquier derivado que use el PIB, porque el pipeline no tiene una serie de PIB.
+- **Criterio.** En esta subpregunta solo se inventarían y se calcula cada serie derivada. La decisión se toma en 6.3, porque requiere comparar su información con la de sus componentes.
+- **Categoría.** Sin decisión en esta subpregunta. La decisión es `D6.3`.
+- **Salidas.** Una tabla con cada candidato, su fórmula, sus componentes y qué pregunta conceptual responde.
+- **Objetos.** `derivados_candidatos`.
+- **Terminado.** Cada derivado está calculado y guardado.
+
+# Etapa 3 · Tratamiento de datos faltantes
+
+## 3.1 · Qué significa una casilla vacía
+
+- **Pregunta.** Qué tipo de vacío es cada casilla sin dato del panel.
+- **Dependencias.** D2.1.
+- **Evidencia.** Cada casilla vacía se clasifica en una de cuatro categorías.
+  - Fuera de cobertura, si el trimestre está antes o después del período consultado de la fuente.
+  - Cero estructural candidato, si la serie es de hechos fechados y el trimestre está dentro de su cobertura.
+  - Faltante interior, si la serie es de nivel publicado o de stock y el vacío está entre dos datos.
+  - Indefinido, si la serie es un promedio y su serie base vale cero.
+- **Categoría.** Regla. Código `D3.1`.
+- **Salidas.** Una figura de mapa de calor con las series en filas, los trimestres en columnas y un color por categoría, más una tabla con el conteo por serie y categoría.
+- **Objetos.** `estado_casillas`.
+- **Validaciones.** Cada casilla vacía tiene exactamente una categoría.
+- **Texto mínimo.** Qué significa cada categoría, con un ejemplo concreto del panel.
+- **Terminado.** No queda ninguna casilla sin clasificar.
+
+## 3.2 · Si corresponde estimar los valores ausentes
+
+- **Pregunta.** Si los faltantes interiores se estiman.
+- **Por qué importa.** Estimar un dato inventa información. No estimarlo puede obligar a recortar la ventana o a excluir una serie.
+- **Dependencias.** D3.1.
+- **Opciones.** Eliminación por listado, interpolación lineal, arrastre del último valor, imputación por regresión, imputación múltiple, vecino más cercano, exclusión de la serie.
+- **Evidencia.** Cada faltante interior se detecta en los datos. Para cada uno se documentan la serie, el período, la longitud del hueco y el mecanismo probable según Little y Rubin (2019).
+- **Criterio heredado.** No se aplica ninguna imputación estadística ni interpolación, según la Decisión 3.1 de la versión anterior. Un faltante interior se conserva como desconocido, y su efecto se resuelve con la ventana en 4.6.
+- **Categoría.** Regla heredada. Código `D3.2`.
+- **Detención.** Un faltante interior que, sin imputar, obligaría a excluir una serie en 4.6. El ejecutor lo informa, porque el criterio heredado se fijó cuando no había faltantes interiores.
+- **Salidas.** Una tabla de faltantes interiores con su tratamiento, y una figura de cada serie afectada con el hueco marcado.
+- **Errores conocidos.** Rellenar un hueco con una estimación que el lector no puede distinguir del dato.
+- **Terminado.** Cada faltante interior está documentado y conservado.
+
+## 3.3 · Hasta dónde puede declararse un cero
+
+- **Pregunta.** En qué trimestres se escribe cero en las series de hechos fechados.
+- **Dependencias.** D2.1, D3.1.
+- **Criterio.** El cero se escribe solo en los trimestres que la fuente consultó por completo. En una fuente que se consulta en vivo, el último trimestre consultado es el último trimestre terminado antes de la fecha de extracción. En una fuente que se extrae por lotes, es el último trimestre que el lote declara haber cubierto. Un trimestre consultado solo en parte no recibe cero y se marca como parcial.
+- **Categoría.** Regla. Código `D3.3`.
+- **Salidas.** Una tabla con el último trimestre de cero admisible de cada serie y su fundamento. La figura de 3.1 actualizada con los ceros escritos.
+- **Objetos.** `panel_tratado`.
+- **Validaciones.** Ningún cero se escribió fuera de la cobertura de su fuente. Ningún cero se escribió en una serie de nivel, stock o promedio.
+- **Errores conocidos.** Escribir cero después de la fecha de extracción, cuando la fuente todavía no había publicado ese período.
+- **Terminado.** Cada serie de hechos fechados tiene su límite de cero documentado.
+
+## 3.4 · Las series que leen un nivel publicado
+
+- **Pregunta.** Qué se hace con los vacíos de cabecera y de cola en las series de nivel, de stock y de promedio.
+- **Dependencias.** D3.1.
+- **Criterio.** Los vacíos de cabecera y de cola se conservan como desconocidos. Su efecto se resuelve con la ventana en 4.6. Un stock que el diccionario describe como derivado de una fotografía de proyectos activos no se extiende hacia atrás, porque los proyectos cerrados antes de la fotografía no figuran en ella.
+- **Categoría.** Regla. Código `D3.4`.
+- **Salidas.** Una tabla de cabeceras y colas desconocidas por serie.
+- **Terminado.** Ninguna cabecera ni cola se rellenó.
+
+# Etapa 4 · Exploración descriptiva
+
+La Etapa 4 produce la evidencia para las decisiones de la Etapa 5. No decide ninguna transformación. Todas sus medidas se calculan sobre el grano propio de cada serie. Las series anuales repetidas se describen con sus valores anuales.
+
+## 4.1 · Tendencia central y dispersión
+
+- **Evidencia.** Para cada serie se calculan el número de observaciones, la media, la mediana, el desvío estándar, la desviación absoluta mediana, el rango intercuartílico, el mínimo, el máximo y el coeficiente de variación.
+- **Categoría.** Sin decisión.
+- **Salidas.** Una tabla con esas medidas en unidades de origen, y una figura de cajas por dimensión con las series estandarizadas solo para poder verlas juntas.
+- **Validaciones.** Las series anuales tienen tantas observaciones como años.
+- **Texto mínimo.** Qué mide cada estadístico y por qué la mediana y la desviación absoluta mediana resisten mejor a los valores extremos.
+
+## 4.2 · Forma de la distribución y normalidad
+
+- **Evidencia.** La asimetría con su error estándar, la curtosis, la prueba de Shapiro y Wilk, la prueba de Jarque y Bera, un histograma y un gráfico de cuantiles normales por serie.
+- **Criterio para la Etapa 5.** La decisión de transformar se basa en la magnitud de la asimetría y no en el valor p de las pruebas de normalidad. Con menos de 50 observaciones, que es lo que se espera en series trimestrales de esta ventana y se verifica en 4.1, esas pruebas tienen poca potencia, y el objetivo de transformar es reducir la asimetría, no alcanzar la normalidad. Se usa la regla de Bulmer (1979), que considera alta una asimetría mayor que 1 en valor absoluto y moderada una entre 0,5 y 1.
+- **Categoría.** Sin decisión. El criterio se registra para la Etapa 5.
+- **Salidas.** Una tabla con las medidas de forma y una grilla de histogramas.
+- **Errores conocidos.** Interpretar la prueba de Jarque y Bera con menos de 50 observaciones, cuando su aproximación no es confiable.
+
+## 4.3 · Ceros y valores negativos
+
+- **Evidencia.** Por serie, el número de ceros, el número de negativos y el mínimo.
+- **Decisión.** Una matriz de admisibilidad de transformaciones por serie. El logaritmo exige valores mayores que cero. El logaritmo de uno más el valor admite ceros pero no negativos. El seno hiperbólico inverso y la transformación de Yeo y Johnson admiten cualquier valor.
+- **Advertencia.** El logaritmo de uno más el valor y el seno hiperbólico inverso dependen de la unidad de medida. El resultado cambia si la serie se expresa en dólares o en millones de dólares, de modo que su uso exige fijar y declarar la unidad.
+- **Categoría.** Regla, porque la admisibilidad es un hecho matemático. Código `D4.3`.
+- **Salidas.** La matriz de admisibilidad.
+- **Detención.** Una serie monetaria con valores negativos en algún trimestre. El ejecutor informa, porque cambia las opciones de 5.3.
+
+## 4.4 · Detección de valores extremos
+
+- **Evidencia.** Cada observación se evalúa con tres reglas, y se registra cuántas la marcan.
+  - Distancia mayor que tres desvíos estándar respecto de la media.
+  - Las vallas de Tukey (1977), a 1,5 y a 3 rangos intercuartílicos.
+  - El puntaje z modificado con la desviación absoluta mediana, con umbral 3,5, según Iglewicz y Hoaglin (1993).
+- **Para cada observación marcada** se registran su fecha y su valor. Los datos no permiten saber si una observación extrema es un hecho real o un error, de modo que la tabla queda preparada para que el usuario lo indique en 5.4.
+- **Método de referencia heredado.** La desviación absoluta mediana es el método de referencia, según la Decisión 4.1 de la versión anterior. Las otras dos reglas se informan para mostrar la sensibilidad de la detección al método.
+- **Categoría.** Regla heredada para el método de referencia. El tratamiento se decide en 5.4.
+- **Salidas.** Una tabla de observaciones marcadas, con las reglas que la marcan y el hecho asociado. Una figura de cada serie con las observaciones marcadas resaltadas.
+- **Errores conocidos.** Elegir un solo método de detección y tratar sus marcas como errores.
+
+## 4.5 · Comportamiento temporal y quiebres estructurales
+
+- **Pregunta.** Si alguna serie cambia de nivel o de tendencia de forma abrupta, y qué se hace con cada cambio.
+- **Por qué importa.** Un quiebre puede ser un hecho de la relación bilateral, que el índice tiene que mostrar, o un cambio en cómo se mide la serie, que el índice no debe confundir con un cambio en la relación.
+- **Evidencia.**
+  - El gráfico de cada serie en el tiempo.
+  - La prueba de Chow en fechas candidatas elegidas antes de mirar los datos por su relevancia para la relación, como el segundo trimestre de 2020 por la pandemia y el primer trimestre de 2025 por el congelamiento de la asistencia exterior de Estados Unidos.
+  - La prueba de Bai y Perron (2003) para quiebres en fechas desconocidas, sobre el logaritmo de las series positivas. Es la prueba de referencia cuando la fecha no se conoce de antemano.
+  - La prueba CUSUM sobre los residuos de una tendencia lineal, como verificación.
+  - La proporción de la variación de cada serie trimestral que explica el trimestre del año, con su prueba F.
+- **Clasificación de cada quiebre.** Cada quiebre detectado se clasifica con la evidencia documental disponible, que es la definición del diccionario, la nota de la variable y la documentación de su fuente.
+  1. **Hecho de la relación.** El quiebre coincide con un hecho externo documentado, como una fecha candidata. Es señal.
+  2. **Cambio de medición.** El quiebre coincide con un cambio documentado de fuente, de método o de cobertura de la serie. Es un efecto de la medición.
+  3. **Sin explicación documentada.** No coincide con ninguno de los dos.
+- **Tratamiento.**
+  1. Un hecho de la relación se conserva sin ninguna corrección, porque es precisamente lo que el índice debe medir.
+  2. Un cambio de medición con un período de solapamiento, en el que la serie existe medida de las dos formas, se corrige enlazando el tramo anterior con el coeficiente de enlace calculado en el solapamiento. Es el procedimiento de retropolación que usan los institutos de estadística cuando una serie cambia de base o de método. Un cambio de medición sin solapamiento no se puede corregir sin inventar el coeficiente. La serie se conserva sin modificar, el quiebre se declara como limitación y la exclusión de esa serie entra a la Etapa 10 como factor.
+  3. Un quiebre sin explicación se trata como señal y se conserva. Corregirlo exigiría suponer que es un error sin evidencia de que lo sea, lo que contradice la Decisión 3.1 de no inventar información. Se declara, y la Etapa 11 verifica si el índice lo refleja de forma coherente con la serie.
+- **Alternativa descartada.** Corregir todo quiebre con una variable indicadora o eliminando el cambio de nivel. Se descarta porque borraría del índice los cambios reales de la relación, que son el objeto de la medición.
+- **Categoría.** Regla. Código `D4.5`.
+- **Salidas.** Una grilla de series en el tiempo con las fechas de quiebre marcadas. Una tabla de quiebres con su fecha, su prueba, su clasificación, la evidencia documental y su tratamiento. Una tabla de estacionalidad por serie.
+- **Errores conocidos.** Elegir las fechas candidatas después de mirar los datos. Clasificar un quiebre como cambio de medición sin citar el documento que lo acredita.
+- **Terminado.** Cada quiebre detectado tiene su clasificación, su evidencia y su tratamiento.
+
+## 4.6 · Cobertura conjunta y ventana de análisis
+
+- **Pregunta.** Qué series entran con la ventana fijada por el usuario.
+- **Ventana.** 2015-Q1 a 2025-Q4, 44 trimestres, por decisión del usuario del 2026-10-05. Se acota a diciembre de 2025 porque 2026 está incompleto en la mayoría de las fuentes.
+- **Dependencias.** D2.1, D3.1 a D3.4.
+- **Cobertura mínima.** Una serie entra si tiene dato en al menos el 70% de los trimestres de la ventana, después de escribir los ceros estructurales. El umbral es una convención del proyecto, justificada porque una serie con menos cobertura aportaría al índice en menos de dos de cada tres trimestres. Por ser convención, la exclusión de las series que quedan entre el 65% y el 75% entra a la Etapa 10 como factor.
+- **Faltantes dentro de la ventana.** Una serie que entra puede no tener dato en algunos trimestres de la ventana, por ejemplo en 2025 si su fuente publica con rezago. En esos trimestres no se estima ningún valor, según la Decisión 3.1. El indicador y la dimensión se calculan con las series que tienen dato, y los pesos de esas series se reparten de nuevo dentro de su grupo. Este reparto equivale a suponer que la serie ausente se movió como el promedio de las presentes de su grupo, y el texto lo declara así. Los trimestres afectados se marcan, y la Etapa 10 incluye como factor la alternativa de excluir esas series.
+- **Evidencia.** Una tabla con la cobertura de cada candidata en la ventana, si entra, y los trimestres sin dato de cada serie que entra.
+- **Categoría.** Regla. Código `D4.6`.
+- **Detención.** Una dimensión se queda sin ninguna serie con la ventana fijada.
+- **Salidas.** La tabla de cobertura. Una figura con el número de series con dato por trimestre, por dimensión.
+- **Objetos.** `VENTANA`, `series_en_ventana` y `trimestres_incompletos`.
+- **Texto mínimo.** Por qué la ventana termina en 2025-Q4, qué series quedan fuera por cobertura y qué trimestres se calculan con menos series.
+- **Terminado.** La lista de series queda fija, y cada trimestre incompleto está identificado.
+
+
+# Etapa 5 · Transformación de variables
+
+Las transformaciones se aplican en un orden fijo, que se declara en el texto. Primero se descuentan los precios, después se expresa por habitante, después se transforma la distribución y por último se tratan los valores extremos. La normalización viene en la Etapa 7.
+
+## 5.1 · Ajuste por el cambio de precios
+
+- **Pregunta.** Si los montos en dólares se expresan a precios constantes, y con qué índice de precios.
+- **Por qué importa.** Sin el ajuste, la inflación aparece como un aumento del vínculo.
+- **Dependencias.** D0.1b, D4.6.
+- **Opciones.** No ajustar. Ajustar con el IPC de Estados Unidos. Ajustar con el IPC de Paraguay. Ajustar con el deflactor del PIB de Estados Unidos o de Paraguay.
+- **Índice de precios.** El índice de precios se elige por la economía en la que se originan o se miden los flujos. Los flujos están denominados en dólares y se originan en la economía de Estados Unidos o se transan con ella, de modo que corresponde el IPC de Estados Unidos, que es `ipc_eeuu` del panel. El IPC de Paraguay y los deflactores del PIB no están en Drive.
+- **Comparación con y sin ajuste.** Por decisión del usuario, se calculan las dos versiones y se adopta la técnicamente correcta. El criterio se fija antes de comparar, para que la elección no dependa de qué versión produce un índice más conveniente.
+  1. La versión adoptada por defecto es la deflactada, porque el índice compara montos de once años distintos y un dólar de 2015 no compra lo mismo que uno de 2025. Es el tratamiento que recomienda el manual de la OCDE para series monetarias comparadas en el tiempo, y fue la Decisión 5.1 de la versión anterior.
+  2. La versión sin ajustar se adopta solo si la comparación muestra que el deflactor introduce un artefacto, por ejemplo un salto producido por un trimestre del IPC con meses faltantes.
+  3. La forma o el nivel del índice resultante no es un criterio, porque elegir por el resultado sería ajustar el índice a una conclusión.
+- **Evidencia.** La inflación acumulada en la ventana. La variación de cada serie monetaria entre el primer y el último año de la ventana, con y sin ajuste, y si el signo de esa variación se invierte. La correlación sobre cambios entre las dos versiones de cada serie.
+- **Construcción del deflactor.** El IPC trimestral del panel es el promedio de los meses publicados del trimestre. Octubre de 2025 no existe en la fuente, de modo que 2025-Q4 se calcula con dos meses, y el texto lo declara. Las series anuales repetidas se dividen por el promedio anual del deflactor, para que sus cuatro trimestres conserven el mismo valor.
+- **Stocks monetarios.** Un stock monetario, como la posición de inversión directa, se deflacta igual que los flujos, con el deflactor del período al que corresponde la posición. Cuando la fuente valora el stock a costo histórico, el stock mezcla dólares de distintos años y el ajuste es una aproximación. El texto lo declara.
+- **Categoría.** Regla para el índice de precios, código `D5.1a`. Regla para los stocks monetarios, código `D5.1b`. La versión sin ajuste entra a la Etapa 10 dentro del factor de ajuste monetario.
+- **Salidas.** Una figura del deflactor trimestral. Una figura de barras con la variación de cada serie monetaria a precios corrientes y constantes. Una tabla con la comparación de las dos versiones.
+- **Objetos.** `deflactor_trimestral`, `deflactor_anual`, `panel_deflactado`.
+- **Validaciones.** Ninguna serie anual repetida tiene valores distintos dentro de un mismo año después del ajuste. Solo se ajustaron las series en dólares.
+- **Errores conocidos.** Dividir una serie anual por el deflactor de cada trimestre, que le asigna cuatro valores distintos a un dato anual.
+- **Terminado.** Las series monetarias están ajustadas y la tabla de operacionalización registra el ajuste.
+
+## 5.2 · Ajuste por el tamaño del país receptor
+
+- **Pregunta.** Si las series se expresan por habitante, y con qué fuente de población.
+- **Por qué importa.** Sin el ajuste, una parte del crecimiento de los flujos corresponde al crecimiento de la población. Además, la expresión por habitante es la que permitiría comparar en el futuro con otros países.
+- **Dependencias.** D5.1a.
+- **Opciones.** Valores absolutos. Por habitante. Como proporción del PIB, que no es viable porque el pipeline no tiene PIB. Como proporción del total del país, que no es viable porque faltan los totales para varias series.
+- **Qué series se ajustan.** Según la Decisión 5.2 de la versión anterior, se expresan por habitante las series monetarias. El criterio se aplica a todas las series monetarias del panel actual, incluidas las nuevas. Las series de cantidad y de índice no se ajustan.
+- **Fuente de población.** La población es la del INE, `poblacion_paraguay` del panel, por decisión del usuario. Es la estimación oficial de Paraguay posterior al Censo 2022.
+
+- **Paso de anual a trimestral.** La población se publica a mitad de año. Se interpola linealmente al punto medio de cada trimestre, porque repetir el valor anual crea un escalón artificial cada primer trimestre. El ejecutor muestra la diferencia entre ambas opciones.
+- **Categoría.** Regla heredada para el principio de ajuste, código `D5.2a`. Regla para la fuente de población, código `D5.2c`. Regla para el paso de anual a trimestral, código `D5.2d`.
+- **Salidas.** La tabla de clasificación de series. Una figura con la población anual y su interpolación trimestral. Una figura de barras con la variación de cada serie antes y después del ajuste.
+- **Objetos.** `poblacion_trimestral`, `panel_por_habitante`.
+- **Errores conocidos.** Ajustar por habitante series que no dependen del tamaño del país.
+- **Texto mínimo.** La consecuencia del ajuste para una futura comparación con otros países.
+- **Terminado.** Cada serie tiene registrado si se ajustó o no, y por qué.
+
+## 5.3 · Transformación de la distribución
+
+- **Pregunta.** A qué series se les aplica una transformación para reducir su asimetría, y cuál.
+- **Por qué importa.** Una serie muy asimétrica, al llevarse a una escala común, concentra casi todo su recorrido en unos pocos trimestres y comprime el resto.
+- **Dependencias.** D4.2, D4.3, D5.2.
+- **Opciones.** Ninguna. Logaritmo natural. Logaritmo de uno más el valor. Raíz cuadrada. Seno hiperbólico inverso. Box y Cox. Yeo y Johnson.
+- **Evidencia.** Para cada serie admisible, la asimetría antes y después de cada transformación, calculada sobre su grano propio.
+- **Criterio.**
+  1. Una serie se transforma solo si su asimetría supera 1 en valor absoluto.
+  2. Entre las transformaciones admisibles se prefiere el logaritmo natural, porque tiene una lectura económica precisa. Una diferencia constante en logaritmos es un cambio porcentual constante.
+  3. El logaritmo se aplica solo si reduce el valor absoluto de la asimetría.
+  4. Si las series de un mismo indicador quedan separadas, porque una se transforma y la otra no, ambas reciben el mismo tratamiento. El motivo es que se promedian entre sí, y deben expresar el cambio de la misma forma.
+  5. Una serie discreta no se transforma. Es discreta si el número de valores distintos es menor que un tercio de sus observaciones propias, contadas en su grano. El umbral es una convención del proyecto.
+- **Descarte de Box y Cox y de Yeo y Johnson.** Estiman su exponente con los datos y lo vuelven a estimar en cada edición, de modo que cambiarían valores ya publicados. Se registran como descartadas.
+- **Categoría.** Regla. Código `D5.3`. La alternativa de no transformar ninguna serie y la de aplicar el logaritmo a toda serie admisible entran a la Etapa 10.
+- **Salidas.** Una tabla con la asimetría antes y después y la decisión por serie. Una figura de puntos con la asimetría de cada serie antes y después, unidos por un segmento.
+- **Objetos.** `SERIES_CON_LOG`, `panel_transformado`.
+- **Validaciones.** El conjunto `SERIES_CON_LOG` no contiene ninguna serie discreta ni ninguna serie con ceros o negativos. Ningún valor transformado es infinito ni faltante.
+- **Errores conocidos.** Derivar el conjunto de series transformadas sin cruzarlo con la decisión de series discretas, según la regla de oro 5. Medir la discreción de una serie anual sobre trimestres.
+- **Terminado.** Cada serie tiene su transformación registrada con el valor de su asimetría.
+
+## 5.4 · Tratamiento de los valores extremos
+
+- **Pregunta.** Qué se hace con las observaciones marcadas en 4.4, ahora sobre la escala transformada.
+- **Dependencias.** D4.4, D5.3.
+- **Opciones.** No tratar. Winsorizar al percentil 1 y 99. Recortar. Topar a un múltiplo del desvío. Marcar como hecho real.
+- **Evidencia.** Las observaciones de 4.4 se vuelven a evaluar con las mismas tres reglas sobre la escala transformada, porque el logaritmo suele absorber parte de lo extremo.
+- **Criterio heredado.** Los valores extremos no reciben tratamiento, según la Decisión 5.4 de la versión anterior. La winsorización al percentil 1 y 99 entra a la Etapa 10 como alternativa.
+- **Categoría.** Regla heredada. Código `D5.4`.
+- **Salidas.** Una tabla de observaciones que siguen marcadas, con su tratamiento y su fundamento.
+- **Errores conocidos.** Tratar un hecho real como un error de medición.
+- **Terminado.** Cada observación marcada tiene su tratamiento registrado.
+
+## 5.5 · Las series de conteo disperso
+
+- **Pregunta.** Cómo se expresan las series que valen cero en la mayoría de los trimestres.
+- **Por qué importa.** Una serie con cinco eventos en cuarenta y ocho trimestres produce, al normalizarse, saltos de varios desvíos en esos cinco trimestres y valores casi iguales en el resto.
+- **Dependencias.** D3.3, D5.3.
+- **Candidatas.** Las series de hechos fechados con más de la mitad de sus trimestres en cero dentro de la ventana. La lista se calcula desde los datos.
+- **Opciones.** Conteo por trimestre. Suma móvil de cuatro trimestres, que expresa la actividad del último año. Stock acumulado, solo si el fenómeno persiste en el tiempo. Escala ordinal. Indicador de presencia. Exclusión.
+- **Evidencia.** Para cada candidata y cada opción, la proporción de trimestres en cero y el mayor valor absoluto que alcanzaría al normalizarse con un puntaje z sobre la ventana.
+- **Criterio heredado.** Las series de conteo disperso se conservan como conteo, sin transformar, según la Decisión 5.5 de la versión anterior. El criterio se aplica a todas las series que cumplen la condición en el panel actual, incluidas las nuevas. El tamaño del salto que produce cada evento se mide en 7.5.
+- **Categoría.** Regla heredada. Código `D5.5`.
+- **Advertencia.** La suma móvil pierde los tres primeros trimestres de la ventana y crea autocorrelación. El texto lo declara.
+- **Salidas.** Una tabla por serie con las opciones y su evidencia. Una figura de cada serie con el conteo y la suma móvil superpuestos.
+- **Terminado.** El usuario decidió la forma de cada serie.
+
+## 5.6 · El trimestre provisional
+
+- **Pregunta.** Cómo se tratan los últimos trimestres cuyo dato todavía puede cambiar.
+- **Dependencias.** D4.6.
+- **Detección.** Se detectan desde los datos tres tipos de período provisional.
+  - El último año de una serie anual repetida cuyo año fiscal no había cerrado en la fecha de su archivo de origen. El año fiscal de Estados Unidos cierra el 30 de septiembre.
+  - El último o el primer trimestre de una serie cuyo valor está por debajo de la mitad del mínimo de los años anteriores.
+  - Un trimestre del IPC con menos de tres meses de dato.
+- **Regla de detección.** Las dos primeras verificaciones se aplican juntas a las series anuales. Si no coinciden, el período se marca como provisional, porque es el criterio conservador. Con la ventana cerrada en 2025-Q4 el caso debería ser raro, y el texto informa si aparece.
+
+- **Opciones.** Excluir el trimestre de la ventana. Incluirlo marcado como provisional y excluirlo del período de referencia. Incluirlo sin marca.
+- **Criterio.** Un trimestre provisional que contiene información firme de la mayoría de las series se incluye marcado como provisional y se excluye del período de referencia.
+- **Categoría.** Regla para la detección y el tratamiento, código `D5.6a`. Regla para el caso en que las verificaciones discrepan, código `D5.6b`.
+- **Salidas.** Una tabla de trimestres provisionales, con el motivo y las series afectadas.
+- **Objetos.** `TRIMESTRES_PROVISIONALES`.
+- **Terminado.** Cada trimestre provisional está identificado con su motivo.
+
+# Etapa 6 · Consistencia interna y análisis multivariado
+
+## 6.1 · Con qué medida se evalúa la relación entre series
+
+- **Opciones.** Correlación de Pearson, de Spearman y de Kendall.
+- **Criterio.** Se usa Spearman como medida principal, porque no supone una relación lineal y resiste mejor a los valores extremos. Para los pares en que alguna serie tiene más de la mitad de sus valores en cero, se usa la tau-b de Kendall, porque maneja mejor los empates. Pearson se informa como referencia.
+- **Categoría.** Regla. Código `D6.1`.
+- **Salidas.** Una figura que muestre, con un ejemplo del propio panel, cómo un valor extremo altera Pearson y no Spearman.
+
+## 6.2 · Sobre qué se juzga la redundancia, si niveles o cambios
+
+- **Criterio.** Toda decisión de redundancia o de comovimiento se toma sobre cambios, siguiendo a Granger y Newbold (1974). Para las series en logaritmo, el cambio es la primera diferencia del logaritmo. Para las demás, la primera diferencia. Los pares que incluyen una serie anual se calculan a frecuencia anual. Para llevar una serie trimestral a frecuencia anual se usa su agregación declarada en el panel. Los flujos se suman, los promedios se promedian y los stocks toman el valor de fin de año.
+- **Categoría.** Regla. Código `D6.2`.
+- **Salidas.** La misma matriz de correlaciones calculada sobre niveles y sobre cambios, una al lado de la otra, para mostrar cuánto cambia la lectura.
+- **Errores conocidos.** Es el error que la versión anterior cometió tres veces. Cada correlación del resto del documento debe indicar si se calculó sobre cambios.
+
+## 6.3 · Los indicadores derivados candidatos
+
+- **Pregunta.** Si alguno de los derivados de 2.4 entra al índice, y si reemplaza a sus componentes o se agrega.
+- **Dependencias.** D2.4, D6.2.
+- **Evidencia.** La correlación sobre cambios de cada derivado con cada uno de sus componentes.
+- **Criterio.** Un derivado no se agrega junto a sus componentes si su correlación con alguno de ellos es igual o mayor que 0,90, porque duplicaría información. Si un derivado representa el constructo mejor que sus componentes, compite con ellos en la evaluación de 6.7 y la decisión se toma en 6.8. Un ejemplo es la intensidad comercial frente a exportaciones e importaciones por separado.
+- **Categoría.** Regla para el descarte por redundancia, código `D6.3a`. Regla para el reemplazo, código `D6.3b`.
+- **Salidas.** Una tabla de derivados con sus correlaciones y su decisión.
+- **Terminado.** Cada derivado tiene su decisión registrada.
+
+## 6.4 · Cuánta información comparten las series entre sí
+
+- **Evidencia.** La matriz completa de correlaciones de Spearman sobre cambios entre todas las series de la ventana, ordenada por dimensión.
+- **Criterio.** Se marcan los pares con correlación igual o mayor que 0,90 entre indicadores distintos, porque indican una duplicación que la Etapa 2 no detectó. Cada par marcado pasa a 6.8.
+- **Criterio heredado.** Ninguna serie se excluye por redundancia por debajo de 0,90, según la Decisión 6.3 de la versión anterior.
+- **Categoría.** Regla heredada para la marca. La serie que se conserva se elige en 6.8. Código `D6.4`.
+- **Salidas.** Un mapa de calor de la matriz, con las dimensiones separadas por líneas.
+
+## 6.5 · Si el conjunto se reduce a unos pocos factores
+
+- **Pregunta.** Si existe una estructura de factores que justifique ponderar por componentes principales.
+- **Por qué importa.** La ponderación por componentes principales solo tiene sentido si hay un factor común. Además, el resultado contrasta la clasificación de 1.2.
+- **Dependencias.** D1.2, D6.2, D6.4.
+- **Viabilidad.** La relación entre observaciones y variables se calcula desde los datos para cada nivel de agregación. Un nivel con menos de cinco observaciones por variable, que es la convención habitual, no admite el análisis. Si el conjunto completo no la cumple, el análisis se corre dentro de cada dimensión. Las series anuales repetidas se excluyen del análisis trimestral, porque sus cambios valen cero en tres de cada cuatro trimestres y vuelven singular la matriz. Se incluyen en una versión anual.
+- **Evidencia.** Por dimensión, se calculan cuatro medidas sobre la matriz de correlaciones de los cambios.
+  - La medida de adecuación muestral de Kaiser, Meyer y Olkin.
+  - La prueba de esfericidad de Bartlett.
+  - Los autovalores y la proporción de variación de cada componente.
+  - El alfa de Cronbach, solo como descripción.
+- **Criterio.** Se adoptan los umbrales de Kaiser (1974). La adecuación es aceptable desde 0,60. Entre 0,50 y 0,60 es mediocre, y por debajo de 0,50 no se justifica el análisis. Una dimensión tiene un factor dominante si su primer componente explica al menos el 50% de la variación y es el único con autovalor mayor que 1. Un valor de adecuación entre 0,49 y 0,51 es Juicio, porque la versión anterior mostró que un cambio menor en los datos invierte la conclusión en esa zona.
+- **Categoría.** Regla. Código `D6.5`.
+- **Detención.** Una dimensión resulta tener un factor dominante pese a haberse clasificado como formativa en 1.2. El ejecutor informa, porque las dos conclusiones se contradicen.
+- **Salidas.** Una tabla por dimensión con las cuatro medidas. Un gráfico de sedimentación por dimensión.
+- **Errores conocidos.** Escribir a mano el valor de la adecuación muestral y su lectura, según la regla de oro 9.
+
+## 6.6 · Cómo se agrupan las series
+
+- **Evidencia.** Un agrupamiento jerárquico de las series, con la distancia igual a uno menos la correlación de Spearman sobre cambios y el método de enlace promedio.
+- **Criterio.** El agrupamiento es descriptivo y no modifica el marco, porque el modelo es formativo. Una serie cuyos vecinos más cercanos pertenecen a otra dimensión se informa, sin reasignarla.
+- **Categoría.** Regla. Código `D6.6`.
+- **Salidas.** Un dendrograma coloreado por dimensión.
+
+## 6.7 · Qué aporta cada serie según los datos
+
+- **Pregunta.** Qué evidencia dan los datos sobre el aporte de cada candidata, antes de decidir cuáles entran al índice.
+- **Por qué importa.** Un índice no mejora por tener más series. Una serie que no tiene señal temporal agrega ruido, y una serie que repite la información de otras le da más peso a ese contenido sin que nadie lo haya decidido. Por decisión del usuario, el análisis de los datos decide qué series entran y cuáles salen.
+- **Dependencias.** D2.2, D4.4, D4.5, D4.6, D5.1 a D5.5, D6.1 a D6.4.
+- **Qué datos se usan.** Las series de la ventana, ya transformadas según la Etapa 5 y con la dirección que fija 7.1. La dirección depende solo de las definiciones de la `Matriz` y no de los datos, y por eso puede aplicarse antes de la Etapa 7. Las series anuales repetidas se evalúan con sus valores anuales, porque sus cuatro trimestres repiten un mismo dato. Ninguna prueba mira el índice resultante, para que la selección no dependa de qué índice produce cada conjunto.
+- **Familia 1. Señal temporal.** Responde si la serie describe una evolución o si su orden en el tiempo es indistinguible del azar.
+  - Autocorrelación de primer orden y estadístico de Ljung y Box (1978) hasta el cuarto rezago.
+  - Relación entre la varianza de la componente de tendencia y ciclo y la varianza del residuo, con la descomposición STL de Cleveland y otros (1990) y período de cuatro trimestres. En las series anuales se usa una media móvil de tres años.
+  - **Distribución nula.** Para cada serie se generan 2.000 permutaciones aleatorias del orden de sus observaciones, que conservan todos sus valores y destruyen su orden. El valor p de cada estadístico es la proporción de permutaciones que lo igualan o superan. Así el umbral no es una convención, sino lo que el azar produce con los mismos valores de esa serie.
+  - **Comparaciones múltiples.** Los valores p de todas las series se corrigen con el procedimiento de Holm (1979), porque con muchas pruebas alguna resultaría significativa por azar.
+  - **Descriptivos.** La proporción de la varianza que concentran los dos trimestres de mayor desvío, la proporción de ceros y el número de valores distintos. Explican por qué una serie no tiene señal, pero no deciden.
+- **Familia 2. Información efectiva.** Responde cuánta información independiente tiene la serie.
+  - El número efectivo de observaciones, que es el número de observaciones corregido por la autocorrelación según Bayley y Hammersley (1946). En una serie anual repetida parte del número de años.
+  - La cobertura en la ventana, los valores que la fuente estimó en lugar de medir, los quiebres de medición sin solapamiento de 4.5 y los valores extremos de 4.4.
+  - Esta familia no excluye por sí sola. Decide entre series de un mismo grupo redundante en 6.8 y explica la inestabilidad de una decisión.
+- **Familia 3. Información propia.** Responde si la serie aporta algo que no está en las demás.
+  - La correlación de Spearman sobre cambios con cada otra serie, con el umbral heredado de 0,90 para los pares.
+  - El factor de inflación de la varianza de cada serie, calculado sobre cambios dentro de su dimensión y en el conjunto completo. Mide cuánto de la variación de una serie explican todas las demás juntas, lo que la correlación entre pares no detecta. El umbral es 3,3, el que proponen Diamantopoulos y Siguaw (2006) para indicadores formativos, en los que la redundancia es un problema y no una virtud.
+  - La información mutua sobre cambios, con el estimador de Kraskov, Stögbauer y Grassberger (2004), para detectar redundancia que no es monótona y que Spearman no ve. Su significación se obtiene por permutación.
+  - Con series anuales se aplica la regla de mezcla de granos de 2.2.
+- **Familia 4. Coherencia con su dimensión.** Responde si la serie se mueve en contra del resto de su dimensión.
+  - La correlación de Spearman sobre cambios entre la serie y el promedio de las demás series de su dimensión, con su valor p corregido por Holm.
+  - Las cargas de cada serie en los componentes principales de su dimensión, como descripción.
+  - En un modelo formativo una correlación baja es aceptable, porque cada serie puede medir un aspecto distinto. Una correlación negativa y significativa sí es evidencia, porque indica que la serie se mueve en contra de su dimensión. Puede deberse a una dirección mal asignada, a que mide otra cosa, o a una disyuntiva real entre aspectos de la relación, que la agregación compensatoria ocultaría.
+- **Familia 5. Estabilidad.** Responde si las conclusiones de las familias 1, 3 y 4 se sostienen cuando cambian los datos.
+  - Se aplica el remuestreo estacionario por bloques de Politis y Romano (1994), con bloques de cuatro trimestres en promedio y 1.000 réplicas, que conserva la dependencia temporal de las series. En cada réplica se recalculan las familias 1, 3 y 4 y la regla de decisión de 6.8.
+  - Se registra la frecuencia con que cada serie resulta incluida, como en la selección por estabilidad de Meinshausen y Bühlmann (2010).
+- **Salidas.** Una ficha por serie con los resultados de las cinco familias. Una tabla resumen con una fila por serie y una columna por prueba, con su valor y su valor p corregido. Una figura con la distribución nula de la señal temporal de cada serie y su valor observado. Una matriz de factores de inflación de la varianza por dimensión. Una figura con la frecuencia de inclusión de cada serie en el remuestreo.
+- **Objetos.** `evaluacion_series`, `fichas_series` y `frecuencia_inclusion`.
+- **Validaciones.** Cada candidata tiene las cinco familias calculadas. Ninguna prueba sobre una serie anual se calculó con trimestres. Las permutaciones y el remuestreo usan una semilla fija declarada en `0.3`.
+- **Errores conocidos.** Juzgar la señal con un umbral fijo de autocorrelación en lugar de una distribución nula. Aplicar las pruebas sin corregir por comparaciones múltiples. Remuestrear trimestres sueltos, lo que destruye la dependencia temporal. Interpretar una correlación baja con la dimensión como un defecto de la serie, que sería razonar con un modelo reflectivo.
+- **Texto mínimo.** Qué pregunta responde cada familia, por qué se usa una distribución nula, y qué significa en lenguaje llano que una serie no tenga señal temporal.
+- **Terminado.** Cada candidata tiene su ficha completa.
+
+## 6.8 · Qué series entran al índice
+
+- **Pregunta.** Cuáles candidatas entran al índice, según la evidencia de 6.7.
+- **Principio.** La carga de la prueba está en la inclusión. Una candidata no entra por estar en el panel ni porque el diccionario la marque con Sí. Cada inclusión y cada exclusión cita los estadísticos de 6.7 que la deciden.
+- **Regla de decisión.** Se aplica en este orden.
+  1. **Sin señal temporal.** Se excluye la serie cuya autocorrelación y cuya relación entre tendencia y residuo no son significativas al 5% después de la corrección de Holm. Sus valores ordenados en el tiempo no se distinguen del azar, de modo que no describen una evolución de la relación.
+  2. **Redundancia.** Se forman los grupos de series redundantes, que son los pares con correlación sobre cambios igual o mayor que 0,90, las series con factor de inflación de la varianza mayor que 3,3 y los pares con información mutua significativa y alta. Dentro de cada grupo se excluye una serie por vez y se recalcula el factor de inflación, hasta que ninguna supere el umbral. La serie que sale es la que tiene menos evidencia en las familias 1 y 2, en este orden: menor señal temporal, menor número efectivo de observaciones y menor cobertura. Si la evidencia no distingue entre dos series, se conserva la de interpretación más directa para el lector, según la decisión del usuario sobre series redundantes.
+  3. **Indicadores de una sola serie.** En los indicadores marcados en 2.2 con «Solo se elige uno», se conserva la serie con más evidencia según el mismo orden.
+  4. **Coherencia.** Una serie con correlación negativa y significativa con su dimensión vuelve a 7.1 para revisar su dirección. Si la dirección es correcta según su definición, la serie se conserva y la disyuntiva se declara, porque excluirla ocultaría un aspecto real de la relación. La exclusión de esa serie entra a la Etapa 10 como factor.
+  5. **Estabilidad.** Una decisión es firme si se repite en al menos el 80% de las réplicas del remuestreo. Una decisión con una frecuencia entre el 20% y el 80% es inestable. Se adopta la decisión de la muestra completa, se declara, y la alternativa entra a la Etapa 10 como factor. El rango corresponde a los umbrales que recomiendan Meinshausen y Bühlmann (2010) para la selección por estabilidad.
+- **Cobertura del marco.** Si la selección deja un indicador sin ninguna serie, el indicador se declara como no cubierto en la tabla de 2.3 y en las limitaciones de 13.4. Si deja una dimensión sin ninguna serie, el ejecutor se detiene, porque la Decisión 1.2 heredada establece que las cuatro dimensiones integran el índice, y muestra la evidencia de cada serie de esa dimensión.
+- **Relación con las decisiones heredadas.** El umbral de 0,90 de la Decisión 6.3 sigue rigiendo la redundancia entre pares. La Decisión 2.1 pedía que ninguna serie se excluyera sin evidencia, y esta regla la cumple, porque cada exclusión cita un estadístico y su distribución nula.
+- **Alternativas descartadas.**
+  - Incluir todas las candidatas, porque agrega ruido y redundancia sin decisión.
+  - Seleccionar por umbrales fijos de cobertura o de concentración, porque no dicen si una serie tiene señal. Una serie puede estar completa y ser ruido.
+  - Seleccionar por correlación con el índice o por el alfa de Cronbach de la dimensión, porque suponen un modelo reflectivo. Premiarían a las series que repiten lo que dicen las demás y castigarían a las que aportan información distinta.
+  - Seleccionar por regresión paso a paso contra una variable externa, porque no existe una variable externa que mida el vínculo y la Etapa 12 se pospuso.
+- **Categoría.** Regla. Código `D6.8`.
+- **Detención.** Una dimensión queda sin series.
+- **Salidas.** Una tabla con una fila por candidata, la regla que decidió su inclusión o su exclusión, el estadístico que la sostiene y la frecuencia de esa decisión en el remuestreo. Una figura con las series de cada dimensión, separando las que entran de las que salen.
+- **Objetos.** `SERIES_SELECCIONADAS` y `tabla_seleccion`.
+- **Validaciones.** Cada candidata tiene una decisión y una regla que la produjo. Cada dimensión conserva al menos una serie. Ninguna serie seleccionada tiene un factor de inflación de la varianza mayor que 3,3.
+- **Texto mínimo.** Por qué el índice no incluye todas las series disponibles, y una oración por cada serie excluida con el dato que la excluye.
+- **Terminado.** La lista de series del índice queda fija y cada decisión está fundamentada con su estadístico.
+
+# Etapa 7 · Normalización
+
+## 7.1 · La dirección de cada serie
+
+- **Pregunta.** Si un aumento de cada serie significa un vínculo más fuerte.
+- **Dependencias.** D1.1 y las definiciones de la `Matriz`.
+- **Criterio.** La dirección se determina por la definición de la dimensión y del indicador al que pertenece la serie. Una serie entra con polaridad positiva si su aumento significa, según esa definición, un vínculo más fuerte o en mejores términos. Entraría con polaridad negativa si su aumento significara un vínculo más débil o en peores términos.
+- **Dirección de cada indicador.**
+
+| Dimensión | Indicador y series | Dirección | Argumento tomado de la definición |
+|---|---|---|---|
+| 1 | Asistencia oficial, gasto federal, DFC, EXIM y financiamiento multilateral atribuible | Positiva | La dimensión mide los recursos que el Estado estadounidense decide destinar a Paraguay como expresión de su interés bilateral. Más recursos es más compromiso. |
+| 2 | Hitos del Consejo de Comercio e Inversión | Positiva | La dimensión mide la intensidad y continuidad del vínculo político-institucional. Cada hito es una instancia formal de diálogo. |
+| 2 | Noticias bilaterales y menciones de EE.UU. en el MRE | Positiva | Miden la actividad diplomática bilateral que registra la Cancillería paraguaya. Más actividad es más intensidad del vínculo. |
+| 2 | Proyectos y menciones en el Congreso de EE.UU. | Positiva | La `Matriz` define el indicador como atención legislativa y declara que no mide la connotación. La dimensión mide intensidad, y la atención es intensidad. La limitación sobre la connotación se declara, y la exclusión de estas series se mantiene como factor de la Etapa 10. |
+| 2 | Tratados y acuerdos vigentes | Positiva | Más acuerdos vigentes es un marco jurídico bilateral más denso. |
+| 3 | Exportaciones e importaciones | Positiva | La dimensión mide la profundidad del vínculo económico. Más comercio en cualquiera de los dos sentidos es más vínculo. |
+| 3 | Inversión directa, flujo y stock | Positiva | Más capital estadounidense invertido en Paraguay es más vínculo. Un flujo negativo es una desinversión y cuenta como menos vínculo. |
+| 3 | Remesas y turistas | Positiva | Más transferencias personales y más visitantes son más vínculo entre las sociedades. |
+| 4 | Artículos de medios paraguayos y estadounidenses | Positiva | La dimensión mide cuán presente está la relación en el espacio público. Más cobertura es más presencia. |
+| 4 | Tono de la cobertura | Positiva | La dimensión mide con qué connotación se cubre la relación. Un tono más alto es una cobertura más favorable. Es la Decisión 7.1 de la versión anterior. |
+| 4 | Interés de búsqueda | Positiva | La dimensión mide cuánto interés de búsqueda genera la relación entre el público. La connotación la mide el tono, no esta serie. |
+
+- **Alternativa descartada.** Asignar polaridad negativa a las series que pueden reflejar tensión, como el interés de búsqueda por aranceles o las menciones en proyectos restrictivos. Se descarta porque las definiciones de esos indicadores en la `Matriz` miden atención y no connotación, y porque clasificar el sentido de cada registro exigiría una fuente que el pipeline no tiene. La connotación entra al índice por el tono.
+- **Categoría.** Regla heredada para el tono, código `D7.1a`. Regla para las demás series, código `D7.1b`, que resuelve la decisión que había quedado pendiente en la versión anterior.
+- **Salidas.** Una tabla de dirección por serie con su argumento.
+- **Validaciones.** Cada candidata que entra al índice tiene una dirección asignada.
+- **Terminado.** La tabla de dirección está completa y cada argumento cita la definición de la `Matriz`.
+
+## 7.2 · Referencia fija o recalculada
+
+- **Pregunta.** Si los parámetros de la escala se calculan una vez y se congelan, o se recalculan en cada edición.
+- **Evidencia.** Una simulación que construye la escala como si el índice se hubiera publicado al cierre de cada año, y mide cuánto cambian los valores ya publicados al incorporar el año siguiente. La simulación empieza en el primer año en que todas las series tienen un desvío mayor que cero.
+- **Criterio.** Un índice citable no puede modificar hacia atrás los valores ya publicados. Por eso la referencia se congela, salvo que la simulación muestre revisiones despreciables.
+- **Categoría.** Regla. Código `D7.2`.
+- **Salidas.** Una figura de barras con la revisión máxima y la revisión promedio de cada año.
+- **Texto mínimo.** El costo de congelar, que es la necesidad de una política de actualización de la base. Esa política se define en la Etapa 13.
+
+## 7.3 · El método de normalización
+
+- **Opciones.** Puntaje z, mínimo y máximo, posición en el ordenamiento, distancia a una referencia, número índice con base, categorización ordinal, por encima o por debajo de la media.
+- **Propiedades que se evalúan.** Si conserva la magnitud de las diferencias. Si admite valores futuros fuera del rango de referencia. Si admite ceros y negativos. Qué tipo de escala produce. Qué implica para una futura comparación entre países.
+- **Criterio.** Se adopta como base el método que conserva la magnitud, admite valores fuera de rango, admite ceros y negativos, y es compatible con una referencia congelada.
+- **Consecuencia que el texto debe explicar.** El puntaje z produce una escala de intervalo, sin cero natural. Las diferencias son interpretables, pero los cocientes no lo son. Por eso la media geométrica no se puede aplicar sobre esa escala. Además, si cada serie se normaliza contra la historia de Paraguay, el índice compara a Paraguay consigo mismo en el tiempo, pero no permite comparar niveles con otro país.
+- **Categoría.** Regla para el método base, código `D7.3`. El mínimo y máximo con referencia congelada entra a la Etapa 10, combinado con la regla de agregación según G4.
+- **Salidas.** Una tabla de propiedades por método. Una figura con dos series del panel antes y después de la normalización, que muestre que su forma no cambia.
+- **Validaciones.** La figura compara la serie transformada con la normalizada, y no la serie original con la normalizada.
+
+## 7.4 · El período que define la escala
+
+- **Pregunta.** Sobre qué trimestres se calculan el promedio y el desvío de cada serie.
+- **Dependencias.** D4.5, D4.6, D5.6.
+- **Opciones.** Toda la ventana medida. Un período anterior a la pandemia. Una década completa anterior al último año, sin los años deprimidos. Otros períodos intermedios.
+- **Criterios, en orden.**
+  1. Toda serie debe tener un desvío mayor que cero en el período. Si una serie es constante en una opción, esa opción se descarta.
+  2. El período no incluye los trimestres provisionales.
+  3. El período no incluye años deprimidos. Un año es deprimido si todas las series quedan por debajo de su propio promedio de la ventana. El criterio es mecánico y no requiere declarar qué años fueron excepcionales.
+  4. El período termina en el último año completo anterior al período sobre el que el índice informa, para que los años recientes no se midan contra sí mismos.
+- **Evidencia.** Para cada opción, si cumple cada criterio y el mayor valor normalizado que alcanza cada serie.
+- **Categoría.** Regla para la opción adoptada, código `D7.4`. Dos alternativas entran a la Etapa 10.
+- **Detención.** Ninguna opción cumple el primer criterio. Alguna serie alcanza un valor normalizado mayor que 10 en valor absoluto con la opción adoptada.
+- **Salidas.** Una tabla de años con su posición promedio y el número de series por debajo del promedio. Una tabla de opciones con los criterios.
+- **Errores conocidos.** La versión anterior descartó una alternativa de período por una propiedad de una serie que después cambió. El criterio se aplica siempre a los datos actuales y no se copia ninguna conclusión anterior.
+
+## 7.5 · Qué le hace la normalización a las series de pocos niveles
+
+- **Evidencia.** Para cada serie, el número de valores distintos y el mayor valor normalizado en valor absoluto dentro de la ventana.
+- **Criterio.** Se marca toda serie con un valor normalizado mayor que 4 en valor absoluto. Por la desigualdad de Chebyshev, a lo sumo uno de cada dieciséis valores de cualquier distribución está a más de cuatro desvíos, de modo que varios valores en ese rango indican que unos pocos trimestres dominarían el aporte de la serie. Una serie que llegó hasta aquí ya superó la evaluación de 6.7, de modo que la marca se informa y no la excluye.
+- **Criterio heredado.** Las series de pocos niveles se normalizan igual que las demás, según la Decisión 7.6 de la versión anterior. La marca se informa para que el lector vea el tamaño de los saltos.
+- **Categoría.** Regla heredada. Código `D7.5`.
+- **Salidas.** Una figura de las series marcadas sobre la escala normalizada.
+
+# Etapa 8 · Ponderación
+
+## 8.1 · El nivel en que se asignan los pesos
+
+- **Opciones.** Peso igual por serie, por indicador o por dimensión con reparto jerárquico.
+- **Evidencia.** El peso implícito de cada dimensión bajo cada opción, con las series que sobrevivieron.
+- **Criterio.** El número de series de un indicador depende de cómo publica cada fuente, no de la importancia del indicador. Por eso los pesos se asignan por niveles. Cada dimensión recibe una parte igual, la divide en partes iguales entre sus indicadores, y cada indicador la divide entre sus series.
+- **Categoría.** Regla. Código `D8.1`. El peso igual por serie entra a la Etapa 10.
+- **Salidas.** Una tabla de pesos implícitos por dimensión bajo cada opción. Una figura del reparto jerárquico.
+
+## 8.2 · El procedimiento que fija el valor de los pesos
+
+- **Opciones.** Pesos iguales declarados. Componentes principales. Asignación por presupuesto de un panel de expertos. Proceso analítico jerárquico. Regresión contra un indicador externo. Beneficio de la duda.
+- **Criterio.**
+  - Los componentes principales solo son viables en las dimensiones donde 6.5 encontró un factor dominante.
+  - Los métodos de expertos requieren un panel. Si el usuario dispone de uno, es una opción a considerar.
+  - La regresión requiere un indicador externo con cobertura comparable, que se evalúa en la Etapa 12.
+  - El beneficio de la duda asigna pesos distintos a cada trimestre, de modo que impide comparar trimestres.
+  - Si ninguno es viable, se adoptan pesos iguales declarados.
+- **Criterio heredado.** Los pesos se reparten en partes iguales dentro de cada nivel, según la Decisión 8.2 de la versión anterior.
+- **Categoría.** Regla heredada. Código `D8.2`.
+- **Salidas.** Una tabla de procedimientos con su condición de viabilidad y si se cumple.
+
+## 8.3 · Si las cuatro dimensiones pesan lo mismo
+
+- **Criterio.** El marco no establece una jerarquía entre dimensiones. Un reparto desigual requiere un criterio sustantivo que solo puede dar el cliente o un panel de expertos.
+- **Criterio heredado.** Las cuatro dimensiones pesan un cuarto cada una, según la Decisión 8.3 de la versión anterior.
+- **Categoría.** Regla heredada. Código `D8.3`.
+- **Salidas.** Una tabla con el peso de cada dimensión bajo el reparto igual y bajo las alternativas que proponga el usuario.
+
+## 8.4 · Si la influencia efectiva coincide con el peso asignado
+
+- **Evidencia.** La importancia efectiva de cada serie y de cada dimensión, medida como el cuadrado de su correlación con el índice, según Paruolo, Saisana y Saltelli (2013). El desplazamiento del índice al excluir cada serie.
+- **Criterio.** Se marca toda dimensión cuya importancia efectiva sea más del doble o menos de la mitad de su peso asignado. Si hay una marca, se informa la corrección que igualaría la influencia, según Becker y otros (2017), pero los pesos se conservan.
+- **Criterio heredado.** Se conservan los pesos declarados y se publica la divergencia entre peso e influencia, según la Decisión 8.4 de la versión anterior.
+- **Categoría.** Regla heredada. Código `D8.4`.
+- **Salidas.** Una figura con el peso asignado y la importancia efectiva de cada dimensión, una al lado de la otra.
+
+# Etapa 9 · Agregación
+
+## 9.1 · La regla que combina los componentes
+
+- **Opciones.** Media aritmética. Media geométrica. Media armónica. Métodos no compensatorios. Índice de Mazziotta y Pareto, que penaliza la dispersión entre componentes.
+- **Criterio.** Sobre una escala de intervalo solo es admisible la media aritmética, porque las demás medias dependen de dónde esté el cero. Los métodos no compensatorios devuelven un ordenamiento y no una serie. La media geométrica se evalúa solo sobre la normalización por mínimo y máximo, dentro del factor combinado de G4.
+- **Categoría.** Regla. Código `D9.1`.
+- **Salidas.** Una figura que muestre, con los datos del índice, cómo cambiaría la penalización de la media geométrica si se cambiara la convención de la escala.
+
+## 9.2 · Si el orden en que se agrega altera el resultado
+
+- **Evidencia.** El índice calculado por niveles y calculado en un solo paso con los pesos finales.
+- **Criterio.** Con la media aritmética los dos cálculos coinciden, y la coincidencia se verifica numéricamente. Si se vuelven a estandarizar los subíndices de dimensión antes de combinarlos, el resultado cambia, y esa alternativa entra a la Etapa 10.
+- **Categoría.** Regla. Código `D9.2`.
+- **Validaciones.** La diferencia máxima entre los dos cálculos es menor que una diezmilésima de punto.
+
+## 9.3 · Cuánta compensación queda admitida y cómo se informa
+
+- **Evidencia.** El desbalance de cada trimestre, medido como la diferencia entre la dimensión más alta y la más baja.
+- **Criterio.** La media aritmética admite compensación completa. Por eso cada trimestre se publica con su medida de desbalance, para que una divergencia entre dimensiones no quede oculta en el número general.
+- **Categoría.** Regla. Código `D9.3`.
+- **Salidas.** Una figura del índice con sus cuatro dimensiones. Una figura del desbalance por trimestre.
+
+## 9.4 · Si la serie publicada se desestacionaliza o se suaviza
+
+- **Evidencia.** La proporción de la variación del índice que explica el trimestre del año, con su prueba F. El movimiento que eliminaría una media móvil de cuatro trimestres.
+- **Criterio.** El índice se desestacionaliza solo si el trimestre del año explica al menos el 10% de su variación y la prueba F es significativa al 5%. El umbral del 10% es una convención del proyecto. No se suaviza la serie publicada, porque el suavizado oculta movimiento real y elimina los primeros trimestres.
+- **Categoría.** Regla. Código `D9.4`.
+- **Salidas.** Una figura con el promedio del índice por trimestre del año, con un eje que abarque un desvío completo a cada lado del promedio. Una figura del índice con la media móvil superpuesta.
+- **Errores conocidos.** Ajustar el eje a las diferencias entre trimestres, lo que las hace parecer grandes cuando no lo son.
+
+## 9.5 · Si cada serie seleccionada mueve el índice
+
+- **Pregunta.** Si alguna serie seleccionada en 6.8 aporta al índice menos estructura que una serie de ruido con su mismo peso.
+- **Por qué importa.** Las pruebas de 6.7 evalúan cada serie por separado y no miran el índice. Esta es la única verificación del aporte efectivo de cada serie una vez fijados los pesos y la agregación. Una serie que no aporta más que el ruido no ayuda a interpretar el índice y es una fuente de datos más que mantener.
+- **Dependencias.** D6.8, D8.1 a D8.4, D9.1.
+- **Evidencia.**
+  - **Importancia efectiva.** La proporción de la varianza del índice que explica cada serie, medida con la razón de correlación de primer orden de Paruolo, Saisana y Saltelli (2013), estimada con splines penalizados, con su intervalo por remuestreo. Se compara con el peso nominal de la serie, según Becker y otros (2017).
+  - **Serie sonda.** Para cada serie se construyen 500 versiones del índice en las que la serie se reemplaza por una permutación aleatoria de sus propios valores, con el mismo peso. La importancia de la permutación es la que tendría una serie de ruido con la misma distribución y el mismo peso. Es la lógica de las variables sombra de Kursa y Rudnicki (2010).
+  - **Exclusión de una serie.** El índice recalculado sin la serie, con los pesos repartidos de nuevo dentro de su grupo. Se informan la diferencia absoluta media y máxima con el índice completo, en puntos de la escala, y cuántos pares de años cambian de orden.
+- **Criterio.** Una serie es prescindible si su importancia efectiva no supera el percentil 95 de la importancia de sus series sonda. Su aporte al índice no se distingue del que daría una serie de ruido. La exclusión de una serie y los pares de años que cambian de orden se informan para que el lector vea la consecuencia, pero no deciden.
+- **Procedimiento.** Se excluye una sola serie por ronda, la que tiene la menor razón entre su importancia y el percentil 95 de sus sondas, y se recalculan las Etapas 8 y 9. Se repite hasta que ninguna serie sea prescindible. Una serie que es la única de su dimensión no se excluye, y su resultado se declara.
+- **Categoría.** Regla. Código `D9.5`. El conjunto de 6.8 sin esta depuración entra a la Etapa 10 como alternativa.
+- **Salidas.** Una tabla con la importancia de cada serie, su peso nominal, el percentil 95 de sus sondas y su decisión, en cada ronda. Una figura de la importancia de cada serie frente a la distribución de sus sondas. Una figura del índice con y sin las series excluidas.
+- **Objetos.** `SERIES_FINALES`, `importancia_series` y `rondas_parsimonia`.
+- **Validaciones.** Cada serie tiene sus 500 sondas. Las permutaciones usan la semilla declarada en `0.3`.
+- **Errores conocidos.** Excluir varias series a la vez, porque el aporte de cada una cambia cuando sale otra. Comparar la importancia con un umbral fijo en lugar de con las sondas.
+- **Terminado.** Ninguna serie del índice es prescindible, y la lista final está registrada con su evidencia.
+
+
+# Etapa 10 · Análisis de sensibilidad y robustez
+
+## 10.1 · Qué se somete a prueba
+
+- **Pregunta.** Qué decisiones se varían, con qué niveles y con qué diseño.
+- **Dependencias.** Todas las decisiones registradas como Diferidas.
+- **Evidencia.** El catálogo final de factores, construido desde `registro_decisiones.csv` con las decisiones de estado diferida, y contrastado con el catálogo anticipado de G4.
+- **Criterio.**
+  - Cada factor tiene entre dos y tres niveles, todos defendibles.
+  - Los factores que no son independientes se fusionan, según G4.
+  - Si el producto de los niveles no supera 10.000 combinaciones, el diseño es factorial completo.
+  - Si lo supera, se usa el muestreo de Saltelli con un tamaño base de 1.024 y la semilla fijada en el bloque de parámetros.
+  - Se agregan dos pruebas sobre los datos, que no son decisiones metodológicas. Son la exclusión de una serie por vez y la exclusión de un indicador por vez.
+- **Categoría.** Regla. Código `D10.1`.
+- **Detención.** Una decisión Diferida del registro no figura en el catálogo, o un factor del catálogo no tiene su decisión de origen registrada.
+- **Salidas.** Una tabla de factores con sus niveles, su decisión de origen y el nivel adoptado como base. El número total de combinaciones.
+- **Objetos.** `construir_indice(...)`, una única función que reconstruye el índice de punta a punta bajo cualquier combinación de niveles. Con los niveles base reproduce exactamente el índice adoptado.
+- **Validaciones.** La función con los niveles base reproduce el índice de la Etapa 9 con una diferencia máxima menor que una diezmilésima de punto.
+- **Texto mínimo.** La diferencia entre el análisis de sensibilidad, que cambia una decisión por vez, y el de incertidumbre, que las cambia todas a la vez.
+- **Terminado.** El catálogo cubre todas las Diferidas y la función reproduce el índice base.
+
+## 10.2 · Análisis de sensibilidad, cuánto mueve el índice cada decisión por separado
+
+- **Evidencia.** Para cada nivel alternativo de cada factor, con los demás en su nivel base, se calculan cuatro medidas.
+  - El desplazamiento promedio y el máximo respecto del índice base.
+  - La correlación con el índice base.
+  - Los cambios en el orden de los años.
+- **Referencia de magnitud.** La distancia entre el mejor y el peor año del índice base. Es la magnitud de las diferencias que el índice debe transmitir.
+- **Criterio.** Es descriptivo. Una decisión cuyo desplazamiento promedio supera la mitad de la referencia de magnitud se informa como decisión influyente.
+- **Categoría.** Sin decisión.
+- **Salidas.** Una figura de barras horizontales con el desplazamiento promedio y el máximo de cada alternativa, y una línea vertical en la referencia de magnitud. Las cifras del texto se calculan en línea desde la misma tabla.
+- **Validaciones.** La cantidad de alternativas evaluadas es igual a la suma de los niveles no base del catálogo.
+- **Errores conocidos.** Afirmar en el texto que ninguna barra se acerca a la referencia sin verificarlo, como ocurrió en la versión anterior.
+
+## 10.3 · Análisis de incertidumbre, qué banda resulta de combinar todas las decisiones
+
+- **Evidencia.**
+  - Para cada trimestre, la mediana y los percentiles 5 y 95 del índice sobre todas las combinaciones.
+  - La descomposición de la varianza de primer orden por factor, promediada sobre los trimestres.
+  - Si se usó el muestreo de Saltelli, también los índices totales de Sobol.
+- **Prueba de resolución.** Dos años son distinguibles si sus bandas del 90% no se superponen. Se cuenta cuántos pares de años son distinguibles.
+- **Criterio.** Es descriptivo.
+- **Categoría.** Sin decisión.
+- **Salidas.** Una figura del índice base dentro de su banda. Una figura de los promedios anuales con sus bandas. Una figura de la proporción de la banda que produce cada factor.
+- **Validaciones.** La suma de las proporciones de primer orden no supera el 100%. Si lo supera, hay factores no independientes y el ejecutor se detiene.
+- **Detención.** La suma de las proporciones supera el 100%.
+- **Texto mínimo.** Qué significa una banda estrecha y por qué no basta para afirmar que el índice distingue entre años.
+
+## 10.4 · Qué afirmaciones sobre la relación bilateral sobreviven
+
+- **Pregunta.** Qué afirmaciones sobre el índice se sostienen con independencia de las decisiones metodológicas.
+- **Tipos de afirmación.** El nivel de un período frente a la referencia. El cambio entre dos períodos. El orden entre años. La divergencia entre dimensiones.
+- **Criterio.** Una afirmación se sostiene si se cumple en al menos el 90% de las combinaciones. El umbral coincide con la banda del 90% de 10.3, para que ambas lecturas sean coherentes.
+- **Categoría.** Regla. Código `D10.4`.
+- **Salidas.** Una tabla de afirmaciones candidatas, con la proporción de combinaciones en que se cumple cada una y si se sostiene.
+- **Terminado.** La Etapa 13 solo puede comunicar las afirmaciones que figuran como sostenidas en esta tabla.
+
+# Etapa 11 · Retorno a los datos
+
+La Etapa 11 abre el índice terminado para verificar que sus movimientos se explican por los datos de partida y no por una transformación.
+
+## 11.1 · Qué explica cada movimiento del índice
+
+- **Evidencia.** La contribución de cada dimensión y de cada indicador a los cambios del índice, en los episodios de mayor movimiento. Un episodio es un cambio entre años consecutivos mayor que la mitad de la referencia de magnitud de 10.2.
+- **Salidas.** Una figura de contribuciones por episodio, con las dimensiones apiladas.
+- **Categoría.** Sin decisión.
+
+## 11.2 · Si una dimensión domina el agregado
+
+- **Evidencia.** La correlación sobre cambios de cada dimensión con el índice, y su importancia efectiva de 8.4.
+- **Criterio.** Una dimensión domina si explica más de la mitad de la variación del índice. Se informa sin corregir, porque la corrección se decidió en 8.4.
+- **Categoría.** Sin decisión.
+
+## 11.3 · Si los movimientos se ven en las series originales
+
+- **Pregunta.** Si cada movimiento del índice tiene el mismo signo que el movimiento de las series que lo producen.
+- **Por qué importa.** El índice resume a sus series. Si sube cuando las series que más contribuyen bajan, está mal construido. Esta verificación es obligatoria por decisión del usuario.
+- **Por qué podría fallar.** Las transformaciones del índice son crecientes, de modo que por sí solas no invierten un signo. Un signo contrario solo puede venir de cuatro causas, y el ejecutor revisa cada una.
+  1. Un error de código, como una polaridad aplicada dos veces o una serie asignada a otra dimensión.
+  2. El reparto de pesos en los trimestres con series ausentes, definido en 4.6, que puede mover el índice por un cambio en qué series se promedian y no por un cambio en las series.
+  3. El ajuste por precios o por habitante. Un monto que sube en dólares corrientes puede bajar en dólares constantes por habitante. Este caso no es un error, porque el índice mide el valor real, pero el texto tiene que explicarlo.
+  4. La normalización de una serie de pocos niveles, en la que un evento produce un salto grande.
+- **Evidencia.** Para cada episodio de 11.1, el signo del cambio del índice y de las series que más contribuyen, medido en tres escalas. Son las unidades originales, las unidades después de los ajustes de 5.1 y 5.2, y el valor normalizado.
+- **Criterio.** El signo del aporte de cada serie al índice tiene que coincidir con el signo de su cambio después de los ajustes de 5.1 y 5.2. Si coincide con esa escala pero no con las unidades originales, la diferencia se debe a los precios o a la población y se explica en el texto. Si no coincide con la escala ajustada, hay un error de construcción.
+- **Tratamiento.** Un error de construcción se corrige en la etapa donde se originó, y las etapas posteriores se vuelven a ejecutar antes de continuar. El índice no se publica con una incoherencia sin resolver.
+- **Categoría.** Regla, validación obligatoria. Código `D11.3`.
+- **Salidas.** Una tabla por episodio con las series de mayor contribución y su cambio en las tres escalas.
+- **Detención.** Una incoherencia con la escala ajustada, hasta que se corrija.
+
+## 11.4 · Los hechos conocidos
+
+- **Evidencia.** El comportamiento del índice alrededor de hechos externos elegidos antes de mirar el índice, como la pandemia de 2020 y el congelamiento de la asistencia exterior de Estados Unidos en 2025.
+- **Advertencia.** Si el año de un hecho se excluyó del período de referencia en 7.4, encontrar en él un valor bajo no valida el índice por sí solo, porque es en parte un efecto de cómo se construyó. El texto lo declara.
+- **Categoría.** Sin decisión.
+
+# Etapa 12 · Vínculos con indicadores externos
+
+La Etapa 12 contrasta el índice con medidas independientes de la relación bilateral. Es el paso 9 del manual de la OCDE.
+
+**El usuario pospuso esta etapa el 2026-10-05.** No se ejecuta en esta versión. Su contenido queda descrito para cuando se retome, y la ausencia del contraste externo se declara como limitación en 13.4.
+
+## 12.1 · Qué indicadores externos están disponibles
+
+- **Candidatos.**
+  - La afinidad de votos entre Paraguay y Estados Unidos en la Asamblea General de Naciones Unidas, con los datos de Bailey, Strezhnev y Voeten (2017). Es anual.
+  - La cronología de visitas oficiales de alto nivel. No existe como base estructurada, y su construcción sería manual.
+  - La opinión pública paraguaya sobre Estados Unidos, en el Latinobarómetro y en el Barómetro de las Américas de LAPOP. La frecuencia es anual o bienal, y el acceso puede requerir registro.
+- **Evidencia.** Para cada candidato, su disponibilidad, su cobertura en la ventana, su frecuencia, su forma de acceso y su enlace.
+- **Criterio.** Un candidato es utilizable si es público, cubre al menos la mitad de los años de la ventana y se puede descargar de forma reproducible.
+- **Categoría.** Regla. Código `D12.1`.
+- **Detención.** Un candidato requiere registro o credenciales. El ejecutor pide al usuario que lo descargue.
+- **Salidas.** Una tabla de candidatos con su evaluación.
+
+## 12.2 · Qué relación se espera con cada indicador externo
+
+- **Criterio.** El signo y la forma de la relación esperada se escriben antes de calcularla, para que el contraste no se ajuste al resultado. Con unos diez años de datos anuales la prueba tiene poca potencia, de modo que el resultado se interpreta como una verificación de coherencia y no como una validación.
+- **Evidencia.** La correlación anual entre el índice y cada indicador externo, con su intervalo de confianza. El comportamiento del índice alrededor de los hechos registrados en las fuentes externas.
+- **Categoría.** Regla para el procedimiento, código `D12.2`. Si el resultado contradice la hipótesis, es Juicio, porque puede obligar a reabrir una decisión.
+- **Salidas.** Una tabla con la hipótesis escrita antes del cálculo, el resultado y si coincide. Una figura del índice anual junto a cada indicador externo.
+
+# Etapa 13 · Resultados, interpretación y comunicación
+
+## 13.1 · La serie publicada
+
+- **Contenido.** El índice general, sus cuatro dimensiones, su banda de incertidumbre, su medida de desbalance y la marca de los trimestres provisionales.
+- **Salidas.** Una figura principal del índice con su banda. Una tabla con la serie completa.
+
+## 13.2 · Cómo se lee la escala
+
+- **Contenido mínimo del texto.** Qué significa el valor de referencia, qué representa un punto, por qué un punto del índice no es un punto porcentual y por qué los cocientes entre valores no tienen sentido.
+- **Salidas.** Una tabla que traduce un desvío de la escala a un cambio concreto en las unidades de cada serie.
+
+## 13.3 · Qué afirma el índice
+
+- **Criterio.** Solo se comunican las afirmaciones que 10.4 declaró sostenidas. Cada afirmación se acompaña de la proporción de combinaciones que la sostienen. Las afirmaciones sobre años consecutivos se limitan a los pares que 10.3 declaró distinguibles.
+- **Salidas.** Una tabla de hallazgos con su respaldo.
+
+## 13.4 · Limitaciones declaradas
+
+- **Contenido.** Cada limitación registrada en las etapas anteriores, tomada del registro de decisiones.
+
+## 13.5 · Política de actualización
+
+- **Pregunta.** Cada cuánto se actualiza el período de referencia de la escala y cómo se comunica la transición.
+- **Criterio.** Por decisión del usuario, la política se define según la práctica de los índices que usan la misma metodología. El ejecutor documenta esa práctica con sus fuentes antes de proponer la regla, con al menos el manual de la OCDE y el JRC y el Manual del Índice de Precios al Consumidor del FMI (2020). Esos índices revisan su base con una periodicidad fija, en general cada cinco años, y publican la serie vieja y la nueva enlazadas durante un período de transición.
+- **Regla propuesta.** El período de referencia se revisa cada cinco años. La serie se vuelve a calcular completa con la nueva referencia, y durante el primer año se publican ambas versiones con una tabla de equivalencia. Entre revisiones la referencia queda congelada, según la Decisión 7.3 de la versión anterior, de modo que un dato nuevo no modifica los valores ya publicados.
+- **Validaciones.** Cada fuente citada se verificó, y la periodicidad adoptada coincide con la que documentan.
+- **Categoría.** Regla. Código `D13.5`.
+- **Salidas.** Una tabla con la práctica de cada índice de referencia, su fuente y su periodicidad.
+
+## 13.6 · Documentación para la replicación
+
+- **Salidas.**
+  - La tabla de operacionalización final, con la columna que describe cómo se completó cada indicador.
+  - El registro completo de decisiones.
+  - La tabla de fuentes con sus enlaces.
+  - La versión de datos de cada serie.
+  - La versión de cada paquete.
+  - Las instrucciones para reconstruir el índice desde cero, con los comandos en orden.
+- **Validaciones.** Cada serie del índice final figura en la tabla de operacionalización y en la de fuentes.
+
+## 13.7 · Salida para el tablero y el informe al cliente
+
+- **Contenido.** La publicación del resultado en `04_final` como CSV largo, CSV ancho y Google Sheet, con la autorización del usuario según la regla de oro 32. El informe al cliente es un documento aparte, derivado de este, que se redacta después de la aprobación del índice.
+- **Categoría.** La publicación requiere autorización del usuario.
+
+# Decisiones que tomará el usuario
+
+No quedan decisiones abiertas. Las de Juicio que la versión anterior ya había resuelto se aplican como criterio heredado, según la sección «Relación con la versión anterior». Las que planteaban los datos nuevos las resolvió el usuario el 2026-10-05, según la tabla «Decisiones del usuario del 2026-10-05».
+
+El ejecutor solo se detiene en tres situaciones.
+
+1. Una condición de detención técnica de una subpregunta, como un nombre del diccionario que no existe en el panel.
+2. Un criterio heredado que los datos nuevos vuelven inaplicable. El ejecutor muestra la evidencia y propone cómo seguir.
+3. Una incoherencia entre el índice y sus series en 11.3, hasta que se corrija.

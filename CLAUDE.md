@@ -31,18 +31,16 @@ ETAPA 01 · src/ingestion/{fuente}.py   →  Drive: 01_crudas/{dimensión}_cruda
               │  run_pipeline.py → pipeline_log        ▼
               │  (automatizado en GitHub Actions)
               │
-ETAPA 02 · dos implementaciones que hacen LO MISMO (ver aviso abajo):
-              │   src/processing/{dimensión}.py        → módulos con run(), orquestados por run_processing.py
-              │   src/02_cleaning/02_clean_{dim}.py    → script lineal, se corre a mano en Positron
+ETAPA 02 · src/processing/{dimensión}.py   → módulos con run(), orquestados por run_processing.py
               │                                        │
               │                                        ▼
               │                          Drive: 02_limpias/{dimensión}_limpias/{variable}/  (1 CSV por variable)
               ▼
-ETAPA 03 · src/03_integration/03_integration.py   →  Drive: 03_integracion/   (panel trimestral cuadrado,
+ETAPA 03 · src/integration/03_integration.py   →  Drive: 03_integracion/   (panel trimestral cuadrado,
               │                                        │      480 filas = 10 variables × 48 trimestres,
               │                                        │      un CSV largo + un CSV ancho)
               ▼                                        ▼
-ETAPA 04 · src/04_analysis_index/04_analysis_index.qmd  →  Drive: 04_final/   (CSV largo + CSV ancho +
+ETAPA 04 · src/analysis_index/04_analysis_index.qmd  →  Drive: 04_final/   (CSV largo + CSV ancho +
                                                             un Google Sheet de 2 pestañas para el dashboard)
                                                             + el documento Quarto renderizado
 ```
@@ -64,15 +62,10 @@ como decía esta nota antes de que existieran las carpetas reales.
 > `04_final`). Con nombre fijo, el id del archivo no cambia nunca y el
 > historial de versiones lo guarda igual Drive.
 
-> ⚠️ **Duplicación conocida de la etapa 02 (2026-09-09).** La dimensión 1
-> está implementada dos veces: como módulo (`src/processing/
-> compromiso_financiero_oficial.py`, que `run_processing.py` autodescubre) y
-> como script lineal (`src/02_cleaning/02_clean_compromiso_financiero_oficial.py`,
-> con `SUBIR_A_DRIVE = False`). Las dos suben a las MISMAS carpetas de
-> variable, y `subir_variable()` es idempotente **por día**: si se corren
-> las dos el mismo día, gana la primera y la segunda se saltea en silencio.
-> Hay que decidir cuál queda antes de activar la subida del script lineal.
-> Las dimensiones 2, 3 y 4 siguen existiendo solo como módulo.
+> **Etapa 02 en un solo lugar (2026-10-05).** La reescritura en script lineal
+> de la dimensión 1 (`src/02_cleaning/`) se eliminó. La etapa 02 vive solo en
+> `src/processing/`, y ya no hay dos implementaciones que compitan por las
+> mismas carpetas de Drive.
 
 **Regla central: los scripts de `src/ingestion/` SOLO extraen datos y los
 suben a Drive.** No escriben nada a disco local, no limpian, no transforman,
@@ -220,7 +213,7 @@ no automatizada todavía.
 
 ### Estilo de las etapas 02 en adelante (política 2026-09-08/09)
 
-A partir de `src/02_cleaning/`, el usuario pidió un estilo distinto al de
+A partir de la etapa 02 en formato script (hoy `src/integration/` y `src/analysis_index/`), el usuario pidió un estilo distinto al de
 `src/ingestion/` y `src/processing/`. Las etapas nuevas **no son módulos con
 `run()`**: son scripts lineales pensados para correrse por bloques en la
 consola de Positron, dejando los objetos intermedios vivos para inspección.
@@ -290,7 +283,7 @@ con el cliente"**, y en concreto exige:
   2026-09-09, costó un rato descubrirlo). Para renderizar:
   ```powershell
   $env:QUARTO_PYTHON = "<repo>\.venv\Scripts\python.exe"
-  & "<Positron>\resources\app\quarto\bin\quarto.exe" render "src\04_analysis_index\04_analysis_index.qmd" --to html
+  & "<Positron>\resources\app\quarto\bin\quarto.exe" render "src\analysis_index\04_analysis_index.qmd" --to html
   ```
   El puente jupyter de Quarto necesita `pyyaml`, `ipykernel`, `nbclient` y
   `nbformat` en el venv; sin `pyyaml` el render falla con
@@ -1042,17 +1035,9 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     que sí se hizo antes de construir esa variable) — pendiente una vez
     esta fuente esté validada con más corridas.
 
-- **`src/02_cleaning/` — etapa 02 en formato script (2026-09-08/09).** Una
-  reescritura de `src/processing/compromiso_financiero_oficial.py` en el
-  estilo de script lineal que prefiere el usuario: cajón de encabezado con
-  responsable y fecha, secciones numeradas (`0. SETUP`, `1. IMPORTAR DATA
-  CRUDA`, `2. LIMPIEZA`, `3. EXPORTAR CLEAN`), objetos intermedios con
-  nombre (`*_limpiando`, `*_clean`) que quedan vivos en la consola de
-  Positron, y validaciones impresas al final de cada bloque. Tiene un
-  interruptor `SUBIR_A_DRIVE` (hoy en `False`) para poder correrlo entero
-  sin escribir nada mientras se revisa. **Solo cubre la dimensión 1** — ver
-  el aviso de duplicación en la sección 2.
-- **`src/03_integration/03_integration.py` (2026-09-09).** Lee de Drive el
+- **`src/02_cleaning/` — eliminada el 2026-10-05.** Era una reescritura en script
+  lineal de `src/processing/compromiso_financiero_oficial.py` (solo dimensión 1).
+- **`src/integration/03_integration.py` (2026-09-09).** Lee de Drive el
   último CSV de cada variable limpia y arma **un panel trimestral cuadrado**:
   480 filas = 10 variables × 48 trimestres (2015-Q1 a 2026-Q4), con `NA`
   donde la fuente todavía no publicó. Puntos de diseño que hay que respetar
@@ -1088,7 +1073,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     la 4 (gdelt articles/tone × py/us). **No se traen las variantes BOTH de
     GDELT a propósito**: BOTH = PY + US, incluirlas contaría los mismos
     artículos dos veces.
-- **`src/04_analysis_index/04_analysis_index.qmd` (2026-09-09).** Documento
+- **`src/analysis_index/04_analysis_index.qmd` (2026-09-09).** Documento
   Quarto (chunks `{python}`) que hace el diagnóstico de las series y
   construye el índice. Reescrito por completo el 2026-09-09 a pedido del
   usuario, que rechazó el primer borrador por dar por sabido demasiado; el
@@ -1177,7 +1162,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   appropriations" —, así que el deflactor de 2025-Q4 se calcula con dos
   meses. Trasladar esa descarga a `src/ingestion/` es un pendiente.
 
-- **`src/04_analysis_index/04_construccion_indice.qmd` — reconstrucción del
+- **`src/analysis_index/04_construccion_indice.qmd` — reconstrucción del
   índice desde cero (2026-09-10 en adelante, en curso).** El usuario invalidó
   `04_analysis_index.qmd` como decisión: sus elecciones metodológicas se
   tomaron sin evaluar sistemáticamente las alternativas. El documento nuevo
@@ -1195,7 +1180,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   referencia.
 
   > **Todo el contexto para retomar está en
-  > [`src/04_analysis_index/ESTADO_CONSTRUCCION_INDICE.md`](src/04_analysis_index/ESTADO_CONSTRUCCION_INDICE.md)**:
+  > [`src/analysis_index/ESTADO_CONSTRUCCION_INDICE.md`](src/analysis_index/ESTADO_CONSTRUCCION_INDICE.md)**:
   > convenciones obligatorias de estructura y redacción, las 31 decisiones, lo
   > que quedó abierto, los hallazgos que no conviene perder y cómo renderizar.
   > Leerlo antes de tocar el `.qmd`.
@@ -1228,13 +1213,9 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
    sección para el detalle completo (qué se implementó, qué queda fuera del
    cálculo y por qué, y dónde vive el histórico editable de cada banco).
 
-5. **Decidir la duplicación de la etapa 02** (ver el aviso de la sección 2).
-   Hay dos implementaciones de la dimensión 1 que suben a las mismas
-   carpetas de Drive y compiten por el idempotente-por-día. Si el script
-   lineal reemplaza al módulo, hay que sacar
-   `src/processing/compromiso_financiero_oficial.py` de la carpeta que
-   `run_processing.py` autodescubre, y decidir si las dimensiones 2, 3 y 4
-   se reescriben en el mismo estilo.
+5. ~~**Decidir la duplicación de la etapa 02.**~~ **Resuelto 2026-10-05**:
+   el usuario eliminó `src/02_cleaning/`; la etapa 02 queda solo en
+   `src/processing/`.
 6. **Incorporar la dimensión 2 al índice** — es la limitación más importante
    del índice actual, que hoy cubre 3 de 4 dimensiones. Sus tres variables
    existen y están limpias, pero son conteos de eventos demasiado raros
