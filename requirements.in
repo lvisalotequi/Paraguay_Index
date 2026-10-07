@@ -1,0 +1,32 @@
+# Pipeline maestro (run_pipeline.py, run_processing.py) y helpers de Google (src/drive.py, src/sheets.py)
+google-api-python-client>=2.100   # src/drive.py (subida y lectura de archivos en Drive)
+google-auth>=2.28                 # autenticacion con la cuenta de servicio (Sheets y Drive)
+gspread>=6.0                      # src/sheets.py (pestanas pipeline_log, catalogo_fuentes, processing_log)
+python-dotenv>=1.0                # carga .env en local (run_pipeline.py, run_processing.py)
+
+# src/ingestion
+beautifulsoup4>=4.12   # parseo de HTML (bcp_comercio_exterior.py, dfc_proyectos_activos.py, exim_autorizaciones.py)
+curl_cffi>=0.7          # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, state.gov)
+ddgs>=9.0                # busqueda en DuckDuckGo (state_gov_tias_paraguay.py - state.gov no tiene indice navegable de TIAS)
+openpyxl>=3.1            # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
+pandas>=2.2,<3           # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/, src/02_cleaning/, src/03_integration/, src/04_analysis_index/)
+pypdf>=5.0               # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) - no es escaneado, texto real extraible
+pytrends>=4.9             # scraping no oficial de Google Trends (google_trends_paraguay.py) - sin API oficial
+requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
+
+# Techo de pandas en <3 (2026-09-09): con Python 3.14, pip resuelve pandas 3.0.x,
+# que trae cambios de comportamiento (dtype de strings por defecto, copy-on-write
+# obligatorio) con los que NADA de este repo esta probado. Todo se escribio y se
+# corrio con la serie 2.x (hoy 2.3.3). Subir el techo es una decision aparte, con
+# su propia corrida de verificacion de las 4 dimensiones.
+
+# src/04_analysis_index (documento Quarto 04_analysis_index.qmd)
+matplotlib>=3.8    # graficos del analisis y del indice
+ipykernel>=6.29     # kernel de Python que usa Quarto para ejecutar los chunks {python}
+nbclient>=0.10       # ejecuta el notebook intermedio que arma Quarto
+nbformat>=5.10        # lee/escribe ese notebook intermedio
+pyyaml>=6.0            # lo usa el puente jupyter de Quarto: sin esto el render falla con ModuleNotFoundError
+
+# Quarto no se instala con pip: es un binario aparte. Positron ya lo trae en
+# resources/app/quarto/bin/ (usar quarto.exe, no quarto.cmd - el .cmd se traga la
+# salida y no renderiza). Tambien sirve el Quarto CLI instalado por separado.

@@ -56,3 +56,6 @@ mre_scraping/checkpoint.ndjson
 
 CONTEXTO_INFORME_AVANCES.md
 DICCIONARIO_VARIABLES.md
+
+# Reporte de Bandit (tarea ISO 27001 IAM-JUL-001): evidencia local, no se versiona
+bandit_report.txt
