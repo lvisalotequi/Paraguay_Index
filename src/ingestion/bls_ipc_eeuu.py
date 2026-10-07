@@ -9,7 +9,7 @@ desestacionalizado) - https://data.bls.gov/timeseries/CUUR0000SA0
 Que hace: pide la serie MENSUAL completa desde ANIO_MINIMO hasta el año en
 curso y sube el JSON crudo de cada tramo tal cual lo devuelve la API, sin
 convertirlo a CSV ni promediar a trimestre (esa transformacion es trabajo de
-quien lo consuma despues - hoy `src/04_analysis_index/04_construccion_indice.qmd`,
+quien lo consuma despues - hoy `src/analysis_index/04_construccion_indice.qmd`,
 que hasta el 2026-09-22 lo pedia en tiempo de render en vez de leerlo de
 Drive; ver pendiente #7 de CLAUDE.md). Mismo criterio que
 fa_gov_asistencia_oficial.py/bid_proyectos.py/bancomundial_proyectos.py: el

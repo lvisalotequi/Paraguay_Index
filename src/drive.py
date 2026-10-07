@@ -54,7 +54,7 @@ DRIVE_ROOT_ID = "1iFJsRRCMSa7u4-GpYNbl7BE2HnvDGxrL"  # carpeta "2.Datos_recolect
 CARPETA_CRUDAS = "01_crudas"  # subcarpeta donde va todo lo que sube ingestion
 CARPETA_LIMPIAS = "02_limpias"  # subcarpeta donde processing sube sus CSV consolidados
 CARPETA_INTEGRACION = "03_integracion"  # subcarpeta donde 03_integration publica el panel
-CARPETA_FINAL = "04_final"  # subcarpeta donde 04_analysis_index publica el resultado
+CARPETA_FINAL = "04_final"  # subcarpeta donde analysis_index publica el resultado
 
 MIME_HOJA_DE_CALCULO = "application/vnd.google-apps.spreadsheet"
 

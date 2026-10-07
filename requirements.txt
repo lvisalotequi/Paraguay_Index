@@ -9,7 +9,7 @@ beautifulsoup4>=4.12   # parseo de HTML (bcp_comercio_exterior.py, dfc_proyectos
 curl_cffi>=0.7          # requests que bypasea Cloudflare/bot-blocking (bcp.gov.py, state.gov)
 ddgs>=9.0                # busqueda en DuckDuckGo (state_gov_tias_paraguay.py - state.gov no tiene indice navegable de TIAS)
 openpyxl>=3.1            # escribir .xlsx con pandas (congreso_menciones_paraguay.py, state_gov_tias_paraguay.py)
-pandas>=2.2           # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/, src/02_cleaning/, src/03_integration/, src/04_analysis_index/)
+pandas>=2.2           # filtrado local / armar excel / processing (exim_autorizaciones.py, congreso_menciones_paraguay.py, state_gov_tias_paraguay.py, src/processing/, src/integration/, src/04_analysis_index/)
 pypdf>=5.0               # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) - no es escaneado, texto real extraible
 pytrends>=4.9             # scraping no oficial de Google Trends (google_trends_paraguay.py) - sin API oficial
 requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
@@ -20,7 +20,7 @@ requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssis
 # corrio con la serie 2.x (hoy 2.3.3). Subir el techo es una decision aparte, con
 # su propia corrida de verificacion de las 4 dimensiones.
 
-# src/04_analysis_index (documento Quarto 04_analysis_index.qmd)
+# src/analysis_index (documentos Quarto del indice)
 matplotlib>=3.8    # graficos del analisis y del indice
 ipykernel>=6.29     # kernel de Python que usa Quarto para ejecutar los chunks {python}
 nbclient>=0.10       # ejecuta el notebook intermedio que arma Quarto
