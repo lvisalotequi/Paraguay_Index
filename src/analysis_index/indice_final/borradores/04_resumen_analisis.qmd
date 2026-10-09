@@ -1,0 +1,837 @@
+---
+title: "US-PY Engagement Index"
+subtitle: "Resumen del análisis"
+author: "Equilibrium BDC"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenido"
+    toc-location: left
+    number-sections: false
+    code-fold: true
+    code-summary: "código"
+    code-tools: true
+    fig-width: 11
+    fig-height: 4.8
+    fig-align: left
+    fig-dpi: 150
+    embed-resources: true
+    theme: cosmo
+    css: estilo_documento.css
+    tbl-cap-location: top
+    page-layout: full
+execute:
+  warning: false
+  echo: true
+jupyter: python3
+---
+
+```{python}
+#| label: setup
+#| code-summary: "código · paquetes y opciones de visualización"
+
+# 0. SETUP -----------------------------------------------------------------------
+
+# 0.1. Paquetes
+
+# 1. Utilidades de sistema y texto
+import os
+import re
+import sys
+import warnings
+from pathlib import Path
+
+
+# 2. Tablas y calculo numerico
+import numpy as np
+import pandas as pd
+
+
+# 3. Graficos
+import matplotlib.pyplot as plt
+
+
+# 4. Tablas en markdown
+from IPython.display import Markdown, display
+from tabulate import tabulate
+
+
+# 0.2. Opciones
+
+# 5. Silencia avisos de pandas que no afectan el resultado
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+# 6. Muestra las tablas completas al imprimirlas
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_colwidth", None)
+pd.set_option("display.max_rows", None)
+pd.set_option("display.width", 200)
+
+
+# 7. Estilo basico de los graficos
+plt.rcParams.update(
+    {
+        "figure.dpi": 150,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.grid": True,
+        "grid.alpha": 0.25,
+        "axes.titlesize": 10,
+        "axes.labelsize": 9,
+        "legend.frameon": False,
+    }
+)
+
+
+# 0.3. Verificacion del entorno
+
+# 8. Versiones con que se genera el documento
+print("Python", sys.version.split()[0], "| pandas", pd.__version__, "| numpy", np.__version__)
+```
+
+# 1. Cargar los datos.
+
+```{python}
+# 1. Cargar los datos
+
+import io
+from dotenv import load_dotenv
+
+# rutas y credencial
+RAIZ_REPO = Path.cwd()
+
+while not (RAIZ_REPO / "src").is_dir() and RAIZ_REPO != RAIZ_REPO.parent:
+
+    RAIZ_REPO = RAIZ_REPO.parent
+
+sys.path.insert(0, str(RAIZ_REPO))
+
+load_dotenv(RAIZ_REPO / ".env")
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(RAIZ_REPO / os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
+
+from src.drive import CARPETA_INTEGRACION, descargar_archivo, listar_archivos, resolve_etapa_folder
+
+# descarga del panel
+archivos = listar_archivos(resolve_etapa_folder(CARPETA_INTEGRACION))
+
+archivo_panel = [a for a in archivos if a["name"] == "panel_trimestral_largo.csv"][0]
+
+panel_largo = pd.read_csv(io.BytesIO(descargar_archivo(archivo_panel["id"])))
+
+
+# panel ancho: un trimestre por fila, una variable por columna
+panel_ancho = panel_largo.pivot(index="trimestre", columns="variable", values="valor")
+panel_ancho = panel_ancho[panel_largo["variable"].drop_duplicates()]
+
+
+panel_ancho
+```
+
+# Solo variables para el índice
+
+
+```{python}
+panel_ancho_indice = panel_ancho[
+    [
+        "bancomundial_proyectos_atribuible_eeuu",
+        "bid_proyectos_atribuible_eeuu",
+        "dfc_comprometido",
+        "dfc_proyectos_vigentes",
+        "exim_autorizado",
+        "exim_desembolsado",
+        "fa_gov_desembolsos",
+        "fa_gov_obligaciones",
+        "usaspending_obligaciones",
+        "usaspending_operativo",
+        "congreso_menciones_totales_paraguay",
+        "congreso_proyectos_relevantes_paraguay",
+        "mre_menciones_totales_eeuu",
+        "mre_noticias_bilaterales",
+        "state_gov_tif_vigentes",
+        "ustr_hitos_consejo_comercio_inversion",
+        "bea_inversion_directa",
+        "exportaciones",
+        "importaciones",
+        "inversion_directa_bcp",
+        "remesas",
+        "turismo_receptivo_eeuu",
+        "gdelt_proxy_articles_py",
+        "gdelt_proxy_articles_us",
+        "gdelt_tone_promedio_py",
+        "gdelt_tone_promedio_us",
+        "google_trends_paraguay_embassy",
+        "google_trends_paraguay_tariffs",
+        "google_trends_paraguay_trade",
+    ]
+]
+
+panel_ancho_indice
+```
+
+
+# Exploración de datos
+
+## Missings
+
+### Tabla de missings
+
+```{python}
+# missings por variable: cantidad, porcentaje y trimestres sin dato
+missings = pd.DataFrame(
+    {
+        "n_missings": panel_ancho_indice.isna().sum(),
+        "pct_missings": (panel_ancho_indice.isna().mean() * 100).round(1),
+        "primer_trimestre": panel_ancho_indice.apply(lambda s: s.first_valid_index()),
+        "ultimo_trimestre": panel_ancho_indice.apply(lambda s: s.last_valid_index()),
+    }
+)
+
+missings.sort_values("n_missings", ascending=False)
+
+
+panel_ancho_indice.isna()
+```
+
+### Gráfica de missing
+
+```{python}
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
+
+# 1 = falta el dato, 0 = hay dato; filas = variables, columnas = trimestres
+estado = panel_ancho_indice.isna().T.astype(int)
+
+fig, ax = plt.subplots(figsize=(11, 0.24 * len(estado) + 1.4))
+
+ax.imshow(
+    estado.values,
+    aspect="auto",
+    cmap=ListedColormap(["#cfd8e3", "#c0392b"]),
+    vmin=-0.5,
+    vmax=1.5,
+    interpolation="nearest",
+)
+
+# una marca de eje por anio, en el primer trimestre
+posiciones = [i for i, t in enumerate(estado.columns) if t.endswith("Q1")]
+
+ax.set_xticks(posiciones)
+ax.set_xticklabels([estado.columns[i][:4] for i in posiciones], fontsize=7)
+
+ax.set_yticks(range(len(estado.index)))
+ax.set_yticklabels(estado.index, fontsize=6.2)
+
+ax.grid(False)
+
+# lineas entre dimensiones
+dimension_de_variable = panel_largo.drop_duplicates("variable").set_index("variable")["dimension"]
+
+dimensiones = [dimension_de_variable[v] for v in estado.index]
+
+for fila in range(1, len(dimensiones)):
+
+    if dimensiones[fila] != dimensiones[fila - 1]:
+
+        ax.axhline(fila - 0.5, color="black", linewidth=0.8)
+
+ax.legend(
+    handles=[
+        Patch(facecolor="#cfd8e3", edgecolor="#6b7280", label="con dato"),
+        Patch(facecolor="#c0392b", edgecolor="#6b7280", label="falta el dato (NA)"),
+    ],
+    loc="upper center",
+    bbox_to_anchor=(0.5, -0.05),
+    ncol=2,
+    fontsize=8,
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+Varios de los registros presentan NA, pero no porque esté mal, sino porque al importar los datos se importaron como NAs.
+En realidad estos registros no fueron reportados para la mayoría de las series. Se aplica la corrección de los valores.
+Imputando ceros.
+
+### Corrección de missings
+
+```{python}
+# variables cuyos NA son 0 hasta 2025; desde 2026 siguen siendo NA porque no se publicaron datos
+variables_con_ceros = [
+    "bancomundial_proyectos_atribuible_eeuu",
+    "bid_proyectos_atribuible_eeuu",
+    "dfc_comprometido",
+    "dfc_proyectos_vigentes",
+    "exim_autorizado",
+    "exim_desembolsado",
+    "congreso_menciones_totales_paraguay",
+    "congreso_proyectos_relevantes_paraguay",
+    "mre_menciones_totales_eeuu",
+    "mre_noticias_bilaterales",
+    "ustr_hitos_consejo_comercio_inversion",
+]
+
+panel_limpio = panel_ancho_indice.copy()
+
+# hasta 2025: NA = 0
+hasta_2025 = panel_limpio.index < "2026"
+
+panel_limpio.loc[hasta_2025, variables_con_ceros] = panel_limpio.loc[hasta_2025, variables_con_ceros].fillna(0)
+
+# turismo: solo 2020 es 0 (pandemia); 2025 y 2026 siguen NA porque no se publicaron
+en_2020 = panel_limpio.index.str.startswith("2020")
+
+panel_limpio.loc[en_2020, "turismo_receptivo_eeuu"] = panel_limpio.loc[en_2020, "turismo_receptivo_eeuu"].fillna(0)
+
+panel_limpio
+```
+
+
+### Gráfica de missings corregida
+
+```{python}
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
+
+# 1 = falta el dato, 0 = hay dato; filas = variables, columnas = trimestres
+estado = panel_limpio.isna().T.astype(int)
+
+fig, ax = plt.subplots(figsize=(11, 0.24 * len(estado) + 1.4))
+
+ax.imshow(
+    estado.values,
+    aspect="auto",
+    cmap=ListedColormap(["#cfd8e3", "#c0392b"]),
+    vmin=-0.5,
+    vmax=1.5,
+    interpolation="nearest",
+)
+
+# una marca de eje por anio, en el primer trimestre
+posiciones = [i for i, t in enumerate(estado.columns) if t.endswith("Q1")]
+
+ax.set_xticks(posiciones)
+ax.set_xticklabels([estado.columns[i][:4] for i in posiciones], fontsize=7)
+
+ax.set_yticks(range(len(estado.index)))
+ax.set_yticklabels(estado.index, fontsize=6.2)
+
+ax.grid(False)
+
+# lineas entre dimensiones
+dimension_de_variable = panel_largo.drop_duplicates("variable").set_index("variable")["dimension"]
+
+dimensiones = [dimension_de_variable[v] for v in estado.index]
+
+for fila in range(1, len(dimensiones)):
+
+    if dimensiones[fila] != dimensiones[fila - 1]:
+
+        ax.axhline(fila - 0.5, color="black", linewidth=0.8)
+
+ax.legend(
+    handles=[
+        Patch(facecolor="#cfd8e3", edgecolor="#6b7280", label="con dato"),
+        Patch(facecolor="#c0392b", edgecolor="#6b7280", label="falta el dato (NA)"),
+    ],
+    loc="upper center",
+    bbox_to_anchor=(0.5, -0.05),
+    ncol=2,
+    fontsize=8,
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+## Delimitación del periodo
+
+### Cobertura por variable
+
+```{python}
+VENTANA = ("2015-Q1", "2026-Q4")
+
+# cobertura de cada variable en 2015-2026 (barra) y en 2015-2025 (criterio de color)
+cobertura_2026 = panel_limpio.loc[VENTANA[0]:VENTANA[1]].notna().mean()
+
+completa_2025 = panel_limpio.loc["2015-Q1":"2025-Q4"].notna().all()
+
+completa_2026 = panel_limpio.loc["2015-Q1":"2026-Q4"].notna().all()
+
+# umbral: cubrir 2015-2025 completo = 44 de 48 trimestres
+umbral = 44 / 48
+
+# rojo = no cubre 2015-2025; amarillo = cubre 2015-2025; verde = cubre 2015-2026
+def color_de(variable):
+
+    if completa_2026[variable]:
+
+        return "#4a7c59"
+
+    if completa_2025[variable]:
+
+        return "#e0b100"
+
+    return "#c0392b"
+
+
+cobertura_2026 = cobertura_2026.sort_values()
+
+fig, ax = plt.subplots(figsize=(9, 0.28 * len(cobertura_2026) + 1.8))
+
+ax.barh(cobertura_2026.index, cobertura_2026.values * 100, color=[color_de(v) for v in cobertura_2026.index])
+
+ax.axvline(umbral * 100, color="black", linestyle="--", linewidth=1)
+
+for i, c in enumerate(cobertura_2026.values):
+
+    ax.text(c * 100 + 1, i, f"{c * 100:.0f}%", va="center", fontsize=7)
+
+ax.set_xlim(0, 110)
+ax.set_xlabel("% de trimestres con dato, 2015-Q1 a 2026-Q4")
+ax.set_title("Cobertura por variable (umbral = 2015-2025 completo)")
+ax.tick_params(axis="y", labelsize=7)
+
+from matplotlib.patches import Patch
+
+ax.legend(
+    handles=[
+        Patch(facecolor="#c0392b", label="no cubre 2015-2025"),
+        Patch(facecolor="#e0b100", label="cubre 2015-2025 completo"),
+        Patch(facecolor="#4a7c59", label="cubre 2015-2026 completo"),
+        plt.Line2D([], [], color="black", linestyle="--", label="umbral (2015-2025 completo)"),
+    ],
+    loc="upper left",
+    fontsize=8,
+    frameon=True,
+    facecolor="white",
+    edgecolor="#6b7280",
+    framealpha=1,
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+Verdes (cubren 2015-2026): solo 2, fa_gov_obligaciones y fa_gov_desembolsos.
+Amarillas (cubren 2015-2025 completo): 24. Son todas las demás, salvo las 3 rojas.
+Rojas (no cubren 2015-2025): 3.
+- bea_inversion_directa: 8 trimestres faltantes (2015 y 2019).
+- inversion_directa_bcp: 4 (2025).
+- turismo_receptivo_eeuu: 4 (2025).
+
+### Cobertura por trimestre
+
+```{python}
+# % de variables con dato en cada trimestre
+cobertura_trimestre = panel_limpio.notna().mean(axis=1)
+
+# umbral: proporcion de variables que cubren 2015-2025 completo
+completa_2025 = panel_limpio.loc["2015-Q1":"2025-Q4"].notna().all()
+
+umbral = completa_2025.mean()
+
+# verde = todas las variables con dato; amarillo = al menos el umbral; rojo = por debajo del umbral
+def color_de(c):
+
+    if c == 1:
+
+        return "#4a7c59"
+
+    if c >= umbral:
+
+        return "#e0b100"
+
+    return "#c0392b"
+
+
+fig, ax = plt.subplots(figsize=(11, 4))
+
+ax.bar(cobertura_trimestre.index, cobertura_trimestre.values * 100, color=[color_de(c) for c in cobertura_trimestre.values])
+
+ax.axhline(umbral * 100, color="black", linestyle="--", linewidth=1)
+
+ax.set_xticks(range(0, len(cobertura_trimestre), 4))
+ax.set_xticklabels(cobertura_trimestre.index[::4], rotation=90, fontsize=8)
+
+ax.set_ylim(0, 110)
+ax.set_ylabel("% de variables con dato")
+ax.set_title("Cobertura por trimestre")
+
+from matplotlib.patches import Patch
+
+ax.legend(
+    handles=[
+        Patch(facecolor="#c0392b", label="menos variables que el umbral"),
+        Patch(facecolor="#e0b100", label="alcanza el umbral, faltan algunas"),
+        Patch(facecolor="#4a7c59", label="todas las variables con dato"),
+        plt.Line2D([], [], color="black", linestyle="--", label=f"umbral ({umbral:.0%}, variables que cubren 2015-2025)"),
+    ],
+    loc="upper left",
+    fontsize=8,
+    frameon=True,
+    facecolor="white",
+    edgecolor="#6b7280",
+    framealpha=1,
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+2016-2018 y 2020-2024 tienen el 100% de las variables con dato.
+Los años 2015, 2019 y 2025 bajan a 97% y 93%, justo por las 3 rojas.
+
+2026 se desploma, con cobertura de 59%, 45%, 34% y 7% de Q1 a Q4. Solo 2 variables publican todo el año.
+
+### Conclusión
+- La ventana es 2015-Q1 a 2025-Q4.
+- Con 2026 el índice solo se calcularía con las pocas variables que ya publican, y cambiaría de composición entre trimestres.
+- Las 24 amarillas entran sin problema con esa ventana.
+- Las 3 rojas son las únicas que requieren decisión:
+bea_inversion_directa, inversion_directa_bcp y turismo_receptivo_eeuu
+Se mantienen por ahora.
+
+### Aplicar filtrado periodo 2015-2026
+
+```{python}
+
+panel_limpio_2025 = panel_limpio[panel_limpio.index <= "2025-Q4"]
+
+panel_limpio_2025
+```
+
+
+### Gráfica de missings final
+
+
+```{python}
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
+
+# 1 = falta el dato, 0 = hay dato; filas = variables, columnas = trimestres
+estado = panel_limpio_2025.isna().T.astype(int)
+
+fig, ax = plt.subplots(figsize=(11, 0.24 * len(estado) + 1.4))
+
+ax.imshow(
+    estado.values,
+    aspect="auto",
+    cmap=ListedColormap(["#cfd8e3", "#c0392b"]),
+    vmin=-0.5,
+    vmax=1.5,
+    interpolation="nearest",
+)
+
+# una marca de eje por anio, en el primer trimestre
+posiciones = [i for i, t in enumerate(estado.columns) if t.endswith("Q1")]
+
+ax.set_xticks(posiciones)
+ax.set_xticklabels([estado.columns[i][:4] for i in posiciones], fontsize=7)
+
+ax.set_yticks(range(len(estado.index)))
+ax.set_yticklabels(estado.index, fontsize=6.2)
+
+ax.grid(False)
+
+# lineas entre dimensiones
+dimension_de_variable = panel_largo.drop_duplicates("variable").set_index("variable")["dimension"]
+
+dimensiones = [dimension_de_variable[v] for v in estado.index]
+
+for fila in range(1, len(dimensiones)):
+
+    if dimensiones[fila] != dimensiones[fila - 1]:
+
+        ax.axhline(fila - 0.5, color="black", linewidth=0.8)
+
+ax.legend(
+    handles=[
+        Patch(facecolor="#cfd8e3", edgecolor="#6b7280", label="con dato"),
+        Patch(facecolor="#c0392b", edgecolor="#6b7280", label="falta el dato (NA)"),
+    ],
+    loc="upper center",
+    bbox_to_anchor=(0.5, -0.05),
+    ncol=2,
+    fontsize=8,
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+## Selección de variables
+
+### Asignación de variable a indicadores
+
+```{python}
+# 2.0 Asignacion de variables a indicadores
+INDICADOR = {
+    "fa_gov_obligaciones": "1.1", "fa_gov_desembolsos": "1.1",
+    "usaspending_obligaciones": "1.2", "usaspending_operativo": "1.2",
+    "dfc_comprometido": "1.3", "dfc_proyectos_vigentes": "1.3",
+    "exim_autorizado": "1.4", "exim_desembolsado": "1.4",
+    "bid_proyectos_atribuible_eeuu": "1.5", "bancomundial_proyectos_atribuible_eeuu": "1.5",
+    "ustr_hitos_consejo_comercio_inversion": "2.1",
+    "mre_noticias_bilaterales": "2.2", "mre_menciones_totales_eeuu": "2.2",
+    "congreso_proyectos_relevantes_paraguay": "2.3", "congreso_menciones_totales_paraguay": "2.3",
+    "state_gov_tif_vigentes": "2.4",
+    "exportaciones": "3.1", "importaciones": "3.1",
+    "inversion_directa_bcp": "3.2", "bea_inversion_directa": "3.2",
+    "remesas": "3.3", "turismo_receptivo_eeuu": "3.4",
+    "gdelt_proxy_articles_py": "4.1", "gdelt_proxy_articles_us": "4.1",
+    "gdelt_tone_promedio_py": "4.2", "gdelt_tone_promedio_us": "4.2",
+    "google_trends_paraguay_trade": "4.3", "google_trends_paraguay_tariffs": "4.3", "google_trends_paraguay_embassy": "4.3",
+}
+
+NOMBRE_INDICADOR = {
+    "1.1": "Asistencia oficial", "1.2": "Gasto federal ejecutado", "1.3": "Financiamiento DFC",
+    "1.4": "Autorizaciones EXIM", "1.5": "Multilaterales atribuibles a EE.UU.",
+    "2.1": "Reuniones TIC (USTR)", "2.2": "Visitas de autoridades (MRE)", "2.3": "Proyectos de ley (Congreso)", "2.4": "Tratados vigentes (TIF)",
+    "3.1": "Comercio de bienes", "3.2": "Inversion extranjera directa", "3.3": "Remesas", "3.4": "Turismo",
+    "4.1": "Noticias bilaterales (GDELT)", "4.2": "Tono (GDELT)", "4.3": "Interes de busqueda (Google)",
+}
+
+variables_por_indicador = {i: [v for v in panel_limpio_2025.columns if INDICADOR[v] == i] for i in NOMBRE_INDICADOR}
+```
+
+
+### Redundancia entre series del mismo indicador
+
+La redundancia entre series del mismo indicador se mide con la correlación de Spearman, que convierte cada valor en su posición dentro de su serie y correlaciona esas posiciones. Vale 1 si las dos series suben y bajan en el mismo orden y −1 si lo hacen en orden contrario. Se prefiere a la de Pearson porque no supone una relación lineal y resiste mejor los valores extremos, frecuentes en montos con picos y en conteos con muchos ceros. La correlación se calcula de dos formas. Sobre los niveles compara los valores tal como están, y sobre los cambios compara la diferencia entre cada trimestre y el anterior. La diferencia importa porque dos series que crecen con los años correlacionan en niveles aunque no se muevan juntas, solo porque comparten tendencia. Por eso la decisión se toma sobre los cambios, y se considera redundante un par cuya correlación en valor absoluto alcanza 0,90. La correlación en niveles se informa únicamente para mostrar esa diferencia.
+
+La gráfica muestra que solo dos de las catorce parejas de series del mismo indicador son redundantes. usaspending_obligaciones y usaspending_operativo tienen una correlación sobre cambios de 1,00, y exim_autorizado y exim_desembolsado de 0,98, ambas por encima del umbral de 0,90. Esto significa que cada par mide prácticamente lo mismo y duplicaría el peso de su indicador. Las parejas del Congreso (0,73), del MRE (0,63) y de DFC (0,51) tienen una relación moderada, sin llegar a ser redundantes. El resto tiene correlaciones bajas, por debajo de 0,40 en valor absoluto, lo que indica que aportan información distinta. Hay un caso donde la diferencia entre niveles y cambios es clara: exportaciones e importaciones tienen una correlación de 0,49 en niveles pero solo de 0,16 en cambios, es decir, comparten tendencia sin moverse juntas. Hay que tomar con cautela las parejas de fa_gov, DFC y BEA con BCP, que se calculan sobre pocos datos anuales (de 7 a 10), por lo que sus intervalos son anchos y un valor bajo no prueba independencia. En conclusión, las dos parejas redundantes requieren elegir una sola serie, decisión que se toma más adelante en la selección multivariada. Las demás se mantienen.
+
+```{python}
+# 2.1 Redundancia entre series del mismo indicador
+import itertools
+from scipy import stats
+
+UMBRAL_REDUNDANCIA = 0.90
+MIN_OBS = 5
+
+ANUALES = ["fa_gov_obligaciones", "fa_gov_desembolsos", "dfc_comprometido", "dfc_proyectos_vigentes", "bea_inversion_directa"]
+
+
+def a_anual(serie, es_anual):
+
+    d = serie.to_frame("v").assign(anio=lambda x: x.index.str[:4])
+
+    d = d[d.groupby("anio")["v"].transform("count") == 4]
+
+    return d.groupby("anio")["v"].first() if es_anual else d.groupby("anio")["v"].sum()
+
+
+def spearman(x, y):
+
+    d = pd.concat([x, y], axis=1).dropna()
+
+    if len(d) < MIN_OBS or d.iloc[:, 0].nunique() < 2 or d.iloc[:, 1].nunique() < 2:
+
+        return np.nan, len(d), np.nan, np.nan
+
+    r = stats.spearmanr(d.iloc[:, 0], d.iloc[:, 1]).statistic
+
+    if len(d) <= 3 or abs(r) >= 1:
+
+        return r, len(d), np.nan, np.nan
+
+    z, e = np.arctanh(r), 1.96 / np.sqrt(len(d) - 3)
+
+    return r, len(d), np.tanh(z - e), np.tanh(z + e)
+
+
+filas = []
+
+for indicador, vs in variables_por_indicador.items():
+
+    for a, b in itertools.combinations(vs, 2):
+
+        if a in ANUALES or b in ANUALES:
+
+            xa, xb = a_anual(panel_limpio_2025[a], a in ANUALES), a_anual(panel_limpio_2025[b], b in ANUALES)
+
+        else:
+
+            xa, xb = panel_limpio_2025[a], panel_limpio_2025[b]
+
+        rho_c, n, inf, sup = spearman(xa.diff(), xb.diff())
+
+        filas.append(
+            {
+                "indicador": indicador, "par": f"{a} | {b}",
+                "rho_niveles": spearman(xa, xb)[0], "rho_cambios": rho_c,
+                "ic_inf": inf, "ic_sup": sup, "redundante": abs(rho_c) >= UMBRAL_REDUNDANCIA,
+            }
+        )
+
+pares = pd.DataFrame(filas)
+
+# grafica 2.1
+orden = pares.sort_values("rho_cambios")
+
+fig, ax = plt.subplots(figsize=(10, 0.32 * len(orden) + 1.8))
+
+y = range(len(orden))
+
+colores = ["#c0392b" if r else "#6b7f99" for r in orden["redundante"]]
+
+ax.hlines(y, orden["ic_inf"], orden["ic_sup"], color=colores, linewidth=2)
+ax.scatter(orden["rho_cambios"], y, color=colores, zorder=3, label="cambios (decide)")
+ax.scatter(orden["rho_niveles"], y, marker="D", facecolor="white", edgecolor="black", zorder=3, s=25, label="niveles (solo informa)")
+
+ax.axvline(UMBRAL_REDUNDANCIA, color="black", linestyle="--", linewidth=1)
+ax.axvline(-UMBRAL_REDUNDANCIA, color="black", linestyle="--", linewidth=1)
+
+ax.set_yticks(list(y))
+ax.set_yticklabels([f"{r.indicador} · {r.par}" for r in orden.itertuples()], fontsize=6.5)
+ax.set_xlim(-1.05, 1.05)
+ax.set_xlabel("correlacion de Spearman")
+ax.set_title("Redundancia entre series del mismo indicador (rojo = redundante)")
+ax.legend(loc="upper left", fontsize=8, frameon=True, facecolor="white", edgecolor="#6b7280", framealpha=1)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+
+
+### Qué parte del marco cubre el panel
+
+```{python}
+# 2.2 Cobertura del marco
+from matplotlib.patches import Patch
+
+PARCIALES = ["2.2"]
+
+indicadores = [f"{i} · {NOMBRE_INDICADOR[i]}" for i in NOMBRE_INDICADOR]
+
+n_variables = [len(variables_por_indicador[i]) for i in NOMBRE_INDICADOR]
+
+estados = [
+    "no cubierto" if n == 0 else ("parcial" if i in PARCIALES else "cubierto")
+    for i, n in zip(NOMBRE_INDICADOR, n_variables)
+]
+
+colores_estado = {"cubierto": "#4a7c59", "parcial": "#e0b100", "no cubierto": "#c0392b"}
+
+fig, ax = plt.subplots(figsize=(9, 0.35 * len(indicadores) + 1.8))
+
+ax.barh(indicadores[::-1], n_variables[::-1], color=[colores_estado[e] for e in estados[::-1]])
+
+for i, n in enumerate(n_variables[::-1]):
+
+    ax.text(n + 0.05, i, str(n), va="center", fontsize=8)
+
+ax.legend(
+    handles=[Patch(facecolor=c, label=e) for e, c in colores_estado.items()],
+    loc="upper left", fontsize=8, frameon=True, facecolor="white", edgecolor="#6b7280", framealpha=1,
+)
+
+ax.set_xlabel("n de variables")
+ax.set_title("Cobertura del marco conceptual por indicador")
+ax.tick_params(axis="y", labelsize=8)
+
+plt.tight_layout()
+plt.show()
+```
+
+### Indicadores derivados cantidatos
+
+#### Tabla de cantidatos posibles
+
+```{python}
+tabla_derivados = pd.DataFrame(
+    [
+        ("intensidad_comercial", "exportaciones + importaciones", "exportaciones, importaciones", "Cuánto comercio hay entre los dos países, sin atender a su sentido."),
+        ("balanza_comercial", "exportaciones − importaciones", "exportaciones, importaciones", "Quién vende más al otro: saldo comercial de Paraguay con EE.UU."),
+        ("ejecucion_asistencia", "desembolsos ÷ obligaciones de la asistencia oficial", "fa_gov_desembolsos, fa_gov_obligaciones", "Qué parte de lo comprometido se desembolsa."),
+        ("volumen_total_cobertura", "artículos de medios paraguayos + artículos de medios estadounidenses", "gdelt_proxy_articles_py, gdelt_proxy_articles_us", "Cuánta cobertura mediática bilateral hay en total."),
+        ("multilateral_atribuible_total", "atribuible a EE.UU. en el BID + atribuible a EE.UU. en el Banco Mundial", "bid_proyectos_atribuible_eeuu, bancomundial_proyectos_atribuible_eeuu", "Financiamiento multilateral total atribuible a EE.UU."),
+    ],
+    columns=["Derivado", "Fórmula", "Componentes", "Pregunta que responde"],
+)
+
+tabla_derivados
+```
+
+#### Evolución temporal de candidatos
+```{python}
+# 2.3 Derivados candidatos
+p = panel_limpio_2025
+
+derivados = pd.DataFrame(
+    {
+        "intensidad_comercial": p["exportaciones"] + p["importaciones"],
+        "balanza_comercial": p["exportaciones"] - p["importaciones"],
+        "ejecucion_asistencia": p["fa_gov_desembolsos"] / p["fa_gov_obligaciones"].replace(0, np.nan),
+        "volumen_total_cobertura": p["gdelt_proxy_articles_py"] + p["gdelt_proxy_articles_us"],
+        "multilateral_atribuible_total": p["bid_proyectos_atribuible_eeuu"] + p["bancomundial_proyectos_atribuible_eeuu"],
+    }
+)
+
+COMPONENTES = {
+    "intensidad_comercial": ["exportaciones", "importaciones"],
+    "balanza_comercial": ["exportaciones", "importaciones"],
+    "ejecucion_asistencia": ["fa_gov_desembolsos", "fa_gov_obligaciones"],
+    "volumen_total_cobertura": ["gdelt_proxy_articles_py", "gdelt_proxy_articles_us"],
+    "multilateral_atribuible_total": ["bid_proyectos_atribuible_eeuu", "bancomundial_proyectos_atribuible_eeuu"],
+}
+
+# grafica 2.3a: cada derivado en el tiempo
+fig, axes = plt.subplots(3, 2, figsize=(11, 8), sharex=True)
+
+for ax, d in zip(axes.ravel(), derivados.columns):
+
+    ax.plot(derivados.index, derivados[d], color="#6b7f99", linewidth=1.5)
+
+    ax.set_title(d, fontsize=9)
+
+    ax.set_xticks(range(0, len(derivados), 8))
+    ax.set_xticklabels(derivados.index[::8], rotation=90, fontsize=7)
+
+axes.ravel()[-1].axis("off")
+
+plt.tight_layout()
+plt.show()
+
+
+```
+
+
+#### Correlación (cambios)
+
+```{python}
+# grafica 2.3b: correlacion (cambios) de cada derivado con sus componentes; rojo = redundante con el componente
+etiquetas, valores = [], []
+
+for d, comps in COMPONENTES.items():
+
+    for c in comps:
+
+        etiquetas.append(f"{d} vs {c}")
+
+        valores.append(spearman(derivados[d].diff(), p[c].diff())[0])
+
+fig, ax = plt.subplots(figsize=(9, 0.35 * len(valores) + 1.5))
+
+ax.barh(etiquetas[::-1], valores[::-1], color=["#c0392b" if abs(v) >= UMBRAL_REDUNDANCIA else "#6b7f99" for v in valores[::-1]])
+
+ax.axvline(UMBRAL_REDUNDANCIA, color="black", linestyle="--", linewidth=1)
+ax.axvline(-UMBRAL_REDUNDANCIA, color="black", linestyle="--", linewidth=1)
+
+ax.set_xlim(-1.05, 1.05)
+ax.set_xlabel("correlacion de Spearman sobre cambios")
+ax.set_title("Derivados frente a sus componentes (rojo = redundante)")
+ax.tick_params(axis="y", labelsize=7)
+
+plt.tight_layout()
+plt.show()
+```

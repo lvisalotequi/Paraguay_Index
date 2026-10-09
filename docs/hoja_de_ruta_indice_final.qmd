@@ -38,9 +38,9 @@ La documentación del repositorio, como `CLAUDE.md` y los comentarios de los mó
 
 ## Relación con la versión anterior
 
-`src/analysis_index/04_construccion_indice.qmd` es la versión anterior del índice, revisada y aprobada por el usuario. Es la plantilla de esta versión. Se replican su estructura, sus explicaciones de cada técnica, el diseño de sus tablas y figuras, y sus criterios de decisión. No se replican sus resultados. Todas las cifras, clasificaciones y conclusiones se vuelven a calcular con los datos actuales, porque el panel ahora tiene más series y los resultados pueden cambiar.
+`src/analysis_index/indice_version_1/04_construccion_indice.qmd` es la versión anterior del índice, revisada y aprobada por el usuario. Es la plantilla de esta versión. Se replican su estructura, sus explicaciones de cada técnica, el diseño de sus tablas y figuras, y sus criterios de decisión. No se replican sus resultados. Todas las cifras, clasificaciones y conclusiones se vuelven a calcular con los datos actuales, porque el panel ahora tiene más series y los resultados pueden cambiar.
 
-Las demás versiones de la carpeta (`04_analysis_index.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`) no son plantilla y no se usan.
+Las demás versiones de `src/analysis_index/indice_version_1/` (`04_analysis_index.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`) no son plantilla y no se usan.
 
 ### Cómo se usan las decisiones de la versión anterior
 
@@ -144,7 +144,7 @@ Los umbrales numéricos de este documento tienen siempre una justificación. Cua
 
 ### Un solo documento
 
-El análisis completo es un único documento Quarto, `src/analysis_index/04_indice_final.qmd`, que se renderiza a HTML y a Word en la misma carpeta. Los demás archivos de `src/analysis_index/` son versiones anteriores y quedan intactos, según la regla de oro 31.
+El análisis completo es un único documento Quarto, `src/analysis_index/04_indice_final.qmd`, que se renderiza a HTML y a Word en la misma carpeta. La versión de prueba está en `src/analysis_index/indice_version_1/` y queda intacta, según la regla de oro 31. Si el documento nuevo usa su hoja de estilo, se copia `estilo_documento.css` a `src/analysis_index/`.
 
 ### Organización interna
 

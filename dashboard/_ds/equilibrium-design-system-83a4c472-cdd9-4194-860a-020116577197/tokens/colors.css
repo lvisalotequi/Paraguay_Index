@@ -1,0 +1,44 @@
+/* Equilibrium colour tokens — values sampled from Manual de Marca 2025 + official decks */
+:root{
+/* Core */
+--eq-navy:#030F50;        /* Azul Equilibrium — primary ink, logo, dark surfaces */
+--eq-navy-deep:#000031;   /* darker navy used in overlays/duotone shadows */
+--eq-paper:#F7FAF2;       /* warm off-white — default page/slide background */
+--eq-white:#FFFFFF;
+/* Secondary palette (Manual: Colores principales) */
+--eq-blue:#1A55A6;
+--eq-cyan:#14B1E7;
+--eq-teal:#7CCCBF;
+--eq-coral:#F7966B;
+--eq-yellow:#F4B21B;
+--eq-periwinkle:#788EC7;
+/* Tints observed in applications */
+--eq-peach:#F6C8AE;       /* coral tint — arcs over light grounds */
+/* Neutrals */
+--eq-gray-100:#EEEEEE;    /* bar tracks, table row fills */
+--eq-gray-300:#C9CBD1;
+--eq-gray-600:#595959;    /* body copy on paper */
+/* Semantic aliases */
+--bg-page:var(--eq-paper);
+--bg-inverse:var(--eq-navy);
+--surface-card:var(--eq-white);
+--surface-muted:var(--eq-gray-100);
+--fg-1:var(--eq-navy);           /* headings, key figures */
+--fg-2:var(--eq-gray-600);       /* body text */
+--fg-inverse:var(--eq-paper);
+--fg-accent:var(--eq-coral);
+--border-strong:var(--eq-navy);
+--border-subtle:var(--eq-gray-300);
+--accent-1:var(--eq-coral);
+--accent-2:var(--eq-teal);
+--accent-3:var(--eq-yellow);
+--focus-ring:var(--eq-cyan);
+/* Data-viz series order */
+--data-1:var(--eq-navy);
+--data-2:var(--eq-coral);
+--data-3:var(--eq-teal);
+--data-4:var(--eq-blue);
+--data-5:var(--eq-yellow);
+--data-6:var(--eq-periwinkle);
+--data-track:var(--eq-gray-100);
+}

@@ -1,0 +1,75 @@
+name: Publicar dashboard
+
+# Publica en GitHub Pages solo la version final del dashboard (dashboard/US-PY Engagement Index.dc.html como
+# index.html) con los archivos que necesita y los datos del indice. Las demas versiones de Claude Design y la
+# carpeta docs/ no se publican.
+# Los datos se leen del Google Sheet us_py_engagement_index con la cuenta de servicio (el Sheet sigue privado)
+# y se dejan en datos/ junto a la pagina. Corre todos los dias, al cambiar el dashboard y a mano desde Actions:
+# despues de actualizar el Sheet, correrlo a mano publica los datos nuevos en uno o dos minutos.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * *"  # todos los dias, 11:00 UTC (07:00 u 08:00 en Paraguay)
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/publicar_dashboard.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install gspread google-auth
+
+      - name: Armar el sitio
+        run: |
+          set -euo pipefail
+          mkdir _site
+          cp -r dashboard/support.js dashboard/_ds dashboard/assets _site/
+          cp "dashboard/US-PY Engagement Index.dc.html" _site/index.html
+
+      - name: Descargar los datos del Sheet
+        env:
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          # la credencial se escribe fuera de _site para que nunca se publique
+          printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json" python dashboard/exportar_datos.py _site/datos
+          rm -f "$RUNNER_TEMP/service-account.json"
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir el sitio
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Desplegar
+        id: despliegue
+        uses: actions/deploy-pages@v4

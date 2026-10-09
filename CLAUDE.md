@@ -40,7 +40,7 @@ ETAPA 03 · src/integration/03_integration.py   →  Drive: 03_integracion/   (p
               │                                        │      480 filas = 10 variables × 48 trimestres,
               │                                        │      un CSV largo + un CSV ancho)
               ▼                                        ▼
-ETAPA 04 · src/analysis_index/04_analysis_index.qmd  →  Drive: 04_final/   (CSV largo + CSV ancho +
+ETAPA 04 · src/analysis_index/indice_version_1/04_analysis_index.qmd  →  Drive: 04_final/   (CSV largo + CSV ancho +
                                                             un Google Sheet de 2 pestañas para el dashboard)
                                                             + el documento Quarto renderizado
 ```
@@ -283,7 +283,7 @@ con el cliente"**, y en concreto exige:
   2026-09-09, costó un rato descubrirlo). Para renderizar:
   ```powershell
   $env:QUARTO_PYTHON = "<repo>\.venv\Scripts\python.exe"
-  & "<Positron>\resources\app\quarto\bin\quarto.exe" render "src\analysis_index\04_analysis_index.qmd" --to html
+  & "<Positron>\resources\app\quarto\bin\quarto.exe" render "src\analysis_index\indice_version_1\04_analysis_index.qmd" --to html
   ```
   El puente jupyter de Quarto necesita `pyyaml`, `ipykernel`, `nbclient` y
   `nbformat` en el venv; sin `pyyaml` el render falla con
@@ -1073,7 +1073,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
     la 4 (gdelt articles/tone × py/us). **No se traen las variantes BOTH de
     GDELT a propósito**: BOTH = PY + US, incluirlas contaría los mismos
     artículos dos veces.
-- **`src/analysis_index/04_analysis_index.qmd` (2026-09-09).** Documento
+- **`src/analysis_index/indice_version_1/04_analysis_index.qmd` (2026-09-09).** Documento
   Quarto (chunks `{python}`) que hace el diagnóstico de las series y
   construye el índice. Reescrito por completo el 2026-09-09 a pedido del
   usuario, que rechazó el primer borrador por dar por sabido demasiado; el
@@ -1162,7 +1162,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   appropriations" —, así que el deflactor de 2025-Q4 se calcula con dos
   meses. Trasladar esa descarga a `src/ingestion/` es un pendiente.
 
-- **`src/analysis_index/04_construccion_indice.qmd` — reconstrucción del
+- **`src/analysis_index/indice_version_1/04_construccion_indice.qmd` — reconstrucción del
   índice desde cero (2026-09-10 en adelante, en curso).** El usuario invalidó
   `04_analysis_index.qmd` como decisión: sus elecciones metodológicas se
   tomaron sin evaluar sistemáticamente las alternativas. El documento nuevo
@@ -1180,7 +1180,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   referencia.
 
   > **Todo el contexto para retomar está en
-  > [`src/analysis_index/ESTADO_CONSTRUCCION_INDICE.md`](src/analysis_index/ESTADO_CONSTRUCCION_INDICE.md)**:
+  > [`src/analysis_index/indice_version_1/ESTADO_CONSTRUCCION_INDICE.md`](src/analysis_index/indice_version_1/ESTADO_CONSTRUCCION_INDICE.md)**:
   > convenciones obligatorias de estructura y redacción, las 31 decisiones, lo
   > que quedó abierto, los hallazgos que no conviene perder y cómo renderizar.
   > Leerlo antes de tocar el `.qmd`.

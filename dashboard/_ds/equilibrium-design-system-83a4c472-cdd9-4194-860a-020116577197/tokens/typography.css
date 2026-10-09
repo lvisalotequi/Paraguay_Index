@@ -1,0 +1,11 @@
+:root{
+--font-sans:"Geologica",system-ui,sans-serif;
+--font-display:var(--font-sans);
+--fw-light:300;/* @kind font */--fw-regular:400;/* @kind font */--fw-medium:500;/* @kind font */--fw-semibold:600;/* @kind font */--fw-bold:700;/* @kind font */--fw-extrabold:800;/* @kind font */
+/* Digital scale (px) */
+--fs-display:72px;--fs-h1:52px;--fs-h2:38px;--fs-h3:28px;--fs-h4:22px;--fs-lead:20px;--fs-body:17px;--fs-small:14px;--fs-micro:12px;
+/* Slide scale @1920x1080 */
+--fs-slide-hero:128px;--fs-slide-title:64px;--fs-slide-subtitle:48px;--fs-slide-figure:56px;--fs-slide-body:30px;--fs-slide-caption:24px;
+--lh-tight:1.05;/* @kind font */--lh-snug:1.2;/* @kind font */--lh-body:1.5;/* @kind font */
+--ls-caps:0.04em;/* @kind font */--ls-kicker:0.12em;/* @kind font */
+}

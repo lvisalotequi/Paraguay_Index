@@ -1,0 +1,27 @@
+/* Shape, line and texture tokens */
+:root{
+/* Corners: square by default. Rounding is an ACCENT applied to one corner or one element. */
+--radius-0:0;
+--radius-accent-sm:16px;
+--radius-accent:32px;
+--radius-accent-lg:64px;
+--radius-pill:999px;
+--border-1:1px;/* @kind spacing */
+--border-2:2px;/* @kind spacing */
+--rule-dotted:2px dotted var(--eq-navy);/* @kind other */
+--shadow-none:none;
+--shadow-1:0 1px 2px rgba(3,15,80,.08),0 4px 16px rgba(3,15,80,.06);
+--ease-out:cubic-bezier(.2,.7,.2,1);/* @kind other */
+--dur-fast:120ms;/* @kind other */
+--dur-base:220ms;/* @kind other */
+/* Grain + halftone textures (overlay on photos and gradients) */
+--tex-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");/* @kind other */
+--tex-halftone:radial-gradient(rgba(3,15,80,.28) 1px,transparent 1.4px);/* @kind other */
+--tex-halftone-size:5px 5px;/* @kind other */
+/* Brand gradients (built only from palette colours) */
+--grad-navy:linear-gradient(135deg,#030F50 0%,#1A55A6 100%);/* @kind color */
+--grad-navy-deep:linear-gradient(180deg,#000031 0%,#030F50 60%,#1A55A6 140%);/* @kind color */
+--grad-coral:linear-gradient(135deg,#F7966B 0%,#F6C8AE 100%);/* @kind color */
+--grad-teal:linear-gradient(135deg,#1A55A6 0%,#7CCCBF 100%);/* @kind color */
+--grad-sunset:linear-gradient(135deg,#030F50 0%,#788EC7 55%,#F7966B 100%);/* @kind color */
+}

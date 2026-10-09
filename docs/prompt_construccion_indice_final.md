@@ -42,9 +42,9 @@ Esta es la versión final del índice. Replica el proceso de la versión anterio
 - **Panel integrado.** `src/integration/03_integration.py` reúne las variables limpias en un panel trimestral cuadrado y lo publica en `03_integracion/panel_trimestral_largo.csv`. El análisis lee de ese panel.
 - **Diccionario de variables.** `docs/diccionario_variables.xlsx` tiene dos hojas. La hoja `Matriz` vincula cada dimensión con sus indicadores y sus definiciones conceptual y operacional. La hoja `Diccionario` lista cada variable con su definición operativa, su cobertura y la columna `En índice`.
 - **Insumos auxiliares.** El IPC de Estados Unidos (`ipc_eeuu`) y la población de Paraguay (`poblacion_paraguay`) están en `02_limpias/insumos_indice_limpias`, y el script de integración los incluye en el panel con la dimensión `insumos`. Todos los datos se leen desde Drive. Ningún dato se descarga de una API durante el análisis.
-- **Versiones anteriores.** `src/analysis_index/` contiene `04_analysis_index.qmd`, `04_construccion_indice.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`, `_indice.py` y `ESTADO_CONSTRUCCION_INDICE.md`.
+- **Versiones anteriores.** La versión de prueba del índice está en `src/analysis_index/indice_version_1/`, que contiene `04_analysis_index.qmd`, `04_construccion_indice.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`, `_indice.py`, `estilo_documento.css` y `ESTADO_CONSTRUCCION_INDICE.md`. Es de solo lectura.
 
-`src/analysis_index/04_construccion_indice.qmd` es la versión anterior del índice, revisada y aprobada por el usuario. Es la plantilla de esta versión. Se replican su estructura, sus explicaciones de cada técnica, el diseño de sus tablas y figuras, y sus criterios de decisión. No se replican sus resultados. Todas las cifras, clasificaciones y conclusiones se vuelven a calcular con los datos actuales, porque el panel ahora tiene más series y los resultados pueden cambiar.
+`src/analysis_index/indice_version_1/04_construccion_indice.qmd` es la versión anterior del índice, revisada y aprobada por el usuario. Es la plantilla de esta versión. Se replican su estructura, sus explicaciones de cada técnica, el diseño de sus tablas y figuras, y sus criterios de decisión. No se replican sus resultados. Todas las cifras, clasificaciones y conclusiones se vuelven a calcular con los datos actuales, porque el panel ahora tiene más series y los resultados pueden cambiar.
 
 Las demás versiones de la carpeta (`04_analysis_index.qmd`, `05_informe_construccion_indice.qmd`, `06_analisis_interpretacion_indice.qmd`) no son plantilla y no se usan.
 
@@ -62,7 +62,7 @@ La documentación del repositorio, como `CLAUDE.md` y los comentarios de los mó
 
 Las candidatas son las variables que el diccionario marca con **Sí** en la columna `En índice`. Su lista, su indicador, su cobertura y su naturaleza se leen y se calculan en la Etapa 0 y en la Etapa 2, no se toman de ningún texto de instrucciones.
 
-El análisis completo se escribe en un único documento Quarto, `src/analysis_index/04_indice_final.qmd`. Los demás archivos de esa carpeta son versiones anteriores y no se modifican.
+El análisis completo se escribe en un único documento Quarto, `src/analysis_index/04_indice_final.qmd`. La carpeta `src/analysis_index/indice_version_1/` contiene la versión de prueba y no se modifica. Si el documento nuevo usa la hoja de estilo de la versión de prueba, se copia `estilo_documento.css` a `src/analysis_index/` y no se edita la original.
 
 ## 1.4 Reglas de oro
 
@@ -144,7 +144,7 @@ La hoja de ruta tiene que ser tan precisa que el ejecutor nunca necesite adivina
 
 ## Qué puedes hacer y qué no
 
-- **Puedes** leer todos los archivos de contexto. Primero `CLAUDE.md`, después `docs/diccionario_variables.xlsx`, las versiones anteriores de `src/analysis_index/` y el archivo `promt,.txt` de la raíz.
+- **Puedes** leer todos los archivos de contexto. Primero `CLAUDE.md`, después `docs/diccionario_variables.xlsx`, la versión de prueba de `src/analysis_index/indice_version_1/` y el archivo `promt,.txt` de la raíz.
 - **Puedes** correr inventarios de solo lectura sobre los datos, para que el plan se apoye en sus propiedades reales. Por ejemplo cobertura, grano, presencia de ceros o negativos y posición de los huecos.
 - **No puedes** elegir entre opciones metodológicas a partir de resultados calculados. Para eso existen los criterios de la hoja de ruta. Si un inventario revela un hecho que invalida una premisa, lo registras como hecho.
 - **No puedes** modificar ningún archivo salvo la hoja de ruta.
@@ -324,7 +324,7 @@ Eres el ejecutor. Implementas exactamente la sección de la hoja de ruta que cor
 
 ## Durante la ejecución
 
-- **Plantilla.** Para cada subpregunta lees primero su sección equivalente en `src/analysis_index/04_construccion_indice.qmd`. Replicas su estructura, sus explicaciones de cada técnica y el diseño de sus tablas y figuras. Vuelves a calcular toda la evidencia con los datos actuales y aplicas el criterio que la hoja de ruta marca como heredado. Si el resultado cambió respecto de la versión anterior, la conclusión del texto cambia con él.
+- **Plantilla.** Para cada subpregunta lees primero su sección equivalente en `src/analysis_index/indice_version_1/04_construccion_indice.qmd`. Replicas su estructura, sus explicaciones de cada técnica y el diseño de sus tablas y figuras. Vuelves a calcular toda la evidencia con los datos actuales y aplicas el criterio que la hoja de ruta marca como heredado. Si el resultado cambió respecto de la versión anterior, la conclusión del texto cambia con él.
 - **Parsimonia.** Ninguna serie entra al índice por estar en el panel. El objetivo es un índice útil e interpretable, con el menor número de series necesario para medir el marco. El análisis de los datos decide qué series entran y cuáles salen, con las pruebas de las subpreguntas 6.7, 6.8 y 9.5 de la hoja de ruta. Cada inclusión y cada exclusión cita el estadístico que la decide.
 - **Principio de datos.** Toda clasificación, cobertura, caso o cifra que escribes en el documento sale de un cálculo sobre los datos o de una lectura del diccionario. Si la hoja de ruta menciona un caso que los datos no muestran, o los datos muestran uno que la hoja de ruta no menciona, gana lo que muestran los datos y lo informas.
 - **Un solo documento.** Escribes la etapa asignada dentro de `src/analysis_index/04_indice_final.qmd`, a continuación de las etapas anteriores. No creas otros documentos de análisis.

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/colors.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/typography.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/effects.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/tokens/base.css">
+<link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/styles.css">
+<script src="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/_ds_bundle.js"></script>
+<style>body{margin:0;background:#F7FAF2} a{color:#030F50} a:hover{color:#1A55A6}</style>
+</helmet>
+<div style="font-family:var(--font-sans);color:var(--eq-navy);background:var(--eq-paper);min-height:100vh">
+
+<sc-if value="{{ isCover }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="00 Inicio" style="position:relative;min-height:100vh;background:var(--eq-navy);color:var(--eq-paper);overflow:hidden;display:flex;flex-direction:column">
+  <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Isotipo" size="600" color="var(--eq-coral)" style="position:absolute;right:-330px;top:-300px" hint-size="600px,600px"></x-import>
+  <div style="position:relative;width:100%;max-width:1200px;margin:0 auto;padding:48px 24px 0;box-sizing:border-box;flex:1;display:flex;flex-direction:column;gap:56px">
+    <img src="assets/logos/logo-tagline-blanco.svg" alt="Equilibrium" style="height:56px;width:auto;align-self:flex-start">
+    <div style="display:flex;flex-direction:column;gap:20px;max-width:min(800px,calc(100% - 320px));min-width:280px">
+      <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">ÍNDICE BILATERAL · {{ rangoUp }}</div>
+      <h1 style="margin:0;color:var(--eq-paper);font-size:clamp(44px,6.5vw,76px);line-height:1.02;font-weight:700">US-PY Engagement Index</h1>
+      <div style="font-size:28px;font-weight:500;color:var(--eq-coral)">Índice de Vínculo Estados Unidos–Paraguay</div>
+      <p style="margin:0;font-size:19px;line-height:1.5;max-width:620px;text-wrap:pretty">Un índice compuesto trimestral que resume en un solo número la intensidad del vínculo entre EE.UU. y Paraguay. Se construye con {{ nSeries }} series de fuentes oficiales y públicas, agrupadas en {{ nInds }} indicadores y 4 dimensiones.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="accent" size="lg" icon-right="arrow-right" on-click="{{ goCap1 }}" hint-size="260px,60px">Explorar el índice</x-import>
+        <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="inverse" size="lg" on-click="{{ goNota }}" hint-size="200px,60px">Nota técnica</x-import>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border-top:2px solid var(--eq-paper);margin-top:auto">
+      <div onClick="{{ goCap1 }}" style="padding:24px 24px 32px 0;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="opacity:.8">
+        <div style="font-size:36px;font-weight:700;color:var(--eq-coral)">01</div>
+        <div style="font-size:18px;font-weight:700">El índice</div>
+        <div style="font-size:15px;line-height:1.4">¿Cuán intenso es hoy el vínculo?</div>
+      </div>
+      <div onClick="{{ goCap2 }}" style="padding:24px 24px 32px 0;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="opacity:.8">
+        <div style="font-size:36px;font-weight:700;color:var(--eq-coral)">02</div>
+        <div style="font-size:18px;font-weight:700">Las dimensiones</div>
+        <div style="font-size:15px;line-height:1.4">¿Qué lo mueve?</div>
+      </div>
+      <div onClick="{{ goCap3 }}" style="padding:24px 24px 32px 0;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="opacity:.8">
+        <div style="font-size:36px;font-weight:700;color:var(--eq-coral)">03</div>
+        <div style="font-size:18px;font-weight:700">Las series</div>
+        <div style="font-size:15px;line-height:1.4">¿Qué datos concretos están detrás?</div>
+      </div>
+      <div onClick="{{ goNota }}" style="padding:24px 24px 32px 0;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="opacity:.8">
+        <div style="font-size:36px;font-weight:700;color:var(--eq-coral)">+</div>
+        <div style="font-size:18px;font-weight:700">Nota técnica</div>
+        <div style="font-size:15px;line-height:1.4">¿Cómo se construye y cómo se lee?</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;background:var(--eq-paper);color:var(--eq-navy);border-top-left-radius:64px;margin-left:24px">
+    <div style="max-width:1200px;margin:0 auto;padding:20px 24px;box-sizing:border-box;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:14px">
+      <span style="font-style:italic;color:var(--eq-gray-600)">Boceto · cifras agregadas reales; series individuales simuladas para el diseño</span>
+      <span style="font-weight:700">Equilibrium BDC · Octubre 2026</span>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ notCover }}">
+  <div id="stickyHead" style="position:sticky;top:0;z-index:20">
+    <header style="background:var(--eq-navy)">
+      <div style="max-width:1200px;margin:0 auto;height:72px;padding:0 24px;box-sizing:border-box;display:flex;align-items:center;gap:24px">
+        <img src="assets/logos/logo-principal-blanco.svg" alt="Equilibrium" onClick="{{ goCover }}" style="height:28px;width:auto;cursor:pointer;flex:none">
+        <nav style="margin-left:auto;display:flex;gap:32px;overflow-x:auto;white-space:nowrap">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3">
+            <a href="#" onClick="{{ n.go }}" style="color:var(--eq-paper);text-decoration:none;font-size:15px;font-weight:{{ n.fw }};padding-bottom:4px;border-bottom:2px solid {{ n.bd }}">{{ n.label }}</a>
+          </sc-for>
+        </nav>
+      </div>
+    </header>
+    <sc-if value="{{ isIndex }}">
+      <div style="background:var(--eq-white);box-shadow:inset 0 -1px 0 var(--eq-gray-300)">
+        <div style="max-width:1200px;margin:0 auto;padding:6px 24px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap;overflow-x:auto">
+          <div style="display:flex;gap:2px;flex-wrap:nowrap;white-space:nowrap">
+            <sc-for list="{{ chapters }}" as="c" hint-placeholder-count="3">
+              <a href="#" onClick="{{ c.go }}" style="display:flex;align-items:baseline;gap:8px;padding:10px 10px 8px;text-decoration:none;color:var(--eq-navy);font-size:14px;font-weight:{{ c.fw }};border-bottom:3px solid {{ c.bd }}"><b>{{ c.n }}</b>{{ c.label }}</a>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;white-space:nowrap">
+            <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ yearOptions }}" value="{{ yearStr }}" on-change="{{ onYear }}" style="width:96px" hint-size="96px,48px"></x-import>
+            <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ qOptions }}" value="{{ qStr }}" on-change="{{ onQ }}" style="width:150px" hint-size="150px,48px"></x-import>
+            <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ baseOptions }}" value="{{ base }}" on-change="{{ onBase }}" style="width:176px" hint-size="176px,48px"></x-import>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ isIndex }}">
+  <div>
+    <section id="cap1" data-screen-label="01 El índice" style="background:var(--eq-navy);color:var(--eq-paper)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+            <span style="font-size:44px;font-weight:700;color:var(--eq-coral);line-height:1">01</span>
+            <span style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">EL ÍNDICE · ¿CUÁN INTENSO ES EL VÍNCULO?</span>
+          </div>
+          <h1 style="margin:0;color:var(--eq-paper);font-size:36px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ idxHeadline }}</h1>
+          <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ idxSub }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+          <sc-for list="{{ idxCards }}" as="c" hint-placeholder-count="4">
+            <div style="background:rgba(247,250,242,.08);border-radius:20px;box-shadow:inset 0 0 0 1px rgba(247,250,242,.18);padding:22px 24px;display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:14px">{{ c.label }}</div>
+              <div style="font-size:36px;line-height:1.1;font-weight:700">{{ c.value }}</div>
+              <div style="font-size:13px;font-style:italic">{{ c.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">CÓMO LEER EL ÍNDICE</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+            <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:rgba(247,250,242,.05);box-shadow:inset 0 0 0 1px rgba(247,250,242,.14)">
+                <div style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700"><span style="width:26px;height:26px;border-radius:999px;background:var(--eq-coral);color:var(--eq-navy);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none">{{ r.n }}</span>{{ r.k }}</div>
+                <div style="font-size:14px;line-height:1.45">{{ r.t }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width:1200px;margin:0 auto;padding:28px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+          <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
+              <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ idxChartTitle }}</div>
+              <div style="font-size:13px;color:var(--eq-gray-600)">Índice agregado por trimestre y banda de incertidumbre del 90% · base {{ baseLabel }} = 100 · clic en un trimestre para analizarlo</div>
+              <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Serie temporal con banda + línea de referencia</span></sc-if>
+            </div>
+            <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:10px;border-radius:3px;background:rgba(3,15,80,.14)"></span>Banda 90%</div>
+              <sc-for list="{{ idxChart.paths }}" as="p" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:4px;border-radius:2px;background:{{ p.color }}"></span>{{ p.label }}</div>
+              </sc-for>
+              <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="{{ dimsBtnVariant }}" size="sm" on-click="{{ toggleDims }}" style="margin-left:auto" hint-size="230px,36px">{{ dimsBtnLabel }}</x-import>
+            </div>
+            <div style="position:relative" onMouseLeave="{{ clearHover }}">
+              <svg viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
+                <rect x="{{ idxChart.sel.x }}" y="16" width="{{ idxChart.sel.w }}" height="250" rx="6" style="fill:#FDEEE6"></rect>
+                <sc-for list="{{ idxChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
+                <path d="{{ idxChart.band }}" style="fill:rgba(3,15,80,.12);stroke:none"></path>
+                <line x1="44" x2="784" y1="{{ idxChart.refY }}" y2="{{ idxChart.refY }}" style="stroke:#030F50;stroke-width:1.5;stroke-dasharray:2 4"></line>
+                <sc-for list="{{ idxChart.paths }}" as="p"><path d="{{ p.d }}" style="fill:none;stroke:{{ p.color }};stroke-width:{{ p.w }};stroke-dasharray:{{ p.dash }};stroke-linejoin:round;stroke-linecap:round"></path></sc-for>
+                <circle cx="{{ idxChart.last.x }}" cy="{{ idxChart.last.y }}" r="6" style="fill:#FFFFFF;stroke:#030F50;stroke-width:2.5;stroke-dasharray:3 2"></circle>
+                <sc-for list="{{ idxChart.dots }}" as="p"><circle cx="{{ p.cx }}" cy="{{ p.cy }}" r="6" style="fill:{{ p.color }};stroke:#FFFFFF;stroke-width:3"></circle></sc-for>
+                <sc-for list="{{ idxChart.cols }}" as="c"><rect x="{{ c.x }}" y="0" width="{{ c.w }}" height="300" style="fill:transparent;cursor:pointer" onMouseEnter="{{ c.enter }}" onClick="{{ c.click }}"></rect></sc-for>
+              </svg>
+              <div style="position:absolute;inset:0;pointer-events:none;font-size:11px;color:#595959">
+                <sc-for list="{{ idxChart.yTicks }}" as="t"><span style="position:absolute;left:0;width:4.5%;text-align:right;top:{{ t.yp }}%;transform:translateY(-50%)">{{ t.label }}</span></sc-for>
+                <sc-for list="{{ idxChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:96.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
+                <span style="position:absolute;left:6.5%;top:{{ idxChart.refYp }}%;transform:translateY(-120%);font-style:italic;color:#030F50">100 = promedio {{ baseLabel }}</span>
+                <span style="position:absolute;right:0;top:{{ idxChart.last.yp }}%;transform:translate(0,-210%);font-style:italic;color:#030F50;background:#FFFFFF;padding:0 4px">Provisional</span>
+              </div>
+              <sc-if value="{{ idxChart.hasTip }}">
+                <div style="position:absolute;top:0;left:{{ idxChart.tip.left }}%;transform:{{ idxChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:180px">
+                  <div style="font-weight:700">{{ idxChart.tip.label }}</div>
+                  <sc-for list="{{ idxChart.tip.rows }}" as="r"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};box-shadow:0 0 0 1px #F7FAF2"></span><span style="flex:1">{{ r.label }}</span><b>{{ r.val }}</b></div></sc-for>
+                  <div style="font-size:12px;padding-top:6px;margin-top:2px;border-top:1px solid rgba(247,250,242,.25)">{{ idxChart.tip.band }}</div>
+                  <div style="font-size:12px;font-weight:700;color:var(--eq-coral)">{{ idxChart.tip.status }}</div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:10px">El último trimestre es provisional. Sin ajuste estacional.</div>
+          </div>
+
+          <div style="flex:1 1 320px;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px;display:flex;flex-direction:column">
+            <div style="padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:18px;display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+              <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ contribTitle }}</div>
+              <div style="font-size:13px;color:var(--eq-gray-600);line-height:1.4">Aporte de cada dimensión a la distancia del índice respecto de 100 en {{ periodLabel }}, en puntos. Cada dimensión pesa 25%.</div>
+              <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Barras horizontales</span></sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <sc-for list="{{ idxContrib }}" as="r" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 64px;align-items:center;gap:10px">
+                  <div style="font-size:13px;font-weight:700;line-height:1.2">{{ r.label }}</div>
+                  <div style="position:relative;height:26px;background:#F0F1F4;border-radius:999px;overflow:hidden">
+                    <div style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
+                    <div style="position:absolute;top:0;bottom:0;left:{{ r.zero }}%;width:2px;background:var(--eq-navy)"></div>
+                  </div>
+                  <div style="font-size:14px;font-weight:700;text-align:right">{{ r.vtxt }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding-top:18px;border-top:2px dotted var(--eq-gray-300);display:flex;justify-content:space-between;font-size:15px;margin-top:auto">
+              <span>Distancia total a 100</span><b>{{ distTxt }}</b>
+            </div>
+            <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:8px">Los aportes suman la distancia del índice a 100. Son puntos, no porcentajes.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="padding-bottom:10px;border-bottom:2px solid rgba(247,250,242,.35);display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+            <div style="font-size:22px;font-weight:700">{{ dimRowTitle }}</div>
+            <div style="font-size:14px">Valor de cada dimensión en {{ periodLabel }} · selecciona una para analizarla en el capítulo 02</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+            <sc-for list="{{ dimCards }}" as="d" hint-placeholder-count="4">
+              <div onClick="{{ d.open }}" style="background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:box-shadow 200ms ease-out, transform 200ms ease-out" style-hover="box-shadow:0 2px 4px rgba(3,15,80,.08),0 22px 48px rgba(3,15,80,.22);transform:translateY(-3px)">
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--eq-gray-600)">
+                  <span style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:4px;background:{{ d.color }}"></span>DIMENSIÓN {{ d.num }}</span>
+                  <span>PESO 25%</span>
+                </div>
+                <div style="font-size:17px;font-weight:700;line-height:1.25;min-height:42px">{{ d.name }}</div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:36px;font-weight:700;line-height:1">{{ d.value }}</span>
+                  <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tag" tone="{{ d.tone }}" size="sm" shape="pill" hint-size="110px,24px">{{ d.ctxt }}</x-import>
+                </div>
+                <svg viewBox="0 0 240 44" style="width:100%;height:auto;display:block;overflow:visible">
+                  <line x1="0" x2="240" y1="{{ d.ref }}" y2="{{ d.ref }}" style="stroke:#C9CBD1;stroke-width:1;stroke-dasharray:2 3"></line>
+                  <path d="{{ d.sd }}" style="fill:none;stroke:{{ d.color }};stroke-width:2.5;stroke-linejoin:round"></path>
+                  <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="4" style="fill:#030F50;stroke:#FFFFFF;stroke-width:1.5"></circle>
+                </svg>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding-top:10px;border-top:1px solid #E6E8EE">
+                  <span style="color:var(--eq-gray-600)">{{ d.ext }}</span><b>Analizar</b>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;font-style:italic">Línea punteada: 100 = promedio {{ baseLabel }}. Fuente: US-PY Engagement Index, elaboración propia.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(247,250,242,.08);box-shadow:inset 0 0 0 1px rgba(247,250,242,.18)">
+          <span style="font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral);padding-top:6px">EN SÍNTESIS</span>
+          <p style="margin:0;font-size:22px;line-height:1.4;font-weight:500;text-wrap:pretty">{{ take1 }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="cap2" data-screen-label="02 Las dimensiones" style="background:var(--eq-teal);color:var(--eq-navy)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px 0;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+            <span style="font-size:44px;font-weight:700;line-height:1">02</span>
+            <span style="font-size:14px;font-weight:700;letter-spacing:.14em">LAS DIMENSIONES · ¿QUÉ MUEVE EL ÍNDICE?</span>
+          </div>
+          <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ bridge2 }}</p>
+        </div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:16px">
+            <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ rank.title }}</div>
+            <div style="font-size:13px;color:var(--eq-gray-600)">Las {{ nSeries }} series ordenadas por su aporte a la distancia del índice respecto de 100 en {{ periodLabel }}, en puntos</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px 40px">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--eq-gray-600)">LAS QUE MÁS SUMAN</div>
+              <sc-for list="{{ rank.up }}" as="r" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 60px;gap:12px;align-items:center;font-size:14px">
+                  <span style="display:flex;align-items:center;gap:8px;line-height:1.3"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>{{ r.name }}</span>
+                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div style="height:100%;width:{{ r.w }}%;background:#030F50;border-radius:999px"></div></div>
+                  <b style="text-align:right">{{ r.vtxt }}</b>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--eq-gray-600)">LAS QUE MÁS RESTAN</div>
+              <sc-for list="{{ rank.down }}" as="r" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 60px;gap:12px;align-items:center;font-size:14px">
+                  <span style="display:flex;align-items:center;gap:8px;line-height:1.3"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>{{ r.name }}</span>
+                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div style="height:100%;width:{{ r.w }}%;background:#F7966B;border-radius:999px"></div></div>
+                  <b style="text-align:right">{{ r.vtxt }}</b>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tabs" tabs="{{ dimTabs }}" value="{{ dimTab }}" on-change="{{ setDimTab }}" style="flex-wrap:wrap" hint-size="100%,46px"></x-import>
+      </div>
+      <div style="max-width:1200px;margin:0 auto;padding:36px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:960px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.14em"><span style="width:12px;height:12px;border-radius:4px;background:{{ dim.color }};box-shadow:0 0 0 2px #FFFFFF"></span>DIMENSIÓN {{ dim.num }} · {{ periodUp }}</div>
+          <h2 style="margin:0;font-size:32px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ dim.headline }}</h2>
+          <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ dim.sub }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+          <sc-for list="{{ dim.cards }}" as="c" hint-placeholder-count="4">
+            <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:20px 22px;display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:14px;color:var(--eq-gray-600)">{{ c.label }}</div>
+              <div style="font-size:34px;line-height:1.1;font-weight:700">{{ c.value }}</div>
+              <div style="font-size:13px;font-style:italic;color:var(--eq-gray-600)">{{ c.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+          <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
+              <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ dim.chartTitle }}</div>
+              <div style="font-size:13px;color:var(--eq-gray-600)">Por trimestre · base {{ baseLabel }} = 100</div>
+              <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Serie temporal (2 métricas)</span></sc-if>
+            </div>
+            <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px">
+              <sc-for list="{{ dimChart.paths }}" as="p" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:4px;border-radius:2px;background:{{ p.color }}"></span>{{ p.label }}</div>
+              </sc-for>
+            </div>
+            <div style="position:relative" onMouseLeave="{{ clearHover }}">
+              <svg viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
+                <rect x="{{ dimChart.sel.x }}" y="16" width="{{ dimChart.sel.w }}" height="250" rx="6" style="fill:#FDEEE6"></rect>
+                <sc-for list="{{ dimChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
+                <line x1="44" x2="784" y1="{{ dimChart.refY }}" y2="{{ dimChart.refY }}" style="stroke:#030F50;stroke-width:1.5;stroke-dasharray:2 4"></line>
+                <sc-for list="{{ dimChart.paths }}" as="p"><path d="{{ p.d }}" style="fill:none;stroke:{{ p.color }};stroke-width:{{ p.w }};stroke-dasharray:{{ p.dash }};stroke-linejoin:round;stroke-linecap:round"></path></sc-for>
+                <sc-for list="{{ dimChart.dots }}" as="p"><circle cx="{{ p.cx }}" cy="{{ p.cy }}" r="6" style="fill:{{ p.color }};stroke:#FFFFFF;stroke-width:3"></circle></sc-for>
+                <sc-for list="{{ dimChart.cols }}" as="c"><rect x="{{ c.x }}" y="0" width="{{ c.w }}" height="300" style="fill:transparent;cursor:pointer" onMouseEnter="{{ c.enter }}" onClick="{{ c.click }}"></rect></sc-for>
+              </svg>
+              <div style="position:absolute;inset:0;pointer-events:none;font-size:11px;color:#595959">
+                <sc-for list="{{ dimChart.yTicks }}" as="t"><span style="position:absolute;left:0;width:4.5%;text-align:right;top:{{ t.yp }}%;transform:translateY(-50%)">{{ t.label }}</span></sc-for>
+                <sc-for list="{{ dimChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:96.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
+              </div>
+              <sc-if value="{{ dimChart.hasTip }}">
+                <div style="position:absolute;top:0;left:{{ dimChart.tip.left }}%;transform:{{ dimChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:170px">
+                  <div style="font-weight:700">{{ dimChart.tip.label }}</div>
+                  <sc-for list="{{ dimChart.tip.rows }}" as="r"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};box-shadow:0 0 0 1px #F7FAF2"></span><span style="flex:1">{{ r.label }}</span><b>{{ r.val }}</b></div></sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="flex:1 1 300px;min-width:0;background:var(--eq-navy);color:var(--eq-paper);padding:28px;border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.25);display:flex;flex-direction:column;gap:18px">
+            <div style="font-size:19px;font-weight:700;padding-bottom:12px;border-bottom:2px solid var(--eq-teal)">Lectura de la dimensión</div>
+            <sc-for list="{{ dim.bullets }}" as="b" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:16px;border-bottom:2px dotted rgba(247,250,242,.35)">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--eq-teal)">{{ b.k }}</div>
+                <div style="font-size:16px;line-height:1.45">{{ b.t }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE">
+            <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ dim.tableTitle }}</div>
+            <div style="font-size:13px;color:var(--eq-gray-600)">Indicadores y series de la dimensión en {{ periodLabel }} · aporte en puntos del índice · clic en una serie para explorarla en el capítulo 03</div>
+            <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Tabla con barras y minigráficos</span></sc-if>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:900px">
+              <div style="display:grid;grid-template-columns:minmax(260px,2.4fr) 170px 110px 150px minmax(180px,1.4fr);gap:14px;padding:12px 0;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--eq-gray-600);border-bottom:2px solid var(--eq-navy)">
+                <span>INDICADOR / SERIE</span><span style="text-align:right">VALOR ORIGINAL</span><span style="text-align:center">NORMALIZADA</span><span>TRAYECTORIA</span><span>APORTE AL ÍNDICE (PTS)</span>
+              </div>
+              <sc-for list="{{ dim.groups }}" as="g" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:14px;align-items:center;padding:14px 0 6px;font-size:14px;font-weight:700">
+                  <span><span style="color:var(--eq-gray-600);margin-right:8px">{{ g.code }}</span>{{ g.name }}</span>
+                  <span style="text-align:right">{{ g.vtxt }}</span>
+                </div>
+                <sc-for list="{{ g.rows }}" as="r">
+                  <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(260px,2.4fr) 170px 110px 150px minmax(180px,1.4fr);gap:14px;align-items:center;padding:10px 10px;margin:0 -10px;border-bottom:1px solid #EEF0F3;border-radius:10px;cursor:pointer;font-size:14px" style-hover="background:#F4F6FA">
+                    <span style="line-height:1.3;padding-left:14px">{{ r.name }}</span>
+                    <span style="text-align:right">{{ r.val }}</span>
+                    <span style="text-align:center;padding:6px 0;background:{{ r.bg }};border-radius:999px;font-weight:700">{{ r.z }}</span>
+                    <svg viewBox="0 0 140 30" style="width:140px;height:30px;display:block;overflow:visible">
+                      <path d="{{ r.sd }}" style="fill:none;stroke:#030F50;stroke-width:2;stroke-linejoin:round"></path>
+                      <circle cx="{{ r.cx }}" cy="{{ r.cy }}" r="3.5" style="fill:#F7966B"></circle>
+                    </svg>
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px;gap:8px;align-items:center">
+                      <div style="position:relative;height:14px;background:#F0F1F4;border-radius:999px;overflow:hidden">
+                        <div style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
+                        <div style="position:absolute;top:0;bottom:0;left:{{ r.zero }}%;width:2px;background:var(--eq-navy)"></div>
+                      </div>
+                      <span style="text-align:right;font-weight:700;font-size:13px">{{ r.vtxt }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:12px">{{ dim.note }}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(255,255,255,.45)">
+          <span style="font-size:13px;font-weight:700;letter-spacing:.14em;padding-top:6px">EN SÍNTESIS</span>
+          <p style="margin:0;font-size:22px;line-height:1.4;font-weight:500;text-wrap:pretty">{{ take2 }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="cap3" data-screen-label="03 Las series" style="background:var(--eq-periwinkle);color:var(--eq-navy)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px 0;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+            <span style="font-size:44px;font-weight:700;line-height:1">03</span>
+            <span style="font-size:14px;font-weight:700;letter-spacing:.14em">LAS SERIES · ¿QUÉ DATOS ESTÁN DETRÁS?</span>
+          </div>
+          <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ bridge3 }}</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:700">Serie</span>
+          <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ seriesOptions }}" value="{{ seriesId }}" on-change="{{ onSeries }}" style="flex:1 1 360px;max-width:600px" hint-size="600px,48px"></x-import>
+        </div>
+      </div>
+      <div style="max-width:1200px;margin:0 auto;padding:36px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:960px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.14em"><span style="width:12px;height:12px;border-radius:4px;background:{{ ser.color }};box-shadow:0 0 0 2px #FFFFFF"></span>{{ ser.kicker }}</div>
+          <h2 style="margin:0;font-size:32px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ ser.headline }}</h2>
+          <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ ser.sub }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+          <sc-for list="{{ ser.cards }}" as="c" hint-placeholder-count="4">
+            <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:20px 22px;display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:14px;color:var(--eq-gray-600)">{{ c.label }}</div>
+              <div style="font-size:34px;line-height:1.1;font-weight:700">{{ c.value }}</div>
+              <div style="font-size:13px;font-style:italic;color:var(--eq-gray-600)">{{ c.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+          <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
+              <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ ser.chartTitle }}</div>
+              <div style="font-size:13px;color:var(--eq-gray-600)">{{ ser.chartSub }}</div>
+              <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tabs" tabs="{{ viewTabs }}" value="{{ viewTab }}" on-change="{{ setView }}" style="flex-wrap:wrap" hint-size="100%,46px"></x-import>
+            </div>
+            <div style="position:relative">
+              <svg viewBox="0 0 800 280" style="width:100%;height:auto;display:block;overflow:visible">
+                <sc-for list="{{ sChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
+                <sc-for list="{{ sChart.bars }}" as="b"><rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="3" style="fill:{{ b.fill }};cursor:pointer" onClick="{{ b.click }}"></rect></sc-for>
+                <line x1="44" x2="784" y1="{{ sChart.baseY }}" y2="{{ sChart.baseY }}" style="stroke:#030F50;stroke-width:1.5"></line>
+              </svg>
+              <div style="position:absolute;inset:0;pointer-events:none;font-size:11px;color:#595959">
+                <sc-for list="{{ sChart.yTicks }}" as="t"><span style="position:absolute;left:0;width:4.5%;text-align:right;top:{{ t.yp }}%;transform:translateY(-50%)">{{ t.label }}</span></sc-for>
+                <sc-for list="{{ sChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:95.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
+              </div>
+            </div>
+            <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:12px">En coral, el período seleccionado. Fuente: {{ ser.src }}.</div>
+          </div>
+          <div style="flex:1 1 300px;min-width:0;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:19px;font-weight:700;padding-bottom:12px;border-bottom:1px solid #E6E8EE">Ficha de la serie</div>
+            <sc-for list="{{ ser.ficha }}" as="f" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:12px;border-bottom:2px dotted #E6E8EE">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--eq-gray-600)">{{ f.k }}</div>
+                <div style="font-size:14px;line-height:1.45">{{ f.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE">
+            <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ heatTitle }}</div>
+            <div style="font-size:13px;color:var(--eq-gray-600)">Promedio anual de cada serie normalizada, re-centrado en 100 = promedio {{ baseLabel }} · coral: por debajo · teal: por encima · clic en una fila para seleccionarla</div>
+            <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Tabla dinámica con mapa de calor</span></sc-if>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:920px">
+              <div style="display:grid;grid-template-columns:minmax(260px,2fr) repeat(11,minmax(48px,1fr));gap:3px;padding:10px 0 6px;font-size:12px;font-weight:700;color:var(--eq-gray-600)">
+                <span>SERIE</span>
+                <sc-for list="{{ yearHeads }}" as="y"><span style="text-align:center;color:{{ y.fill }}">{{ y.label }}</span></sc-for>
+              </div>
+              <sc-for list="{{ heat }}" as="g" hint-placeholder-count="4">
+                <div style="font-size:13px;font-weight:700;padding:14px 0 6px;border-bottom:2px solid var(--eq-navy);display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ g.color }}"></span>{{ g.name }}</div>
+                <sc-for list="{{ g.rows }}" as="r">
+                  <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(260px,2fr) repeat(11,minmax(48px,1fr));gap:3px;align-items:stretch;cursor:pointer;padding:2px 6px;margin:0 -6px;border-radius:8px;background:{{ r.bg }}" style-hover="background:#EEEEEE">
+                    <span style="font-size:13px;font-weight:{{ r.fw }};padding:6px 8px 6px 0;line-height:1.25">{{ r.name }}</span>
+                    <sc-for list="{{ r.cells }}" as="c"><span style="display:flex;align-items:center;justify-content:center;font-size:12px;background:{{ c.bg }};border-radius:6px;min-height:30px;font-weight:{{ c.fw }};box-shadow:{{ c.ring }}">{{ c.t }}</span></sc-for>
+                  </div>
+                </sc-for>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cap4" data-screen-label="04 Síntesis" style="position:relative;background:var(--eq-navy);color:var(--eq-paper);overflow:hidden">
+      <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Isotipo" size="460" color="var(--eq-coral)" style="position:absolute;right:-200px;bottom:-220px" hint-size="460px,460px"></x-import>
+      <div style="position:relative;max-width:1200px;margin:0 auto;padding:64px 24px 72px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:800px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">SÍNTESIS · {{ periodUp }}</div>
+          <h2 style="margin:0;color:var(--eq-paper);font-size:36px;line-height:1.2;font-weight:700">Lo que muestra el índice en {{ periodLabel }}</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;max-width:calc(100% - 140px);min-width:min(100%,280px)">
+          <sc-for list="{{ synthesis }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:2px solid var(--eq-paper)">
+              <div style="font-size:32px;font-weight:700;color:var(--eq-coral)">{{ s.n }}</div>
+              <div style="font-size:13px;font-weight:700;letter-spacing:.1em">{{ s.k }}</div>
+              <div style="font-size:17px;line-height:1.5">{{ s.t }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="accent" icon-right="arrow-right" on-click="{{ goNota }}" hint-size="250px,48px">Leer la nota técnica</x-import>
+          <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="inverse" on-click="{{ goCap1 }}" hint-size="180px,48px">Volver al inicio</x-import>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isNota }}">
+  <div data-screen-label="Nota técnica">
+    <div style="background:var(--eq-navy);color:var(--eq-paper)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">NOTA TÉCNICA</div>
+        <h1 style="margin:0;color:var(--eq-paper);font-size:40px;line-height:1.15;font-weight:700;max-width:860px">Cómo se construye y cómo se lee el US-PY Engagement Index</h1>
+        <p style="margin:0;font-size:18px;line-height:1.5;max-width:860px;text-wrap:pretty">Un índice compuesto trimestral ({{ rango }}, {{ nTrim }} trimestres) que resume en un solo número la intensidad del vínculo entre EE.UU. y Paraguay. Se construye con {{ nSeries }} series de fuentes oficiales y públicas, agrupadas en {{ nInds }} indicadores y 4 dimensiones.</p>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:12px;border-top:2px solid rgba(247,250,242,.35);padding-top:16px">
+          <sc-for list="{{ notaToc }}" as="t" hint-placeholder-count="5">
+            <a href="#" onClick="{{ t.go }}" style="color:var(--eq-paper);text-decoration:none;font-size:14px;padding:6px 14px 6px 0;display:flex;gap:8px"><b style="color:var(--eq-coral)">{{ t.n }}</b>{{ t.label }}</a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <section id="n1" style="max-width:1200px;margin:0 auto;padding:56px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700;color:var(--eq-coral)">01</span><span style="font-size:26px;font-weight:700">Qué es el índice</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Un valor mayor significa más vínculo: más fondos, más comercio e inversión, más actividad diplomática y más atención pública. Un valor menor significa menos vínculo.</div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Mide intensidad, no si la relación es buena o mala.</div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Base de presentación por defecto: 100 = promedio 2015-2019. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.</div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Cada valor del índice agregado tiene una banda de incertidumbre del 90%. Dos valores solo son distintos si sus bandas no se superponen. El último trimestre es provisional.</div>
+      </div>
+    </section>
+
+    <section id="n2" style="background:var(--eq-white);box-shadow:inset 0 1px 0 var(--eq-gray-300)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700;color:var(--eq-coral)">02</span><span style="font-size:26px;font-weight:700">Dimensiones e indicadores</span></div>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:var(--eq-gray-600);max-width:860px">Cada dimensión pesa 25% del índice. Dentro de cada dimensión todos los indicadores pesan lo mismo, y dentro de cada indicador todas las series pesan lo mismo.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:20px">
+          <sc-for list="{{ notaDims }}" as="d" hint-placeholder-count="4">
+            <div style="background:var(--eq-paper);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--eq-gray-600)"><span style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:4px;background:{{ d.color }}"></span>DIMENSIÓN {{ d.num }}</span><span>PESO 25% · {{ d.nI }} INDICADORES · {{ d.nS }} SERIES</span></div>
+              <div style="font-size:20px;font-weight:700;line-height:1.25">{{ d.name }}</div>
+              <div style="font-size:15px;line-height:1.5">{{ d.def }}</div>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ d.inds }}" as="i">
+                  <div style="display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;font-size:14px;line-height:1.45;padding:10px 0;border-bottom:2px dotted #C9CBD1"><b style="color:var(--eq-navy)">{{ i.code }}</b><span><b>{{ i.name }}:</b> {{ i.desc }} <i style="color:#595959">({{ i.src }})</i></span></div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ d.hasNote }}"><div style="font-size:13px;line-height:1.45;font-style:italic;color:var(--eq-gray-600)">{{ d.note }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section id="n3" style="background:var(--eq-teal)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700">03</span><span style="font-size:26px;font-weight:700">Cómo leer el índice</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">Comparar contra 100</div>
+            <div style="font-size:14px;line-height:1.5">100 es el promedio del período base elegido. Un valor sobre 100 indica un vínculo más intenso que en ese período; bajo 100, menos intenso.</div>
+            <div style="font-size:14px;line-height:1.45;background:var(--eq-paper);border-radius:12px;padding:10px 12px"><b>Ejemplo:</b> un valor de 106 significa 6 puntos sobre el promedio 2015-2019.</div>
+          </div>
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">Puntos, no porcentajes</div>
+            <div style="font-size:14px;line-height:1.5">Las diferencias y los aportes se expresan en puntos del índice. Los aportes de las cuatro dimensiones suman la distancia del índice respecto de 100.</div>
+            <div style="font-size:14px;line-height:1.45;background:var(--eq-paper);border-radius:12px;padding:10px 12px"><b>Ejemplo:</b> {{ ejemploAportes }}</div>
+          </div>
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">Bandas de incertidumbre</div>
+            <div style="font-size:14px;line-height:1.5">Cada trimestre tiene una banda del 90%. Si la banda incluye el 100, el valor está en rango normal. Dos valores solo son distintos si sus bandas no se superponen.</div>
+            <div style="font-size:14px;line-height:1.45;background:var(--eq-paper);border-radius:12px;padding:10px 12px"><b>Dato:</b> {{ notaDato }}</div>
+          </div>
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">Intensidad, no calidad</div>
+            <div style="font-size:14px;line-height:1.5">Subir significa más vínculo, no una mejor relación. El índice no evalúa si la relación es buena o mala.</div>
+          </div>
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">El último dato es provisional</div>
+            <div style="font-size:14px;line-height:1.5">El trimestre más reciente es provisional y puede revisarse cuando se completen las fuentes.</div>
+          </div>
+          <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:18px;font-weight:700">Elegir la base</div>
+            <div style="font-size:14px;line-height:1.5">Bases disponibles: 100 = 2015-2019 (por defecto), 100 = 2015 y 100 = 2019. Cambiar la base solo desplaza la serie y no cambia su forma.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="n4" style="max-width:1200px;margin:0 auto;padding:56px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700;color:var(--eq-coral)">04</span><span style="font-size:26px;font-weight:700">Metodología</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="7">
+          <div style="display:grid;grid-template-columns:64px minmax(0,1fr);gap:20px;align-items:start;padding:20px 24px;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 10px 28px rgba(3,15,80,.08)">
+            <span style="font-size:32px;font-weight:700;color:var(--eq-coral);line-height:1">{{ s.n }}</span>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font-size:17px;font-weight:700">{{ s.k }}</div><div style="font-size:15px;line-height:1.55;color:var(--eq-gray-600)">{{ s.t }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="n5" style="background:var(--eq-white);box-shadow:inset 0 1px 0 var(--eq-gray-300)">
+      <div style="max-width:1200px;margin:0 auto;padding:56px 24px 72px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700;color:var(--eq-coral)">05</span><span style="font-size:26px;font-weight:700">Fuentes de información</span></div>
+        <p style="margin:0;font-size:15px;line-height:1.5;color:var(--eq-gray-600);max-width:860px">Las {{ nSeries }} series que integran el índice, con su indicador, unidad y fuente. Todas se expresan por trimestre, de {{ rango }}; las de grano anual repiten su valor en los cuatro trimestres del año.</p>
+        <div style="overflow-x:auto">
+          <div style="min-width:900px;font-size:14px">
+            <div style="display:grid;grid-template-columns:40px minmax(240px,2fr) 70px 150px 150px minmax(220px,1.6fr);gap:14px;padding:10px 0;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--eq-gray-600);border-bottom:2px solid var(--eq-navy)"><span>N.º</span><span>SERIE</span><span>IND.</span><span>DIMENSIÓN</span><span>UNIDAD</span><span>FUENTE</span></div>
+            <sc-for list="{{ sourceRows }}" as="r" hint-placeholder-count="10">
+              <div style="display:grid;grid-template-columns:40px minmax(240px,2fr) 70px 150px 150px minmax(220px,1.6fr);gap:14px;padding:10px 0;border-bottom:1px solid #EEF0F3;align-items:center">
+                <span style="color:var(--eq-gray-600)">{{ r.n }}</span>
+                <b style="line-height:1.3">{{ r.name }}</b>
+                <span>{{ r.code }}</span>
+                <span style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>{{ r.dim }}</span>
+                <span>{{ r.unit }}</span>
+                <span style="line-height:1.35">{{ r.src }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600)">Datos: Google Sheet us_py_engagement_index (pestañas indice_ancho, indice_largo y diccionario).</div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showLooker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Dashboard&quot;}}">
+// ===== DATOS: pestanas indice_ancho y diccionario del Google Sheet us_py_engagement_index =====
+// El workflow publicar_dashboard.yml las descarga con la cuenta de servicio (dashboard/exportar_datos.py) y las
+// deja en datos/ junto a esta pagina, cada dia y cada vez que se lo corre a mano. El Sheet sigue privado.
+// Para probar con otros CSV: ?ancho=URL&diccionario=URL en la direccion de la pagina.
+const ARCHIVO={ancho:'datos/indice_ancho.csv',diccionario:'datos/diccionario.csv'};
+function urlDe(t){const p=new URLSearchParams(location.search).get(t);return p||ARCHIVO[t];}
+function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.length;i++){const c=txt[i];if(q){if(c==='"'){if(txt[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"')q=true;else if(c===','){row.push(f);f='';}else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}else if(c!=='\r')f+=c;}if(f!==''||row.length){row.push(f);rows.push(row);}const h=rows.shift().map(x=>x.trim());return rows.filter(r=>r.some(x=>x!=='')).map(r=>Object.fromEntries(h.map((k,j)=>[k,r[j]===undefined?'':r[j]])));}
+// la carga es sincronica a proposito: el resto del script necesita los datos antes de definir el componente
+function leerCSV(t){const x=new XMLHttpRequest();x.open('GET',urlDe(t),false);x.send();if(x.status!==200)throw new Error('No se pudo leer la pestana '+t+' (HTTP '+x.status+').');return parseCSV(x.responseText);}
+function mostrarError(m){const pintar=()=>{document.body.innerHTML='<div style="font-family:sans-serif;max-width:640px;margin:80px auto;padding:24px;color:#030F50"><h2>No se pudieron cargar los datos del índice</h2><p>'+m+'</p></div>';};if(document.body)setTimeout(pintar,0);else addEventListener('DOMContentLoaded',pintar);}
+const num=v=>{if(v===undefined||v===null)return NaN;const s=String(v).trim().replace(/,/g,'');return s===''?NaN:Number(s);};
+const fin=x=>typeof x==='number'&&isFinite(x);
+const mean=a=>{const f=a.filter(fin);return f.length?f.reduce((x,y)=>x+y,0)/f.length:NaN;};
+let FILAS,DICC;
+try{FILAS=leerCSV('ancho');DICC=leerCSV('diccionario');}
+catch(e){mostrarError(e.message);throw e;}
+const col=c=>{if(!(c in FILAS[0]))throw new Error('El Sheet no tiene la columna '+c+'.');return FILAS.map(r=>num(r[c]));};
+
+const Q=FILAS.map(r=>{const y=parseInt(r.trimestre.slice(0,4),10),q=parseInt(r.trimestre.slice(-1),10);return {y,q,label:r.trimestre};});
+const N=Q.length,YEARS=[...new Set(Q.map(x=>x.y))];
+const IDX=Object.fromEntries(Q.map((x,i)=>[x.label,i]));
+const QDE=y=>Q.map((x,i)=>x.y===y?i:-1).filter(i=>i>=0);
+
+// bases de presentacion: clave del selector -> sufijo de las columnas del Sheet
+const BASES={'1519':'base_2015_2019','2015':'base_2015','2019':'base_2019'};
+const BASEI={'1519':Q.map((x,i)=>x.y>=2015&&x.y<=2019?i:-1).filter(i=>i>=0),'2015':QDE(2015),'2019':QDE(2019)};
+const BASEL={'1519':'2015-2019','2015':'2015','2019':'2019'};
+const bmean=(a,b)=>mean(BASEI[b].map(i=>a[i]));
+const annual=a=>YEARS.map(y=>mean(QDE(y).map(i=>a[i])));
+
+// indice agregado y banda de 90% (bootstrap del conjunto de series, 9.3), ya en cada base
+let AGG_B,LO_B,HI_B;
+try{AGG_B={},LO_B={},HI_B={};for(const b in BASES){AGG_B[b]=col('indice_agregado_'+BASES[b]);LO_B[b]=col('banda_series_p05_'+BASES[b]);HI_B[b]=col('banda_series_p95_'+BASES[b]);}}
+catch(e){mostrarError(e.message+' Hay que correr construccion_indice.py para que el Sheet publique el indice y sus bandas.');throw e;}
+
+function fmt(v,d){if(!fin(v))return '—';if(d===undefined)d=1;const s=Math.abs(v).toFixed(d).split('.');s[0]=s[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');const out=s.join(',');return (v<0&&Math.abs(v)>=0.5*Math.pow(10,-d)?'−':'')+out;}
+function sgn(v,d){return (v>=0.5*Math.pow(10,-(d===undefined?1:d))?'+':'')+fmt(v,d);}
+const lc=s=>s.charAt(0).toLowerCase()+s.slice(1);
+
+// textos de cada dimension e indicador (el Sheet solo trae codigos)
+const DIM_META={
+ 1:{short:'Financiero oficial',name:'Compromiso financiero oficial',color:'#F7966B',
+  def:'Recursos financieros de origen público estadounidense comprometidos y desembolsados hacia Paraguay, por vía directa o indirecta. Capta el respaldo financiero que el Estado de EE.UU. decide destinar a Paraguay y excluye los flujos privados.'},
+ 2:{short:'Diplomático',name:'Actividad gubernamental y diplomática',color:'#7CCCBF',
+  def:'Intensidad y continuidad del vínculo político-institucional entre ambos gobiernos, a través de canales oficiales de diálogo, negociación y compromiso jurídico. Capta la relación Estado a Estado.',
+  note:'El indicador 2.1 (reuniones del Consejo de Comercio e Inversión) no entra al índice. Son eventos demasiado escasos para medirse por trimestre.'},
+ 3:{short:'Económico privado',name:'Compromiso económico privado',color:'#1A55A6',
+  def:'Profundidad del vínculo económico entre ambas sociedades a través de decisiones de actores privados (empresas, inversionistas y personas), no de política pública.'},
+ 4:{short:'Mediático',name:'Visibilidad mediática y relevancia pública',color:'#788EC7',
+  def:'Qué tan presente está la relación en el espacio público digital y con qué tono se la cubre. Mide percepción y atención pública, no actividad institucional.'}};
+const IND_META={
+ '1.1':{name:'Asistencia oficial de EE.UU. a Paraguay',desc:'obligaciones y desembolsos de cooperación.'},
+ '1.2':{name:'Gasto federal ejecutado en Paraguay',desc:'obligaciones del gobierno federal con lugar de ejecución en Paraguay, sin la asistencia exterior.'},
+ '1.3':{name:'Financiamiento de la DFC',desc:'monto comprometido y proyectos vigentes de la agencia de financiamiento del desarrollo de EE.UU.'},
+ '1.4':{name:'Autorizaciones del EXIM Bank',desc:'operaciones aprobadas por el banco de crédito a la exportación de EE.UU. vinculadas a Paraguay.'},
+ '1.5':{name:'Préstamos multilaterales atribuibles a EE.UU.',desc:'proyectos aprobados del BID y del Banco Mundial, multiplicados por la cuota de capital de EE.UU. en cada banco.'},
+ '2.2':{name:'Contacto bilateral',desc:'noticias bilaterales y menciones de EE.UU. en la Cancillería paraguaya (aproxima las visitas de alto nivel).'},
+ '2.3':{name:'Atención del Congreso de EE.UU.',desc:'menciones de Paraguay en proyectos de ley y resoluciones.'},
+ '2.4':{name:'Tratados vigentes',desc:'número de tratados y acuerdos bilaterales en vigor según "Treaties in Force" del Departamento de Estado.'},
+ '3.1':{name:'Comercio bilateral',desc:'exportaciones de Paraguay a EE.UU. e importaciones desde EE.UU.'},
+ '3.2':{name:'Inversión extranjera directa de EE.UU. en Paraguay',desc:'según el BCP (flujo) y según el BEA de EE.UU. (posición).'},
+ '3.3':{name:'Remesas desde EE.UU.',desc:'remesas recibidas en Paraguay desde EE.UU.'},
+ '3.4':{name:'Turismo',desc:'turistas de EE.UU. que ingresan a Paraguay.'},
+ '4.1':{name:'Cobertura de noticias bilaterales',desc:'artículos que mencionan a ambos países en temas institucionales, en medios paraguayos y en medios de EE.UU.'},
+ '4.2':{name:'Tono de esa cobertura',desc:'promedio positivo o negativo, en medios paraguayos y en medios de EE.UU.'},
+ '4.3':{name:'Interés de búsqueda',desc:'búsquedas en Google desde EE.UU. sobre "Paraguay embassy".'}};
+// nombre legible, fuente y unidad de cada columna del Sheet
+const SERIE_META={
+ fa_gov_obligaciones:{name:'Asistencia oficial de EE.UU.: obligaciones',src:'ForeignAssistance.gov'},
+ fa_gov_desembolsos:{name:'Asistencia oficial de EE.UU.: desembolsos',src:'ForeignAssistance.gov'},
+ usaspending_obligaciones:{name:'Gasto federal ejecutado en Paraguay',src:'USAspending'},
+ dfc_comprometido:{name:'DFC: monto comprometido',src:'DFC'},
+ dfc_proyectos_vigentes:{name:'DFC: proyectos vigentes',src:'DFC',unit:'proyectos'},
+ exim_autorizado:{name:'EXIM Bank: operaciones autorizadas',src:'EXIM Bank'},
+ bid_proyectos_atribuible_eeuu:{name:'Préstamos del BID atribuibles a EE.UU.',src:'BID'},
+ bancomundial_proyectos_atribuible_eeuu:{name:'Proyectos del Banco Mundial atribuibles a EE.UU.',src:'Banco Mundial'},
+ congreso_menciones_totales_paraguay:{name:'Menciones de Paraguay en el Congreso de EE.UU.',src:'GovInfo; Congress.gov',unit:'menciones'},
+ state_gov_tif_vigentes:{name:'Tratados y acuerdos bilaterales en vigor',src:'Departamento de Estado de EE.UU.',unit:'acuerdos'},
+ mre_noticias_bilaterales:{name:'Noticias bilaterales de la Cancillería',src:'Cancillería del Paraguay',unit:'noticias'},
+ mre_menciones_totales_eeuu:{name:'Menciones de EE.UU. en la Cancillería',src:'Cancillería del Paraguay',unit:'menciones'},
+ exportaciones:{name:'Exportaciones de Paraguay a EE.UU.',src:'BCP'},
+ importaciones:{name:'Importaciones desde EE.UU.',src:'BCP'},
+ remesas:{name:'Remesas desde EE.UU.',src:'BCP'},
+ inversion_directa_bcp:{name:'IED de EE.UU. en Paraguay (BCP, flujo)',src:'BCP'},
+ bea_inversion_directa:{name:'IED de EE.UU. en Paraguay (BEA, posición)',src:'BEA'},
+ turismo_receptivo_eeuu:{name:'Turistas de EE.UU. que ingresan a Paraguay',src:'INE',unit:'turistas'},
+ gdelt_proxy_articles_py:{name:'Cobertura bilateral en medios paraguayos',src:'GDELT',unit:'artículos'},
+ gdelt_proxy_articles_us:{name:'Cobertura bilateral en medios de EE.UU.',src:'GDELT',unit:'artículos'},
+ gdelt_tone_promedio_py:{name:'Tono de la cobertura en medios paraguayos',src:'GDELT',unit:'tono GDELT',kind:'lin',dec:2},
+ gdelt_tone_promedio_us:{name:'Tono de la cobertura en medios de EE.UU.',src:'GDELT',unit:'tono GDELT',kind:'lin',dec:2},
+ google_trends_paraguay_embassy:{name:'Búsquedas de "Paraguay embassy" desde EE.UU.',src:'Google Trends',unit:'índice 0-100',kind:'idx',dec:1}};
+const TRANSF={
+ USD:'Dólares corrientes de la fuente (aquí en millones). Para el índice se pasan a dólares constantes (IPC de EE.UU., 2015) por habitante de Paraguay, con logaritmo si la distribución es muy asimétrica, y se normalizan a media 100 y desvío 10.',
+ cantidad:'Conteo trimestral de la fuente. Para el índice se transforma según su distribución y se normaliza a media 100 y desvío 10.',
+ indice:'Promedio trimestral de la fuente. Para el índice se normaliza a media 100 y desvío 10.'};
+
+// dimensiones -> indicadores -> series, armado con las series originales del diccionario
+const DEF=[1,2,3,4].map(n=>Object.assign({num:n,inds:[],list:[]},DIM_META[n]));
+const ALL=[];
+DICC.filter(r=>r.tipo==='serie original').forEach(r=>{
+  const n=parseInt(r.dimension,10),D=DEF[n-1];if(!D)return;
+  const code=String(r.indicador).trim(),m=SERIE_META[r.columna]||{name:r.columna,src:''};
+  let I=D.inds.find(x=>x.code===code);
+  if(!I){I=Object.assign({code,series:[]},IND_META[code]||{name:'Indicador '+code,desc:''});D.inds.push(I);}
+  const usd=r.unidad==='USD',kind=m.kind||(usd?'exp':r.unidad==='cantidad'?'count':'idx');
+  const s={k:r.columna,name:m.name,src:m.src,def:r.descripcion,d:n-1,ind:I,kind,
+    unit:usd?'millones de US$':(m.unit||r.unidad),dec:m.dec!==undefined?m.dec:usd?1:0,
+    transf:TRANSF[r.unidad]||TRANSF.indice};
+  s.raw=col(s.k).map(x=>usd?x/1e6:x);
+  s.z=col(s.k+'_z');
+  // aporte de la serie al indice agregado; donde la serie no tiene dato no aporta (su peso pasa a las demas)
+  s.pond=col(s.k+'_pond').map(x=>fin(x)?x:0);
+  // peso efectivo en cada trimestre (cambia cuando faltan otras series del mismo grupo)
+  s.w=col(s.k+'_pond').map((x,i)=>fin(x)&&fin(s.z[i])&&s.z[i]!==0?x/s.z[i]:NaN);
+  const wf=s.w.filter(fin);s.wFijo=wf.length>0&&Math.max(...wf)-Math.min(...wf)<1e-9;
+  I.series.push(s);});
+DEF.forEach(D=>{D.inds.sort((a,c)=>a.code.localeCompare(c.code,undefined,{numeric:true}));
+  D.inds.forEach(I=>{I.src=[...new Set(I.series.map(s=>s.src))].join('; ');I.series.forEach(s=>{D.list.push(s);ALL.push(s);});});
+  D.DB={};for(const b in BASES)D.DB[b]=col('indice_dim_'+D.num+'_'+BASES[b]);});
+function smooth(pts){let d='M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2,t=0.16;d+=' C'+(p1[0]+(p2[0]-p0[0])*t).toFixed(1)+' '+(p1[1]+(p2[1]-p0[1])*t).toFixed(1)+' '+(p2[0]-(p3[0]-p1[0])*t).toFixed(1)+' '+(p2[1]-(p3[1]-p1[1])*t).toFixed(1)+' '+p2[0].toFixed(1)+' '+p2[1].toFixed(1);}return d;}
+function spark(vals,W,H,di,ref){const all=(ref===undefined?vals:vals.concat([ref])).filter(fin);if(!all.length)return {d:'',cx:-10,cy:-10,ref:-10};const lo=Math.min(...all),hi=Math.max(...all),rg=hi-lo||1;const X=i=>2+i*(W-4)/(vals.length-1),Y=v=>3+(hi-v)/rg*(H-6);const pts=vals.map((v,i)=>[X(i),v]).filter(p=>fin(p[1])).map(p=>[p[0],Y(p[1])]);return {d:pts.length?smooth(pts):'',cx:fin(vals[di])?X(di):-10,cy:fin(vals[di])?Y(vals[di]):-10,ref:ref===undefined?-10:Y(ref)};}
+function diverge(items){const neg=Math.max(0,...items.map(x=>-x.v)),pos=Math.max(0,...items.map(x=>x.v));const tot=(neg+pos)||1;const zero=neg/tot*100;return items.map(x=>Object.assign({},x,{zero,left:x.v>=0?zero:zero-(-x.v)/tot*100,width:Math.abs(x.v)/tot*100,vtxt:sgn(x.v,1)}));}
+function heat(v){if(!fin(v))return '#F2F2F2';if(v>=100){const p=Math.min(85,(v-100)/20*85);return 'color-mix(in oklch, #7CCCBF '+p.toFixed(0)+'%, #FFFFFF)';}const p=Math.min(85,(100-v)/20*85);return 'color-mix(in oklch, #F7966B '+p.toFixed(0)+'%, #FFFFFF)';}
+function niceStep(r){for(const s of [0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000])if(r/s<=6)return s;return 2000;}
+const CHAPS=[['01','El índice','cap1','#F7966B'],['02','Las dimensiones','cap2','#7CCCBF'],['03','Las series','cap3','#788EC7']];
+const NAV=[['Inicio','cover'],['US-PY Index','index'],['Nota técnica','nota']];
+const VIEWS=['Unidad original','Normalizada','Aporte al índice'];
+
+class Component extends DCLogic {
+  state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,showDims:false,active:'cap1'};
+  componentDidMount(){this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
+  componentWillUnmount(){window.removeEventListener('scroll',this._onScroll);}
+  headH(){const s=document.getElementById('stickyHead');return (s?s.getBoundingClientRect().height:72)+12;}
+  scrollToId(id){const el=document.getElementById(id);if(!el)return;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-this.headH(),behavior:'smooth'});}
+  go(p,extra,sec){this.setState(Object.assign({page:p,hover:null},extra||{}),()=>{if(sec)setTimeout(()=>this.scrollToId(sec),60);else window.scrollTo(0,0);});}
+  pick(i){this.setState({year:Q[i].y,q:Q[i].q});}
+  qChart(key,lines,band,sel){
+    const W=800,H=300,pl=44,pr=16,pt=16,pb=34;
+    let vals=lines.reduce((a,l)=>a.concat(l.vals),[100]);if(band)vals=vals.concat(band.lo,band.hi);
+    let step=niceStep(Math.max(...vals)-Math.min(...vals));const lo=Math.floor((Math.min(...vals)-0.5)/step)*step,hi=Math.ceil((Math.max(...vals)+0.5)/step)*step;
+    const X=i=>pl+i*(W-pl-pr)/(N-1),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb),cw=(W-pl-pr)/(N-1);
+    const yTicks=[];for(let v=lo;v<=hi+1e-9;v+=step)yTicks.push({y:Y(v),yp:Y(v)/H*100,label:fmt(v,0)});
+    const hv=this.state.hover&&this.state.hover.c===key?this.state.hover.i:null;const di=hv!==null?hv:sel[sel.length-1];
+    const tipLeft=X(di)/W*100;const sy=Q[sel[0]].y;
+    const st=band?(band.lo[di]>100+1e-6?'sobre':band.hi[di]<100-1e-6?'bajo':'normal'):null;
+    return {yTicks,refY:Y(100),refYp:Y(100)/H*100,
+      sel:{x:X(sel[0])-cw/2,w:X(sel[sel.length-1])-X(sel[0])+cw},
+      xTicks:YEARS.map(y=>({xp:X(QDE(y)[0]+(QDE(y).length-1)/2)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'})),
+      paths:lines.map(l=>({label:l.label,color:l.color,w:l.w,dash:l.dash||'none',d:smooth(l.vals.map((v,i)=>[X(i),Y(v)]))})),
+      band:band?'M'+band.hi.map((v,i)=>X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' L')+' L'+band.lo.map((v,i)=>[X(i),Y(v)]).reverse().map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')+' Z':'',
+      last:{x:X(N-1),y:Y(lines[0].vals[N-1]),yp:Y(lines[0].vals[N-1])/H*100},
+      dots:lines.map(l=>({cx:X(di),cy:Y(l.vals[di]),color:l.color})),
+      cols:Q.map((_,i)=>({x:X(i)-cw/2,w:cw,enter:()=>this.setState({hover:{c:key,i}}),click:()=>this.pick(i)})),
+      hasTip:hv!==null,
+      tip:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:Q[di].label+(di===N-1?' · provisional':''),rows:lines.map(l=>({label:l.label,color:l.color,val:fmt(l.vals[di])})),
+        band:band?`Banda 90%: ${fmt(band.lo[di])} a ${fmt(band.hi[di])}`:'',status:st==='sobre'?'Claramente sobre 100':st==='bajo'?'Claramente bajo 100':band?'Rango normal (la banda incluye el 100)':''}};
+  }
+  barChart(vals,baseline,sel,dec){
+    const W=800,H=280,pl=44,pr=16,pt=16,pb=34;
+    const vf=vals.filter(fin);const mn=Math.min(baseline,...vf),mx=Math.max(baseline,...vf);const step=niceStep((mx-mn)||1);
+    const lo=Math.floor(mn/step)*step,hi=Math.ceil(mx/step)*step;const H2=hi===lo?lo+step:hi;
+    const Y=v=>pt+(H2-v)/(H2-lo)*(H-pt-pb),slot=(W-pl-pr)/N,bw=slot*0.64,ss=new Set(sel);
+    const yTicks=[];for(let v=lo;v<=H2+1e-9;v+=step)yTicks.push({y:Y(v),yp:Y(v)/H*100,label:fmt(v,step<0.1?2:step<1?1:0)});
+    const sy=Q[sel[0]].y;
+    return {yTicks,baseY:Y(baseline),
+      bars:vals.map((v,i)=>{if(!fin(v))v=baseline;const y1=Y(Math.max(v,baseline)),y2=Y(Math.min(v,baseline));return {x:pl+i*slot+(slot-bw)/2,w:bw,y:y1,h:Math.max(1,y2-y1),fill:ss.has(i)?'#F7966B':'#030F50',click:()=>this.pick(i)};}),
+      xTicks:YEARS.map(y=>({xp:(pl+(QDE(y)[0]+QDE(y).length/2)*slot)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'}))};
+  }
+  renderVals(){
+    const st=this.state,b=st.base,showLooker=this.props.showLooker??true;
+    // periodo elegido: un trimestre o los trimestres disponibles del anio (el ultimo anio puede estar incompleto)
+    const yi=YEARS.indexOf(st.year),qSel=st.q&&IDX[st.year+'-Q'+st.q]!==undefined?st.q:0;
+    const sel=qSel?[IDX[st.year+'-Q'+qSel]]:QDE(st.year);
+    const pIdx=qSel?[IDX[(st.year-1)+'-Q'+qSel]].filter(i=>i!==undefined):QDE(st.year-1);
+    const psel=pIdx.length?pIdx:null;
+    const pv=(a,s)=>mean((s||sel).map(i=>a[i]));
+    const P=qSel?Q[sel[0]].label:String(st.year),Pprev=psel?(qSel?Q[psel[0]].label:String(st.year-1)):null;
+    const baseL=BASEL[b];const isLast=!!qSel&&sel[0]===N-1;
+    const A=AGG_B[b],ALo=LO_B[b],AHi=HI_B[b];
+    const statusB=i=>ALo[i]>100+1e-6?'sobre':AHi[i]<100-1e-6?'bajo':'normal';
+    const nS=Q.filter((_,i)=>statusB(i)==='sobre').length,nB=Q.filter((_,i)=>statusB(i)==='bajo').length,nN=N-nS-nB;
+    const v=pv(A),dist=v-100;
+    const DS=DEF.map(D=>D.DB[b]);
+    const contrib=DEF.map((D,k)=>({k,label:D.short,name:D.name,color:D.color,v:0.25*(pv(DS[k])-100)}));
+    const sorted=contrib.slice().sort((a,c)=>c.v-a.v),top=sorted[0],bot=sorted[3];
+    const selSt=sel.map(statusB),cS=selSt.filter(x=>x==='sobre').length,cB=selSt.filter(x=>x==='bajo').length;
+    const ptsTxt=x=>x>=0?`${fmt(x)} puntos sobre`:`${fmt(-x)} puntos bajo`;
+    const idxHeadline=qSel?`En ${P}, el índice se ubicó en ${fmt(v)}, ${ptsTxt(dist)} el promedio ${baseL}.`:`En ${P}, el índice promedió ${fmt(v)}, ${ptsTxt(dist)} el promedio ${baseL}.`;
+    const readQ=qSel?(selSt[0]==='normal'?`Su banda del 90% (${fmt(ALo[sel[0]])} a ${fmt(AHi[sel[0]])}) incluye el 100: el valor está en rango normal.`:selSt[0]==='sobre'?`Toda su banda del 90% (${fmt(ALo[sel[0]])} a ${fmt(AHi[sel[0]])}) queda sobre 100: el vínculo es claramente más intenso que en el período base.`:`Toda su banda del 90% queda bajo 100: el vínculo es claramente menos intenso que en el período base.`)+(isLast?' Es un dato provisional.':''):
+      (cS||cB?`${cS?cS+' de sus 4 trimestres quedan claramente sobre 100':''}${cS&&cB?' y ':''}${cB?cB+' claramente bajo 100':''}; el resto está en rango normal.`:'Sus 4 trimestres están en rango normal: las bandas incluyen el 100.');
+    const idxSub=`${readQ} ${top.name} es la dimensión que más suma (${sgn(top.v)} puntos)`+(bot.v<0?` y ${lc(bot.name)} la que más resta (${fmt(bot.v)}).`:`; ${lc(bot.name)}, la que menos aporta (${sgn(bot.v)}).`);
+    const prevV=psel?pv(A,psel):null;
+    const idxCards=[
+      {label:`Índice ${P}`,value:fmt(v),note:qSel?`banda 90%: ${fmt(ALo[sel[0]])} a ${fmt(AHi[sel[0]])}`:`promedio de 4 trimestres · base ${baseL}`},
+      {label:'Distancia a 100',value:sgn(dist)+' pts',note:'puntos, no porcentajes'},
+      {label:'Lectura según la banda',value:qSel?(selSt[0]==='normal'?'Rango normal':selSt[0]==='sobre'?'Sobre 100':'Bajo 100'):(cS?cS+' trim. sobre 100':cB?cB+' trim. bajo 100':'Rango normal'),note:qSel?'banda del 90% frente a 100':`${4-cS-cB} de 4 trimestres en rango normal`},
+      {label:Pprev?`Cambio frente a ${Pprev}`:'Cambio frente al año anterior',value:Pprev?sgn(v-prevV)+' pts':'—',note:Pprev?`${Pprev}: ${fmt(prevV)}`:'sin dato previo'}];
+    const rules=[{n:'1',k:'Compara contra 100',t:`100 es el promedio ${baseL}. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.`},{n:'2',k:'Mira las bandas',t:'Dos valores solo son distintos si sus bandas del 90% no se superponen.'},{n:'3',k:'Más vínculo, no mejor relación',t:'Subir indica más intensidad del vínculo; no indica si la relación es buena o mala.'},{n:'4',k:'El último dato es provisional',t:`${Q[N-1].label} es el último trimestre disponible y puede revisarse.`}];
+    const idxLines=[{label:'Índice agregado',vals:A,color:'#030F50',w:3.5}].concat(st.showDims?DEF.map((D,k)=>({label:D.short,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
+    const idxChartTitle=`En ${nN} de ${N} trimestres el índice está en rango normal; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo`;
+    const contribTitle=`${top.label} explica la mayor parte de la distancia a 100 en ${P}`;
+    const annA=annual(A);
+    const dimCards=DEF.map((D,k)=>{const dv=pv(DS[k]),ann=annual(DS[k]);const sp=spark(DS[k],240,44,sel[sel.length-1],100);
+      const valsCmp=qSel?DS[k]:ann,cur=qSel?DS[k][sel[0]]:ann[yi];const ext=Math.abs(cur-Math.max(...valsCmp))<1e-9?'Máximo del período':Math.abs(cur-Math.min(...valsCmp))<1e-9?'Mínimo del período':`${D.list.length} series · ${D.inds.length} indicadores`;
+      return {num:D.num,name:D.name,color:D.color,value:fmt(dv,0),ctxt:sgn(contrib[k].v)+' pts al índice',tone:contrib[k].v>=0?'teal':'coral',sd:sp.d,cx:sp.cx,cy:sp.cy,ref:sp.ref,ext,open:()=>{this.setState({dim:k,series:null});setTimeout(()=>this.scrollToId('cap2'),30);}};});
+    const hiD=DEF.map((D,k)=>({k,v:pv(DS[k])})).sort((a,c)=>c.v-a.v);
+    const dimRowTitle=`${DEF[hiD[0].k].short} es la dimensión más alta en ${P} (${fmt(hiD[0].v,0)}) y ${lc(DEF[hiD[3].k].short)} la más baja (${fmt(hiD[3].v,0)})`;
+    const take1=`El índice está ${ptsTxt(dist)} 100 en ${P}. ${top.name} aporta ${sgn(top.v)} puntos`+(bot.v<0?` y ${lc(bot.name)} resta ${fmt(-bot.v)}.`:'.')+` El capítulo 02 muestra qué indicadores y series explican esos aportes.`;
+
+    const sc=s=>pv(s.pond)-bmean(s.pond,b);
+    const rankAll=ALL.map(s=>({s,v:sc(s)})).sort((a,c)=>c.v-a.v);const maxAbs=Math.max(...rankAll.map(r=>Math.abs(r.v)))||1;
+    const mkR=r=>({name:r.s.name,color:DEF[r.s.d].color,w:Math.abs(r.v)/maxAbs*100,vtxt:sgn(r.v)});
+    const rTop=rankAll[0],rBot=rankAll[rankAll.length-1];
+    const rank={title:`${rTop.s.name} es la serie que más suma (${sgn(rTop.v)} pts)`+(rBot.v<0?`; ${lc(rBot.s.name)}, la que más resta (${fmt(rBot.v)})`:''),up:rankAll.slice(0,3).filter(r=>r.v>0).map(mkR),down:rankAll.slice(-3).reverse().filter(r=>r.v<0).map(mkR)};
+    const bridge2=`Cada dimensión pesa 25%. En ${P}, ${lc(top.name)} es la que más empuja el índice. Antes de entrar en cada dimensión, estas son las series que más suman y más restan.`;
+
+    const dk=st.dim===null?top.k:st.dim,D=DEF[dk],dsv=pv(DS[dk]),dann=annual(DS[dk]),dcur=qSel?DS[dk][sel[0]]:dann[yi],dcmp=qSel?DS[dk]:dann;
+    const dExt=Math.abs(dcur-Math.max(...dcmp))<1e-9?'su máximo del período':Math.abs(dcur-Math.min(...dcmp))<1e-9?'su mínimo del período':null;
+    const groups=D.inds.map(I=>{let rows=I.series.map(s=>{const c=sc(s),sp=spark(s.z,140,30,sel[sel.length-1]),zb=pv(s.z)-bmean(s.z,b)+100;return {v:c,id:s.id,name:s.name,color:c>=0?'#030F50':'#F7966B',val:fmt(pv(s.raw),s.dec)+' '+s.unit,z:fmt(zb,0),bg:heat(zb),sd:sp.d,cx:sp.cx,cy:sp.cy,up:psel?pv(s.raw)>pv(s.raw,psel):false,above:zb>=100,open:()=>{this.setState({series:s.k});setTimeout(()=>this.scrollToId('cap3'),30);}};});return {code:I.code,name:I.name,v:rows.reduce((a,r)=>a+r.v,0),rows};});
+    const allRows=diverge(groups.reduce((a,g)=>a.concat(g.rows),[]));let ri=0;groups.forEach(g=>{g.rows=g.rows.map(()=>allRows[ri++]);g.vtxt=sgn(g.v)+' pts';});
+    const gs=groups.slice().sort((a,c)=>c.v-a.v),flat=allRows.slice().sort((a,c)=>c.v-a.v);
+    const nAbove=allRows.filter(r=>r.above).length,nUp=allRows.filter(r=>r.up).length;
+    const dim={num:D.num,short:D.short,color:D.color,
+      headline:`${D.name}: ${fmt(dsv,0)} puntos en ${P}`+(dExt?`, ${dExt}.`:`, ${ptsTxt(dsv-100)} el promedio ${baseL}.`),
+      sub:`Aporta ${sgn(contrib[dk].v)} puntos a la distancia del índice respecto de 100. ${D.def}`,
+      cards:[{label:`Valor ${P}`,value:fmt(dsv,1),note:`base ${baseL} = 100`},{label:'Aporte al índice',value:sgn(contrib[dk].v)+' pts',note:'peso de la dimensión: 25%'},{label:Pprev?`Cambio frente a ${Pprev}`:'Cambio frente al año anterior',value:Pprev?sgn(dsv-pv(DS[dk],psel))+' pts':'—',note:Pprev?`${Pprev}: ${fmt(pv(DS[dk],psel))}`:'sin dato previo'},{label:'Indicadores · series',value:`${D.inds.length} · ${D.list.length}`,note:'pesos iguales en cada nivel'}],
+      chartTitle:`${D.short}: ${dsv>=v?'por encima del':'por debajo del'} índice agregado en ${P} (${fmt(dsv,0)} frente a ${fmt(v,0)})`,
+      bullets:[{k:'INDICADOR QUE MÁS SUMA',t:`${gs[0].code} ${gs[0].name} (${gs[0].vtxt}).`},gs[gs.length-1].v<0?{k:'INDICADOR QUE MÁS RESTA',t:`${gs[gs.length-1].code} ${gs[gs.length-1].name} (${gs[gs.length-1].vtxt}).`}:{k:'MENOR APORTE',t:`${gs[gs.length-1].code} ${gs[gs.length-1].name} (${gs[gs.length-1].vtxt}).`},{k:'NIVEL',t:`${nAbove} de ${allRows.length} series están sobre su promedio ${baseL}.`},{k:'DIRECCIÓN',t:Pprev?`${nUp} de ${allRows.length} series aumentaron en su unidad original frente a ${Pprev}.`:'Sin período previo para comparar.'}],
+      tableTitle:`${flat[0].name} es la serie con mayor aporte dentro de ${lc(D.short)} (${flat[0].vtxt} pts)`,
+      note:(D.note?D.note+' ':'')+'Normalizada: puntaje de media 100 y desvío 10, re-centrado en el período base. Coral: bajo 100 · teal: sobre 100.',groups};
+    const take2=`Dentro de ${lc(D.name)}, ${lc(flat[0].name)} es la serie que más aporta (${flat[0].vtxt} pts). En el capítulo 03 puedes verla en su unidad original, normalizada y ponderada.`;
+    const dimLines=[{label:D.short,vals:DS[dk],color:D.color,w:3.5},{label:'Índice agregado',vals:A,color:'#030F50',w:2,dash:'6 5'}];
+
+    const S=ALL.find(s=>s.k===st.series)||ALL.find(s=>s.k===D.list.slice().sort((a,c)=>sc(c)-sc(a))[0].k),SD=DEF[S.d];
+    const sraw=pv(S.raw),szb=pv(S.z)-bmean(S.z,b)+100,scv=sc(S);
+    const ponds=S.pond.map(x=>x-bmean(S.pond,b));const Swa=pv(S.w);const zbs=S.z.map(x=>x-bmean(S.z,b)+100);
+    const chg=Pprev?(S.kind==='lin'?sraw-pv(S.raw,psel):(sraw/pv(S.raw,psel)-1)*100):null;
+    const view=st.view;
+    const sChart=view===0?this.barChart(S.raw,S.kind==='lin'?Math.min(0,...S.raw):0,sel,S.dec):view===1?this.barChart(zbs,100,sel,0):this.barChart(ponds,0,sel,2);
+    const ser={color:SD.color,src:S.src,kicker:`${S.ind.code} · ${S.ind.name.toUpperCase()}`,
+      headline:`${S.name}: ${fin(sraw)?fmt(sraw,S.dec)+' '+S.unit:'sin dato'} en ${P}, con un aporte de ${sgn(scv)} puntos al índice.`,
+      sub:S.def,
+      cards:[{label:`Valor original ${P}`,value:fmt(sraw,S.dec),note:S.unit},{label:'Normalizada',value:fmt(szb,0),note:`100 = promedio ${baseL}`},{label:'Aporte al índice',value:sgn(scv,2)+' pts',note:'ponderada, re-centrada en la base'},{label:'Peso en el índice',value:fin(Swa)?fmt(Swa*100,1)+'%':'sin dato',note:S.wFijo?`25% × 1/${SD.inds.length} × 1/${S.ind.series.length}`:'peso efectivo del período: sube cuando faltan otras series de su dimensión'}],
+      chartTitle:view===0?(Pprev?(S.kind==='lin'?`En ${P} la serie ${chg>=0?'subió':'bajó'} ${fmt(Math.abs(chg),2)} puntos de tono frente a ${Pprev}`:`En ${P} la serie ${chg>=0?'aumentó':'disminuyó'} ${fmt(Math.abs(chg))}% frente a ${Pprev}`):`Valores observados de la serie`):view===1?`En ${P} la serie está ${ptsTxt(szb-100)} su promedio ${baseL}`:`En ${P} la serie ${scv>=0?'suma':'resta'} ${fmt(Math.abs(scv),2)} puntos al índice`,
+      chartSub:view===0?`${S.unit} por trimestre`:view===1?`Puntaje normalizado por trimestre · 100 = promedio ${baseL}`:'Aporte en puntos a la distancia del índice respecto de 100, por trimestre',
+      ficha:[{k:'DEFINICIÓN',v:S.def},{k:'FUENTE',v:S.src},{k:'UNIDAD',v:S.unit},{k:'TRANSFORMACIÓN',v:S.transf},{k:'INDICADOR · DIMENSIÓN',v:`${S.ind.code} ${S.ind.name} · ${SD.name}`},{k:'COLUMNAS EN LA HOJA',v:`${S.k} · ${S.k}_z · ${S.k}_pond`}]};
+    const bridge3=`Detrás de cada dimensión hay series concretas con unidades distintas. Aquí cada serie se ve en su unidad original, normalizada y como aporte en puntos al índice. La vista parte de la serie seleccionada en el capítulo 02.`;
+    const heatG=DEF.map(Dd=>({name:`${Dd.num} · ${Dd.name}`,color:Dd.color,rows:Dd.list.map(s=>{const za=annual(s.z.map(x=>x-bmean(s.z,b)+100));return {name:s.name,fw:s.k===S.k?700:400,bg:s.k===S.k?'#EEEEEE':'transparent',open:()=>this.setState({series:s.k}),cells:za.map((x,i)=>({t:fmt(x,0),bg:heat(x),fw:i===yi?700:400,ring:i===yi?'inset 0 0 0 2px #030F50':'none'}))};})}));
+    const aboveY=ALL.filter(s=>annual(s.z)[yi]-bmean(s.z,b)+100>=100).length;
+    const heatTitle=`En ${st.year}, ${aboveY} de las ${ALL.length} series están sobre su promedio ${baseL}`;
+
+    const yE=YEARS[YEARS.length-1],cE=DEF.map((D,k)=>({name:lc(D.name),v:0.25*(mean(QDE(yE).map(i=>DS[k][i]))-100)})).sort((a,c)=>c.v-a.v),dE=mean(QDE(yE).map(i=>A[i]))-100;
+    const ejemploAportes=`en ${yE} el índice está ${ptsTxt(dE)} 100 (base ${baseL}); la dimensión ${cE[0].name} aporta ${sgn(cE[0].v)}`+(cE[3].v<0?` y la dimensión ${cE[3].name} resta ${fmt(-cE[3].v)}.`:'.');
+    const synthesis=[
+      {n:'01',k:'EL ÍNDICE',t:`${qSel?'Se ubicó en':'Promedió'} ${fmt(v)} puntos, ${ptsTxt(dist)} el promedio ${baseL}. ${qSel?(selSt[0]==='normal'?'Su banda incluye el 100.':'Su banda no incluye el 100.'):(cS||cB?`${cS} trimestres claramente sobre 100 y ${cB} bajo 100.`:'Los 4 trimestres están en rango normal.')}`},
+      {n:'02',k:'LAS DIMENSIONES',t:`${top.name} suma ${sgn(top.v)} puntos`+(bot.v<0?`; ${lc(bot.name)} resta ${fmt(-bot.v)}.`:'.')},
+      {n:'03',k:'LAS SERIES',t:`${rTop.s.name} es la serie que más suma (${sgn(rTop.v)})`+(rBot.v<0?`; ${lc(rBot.s.name)}, la que más resta (${fmt(rBot.v)}).`:'.')}];
+
+    return {
+      showLooker,isCover:st.page==='cover',notCover:st.page!=='cover',isIndex:st.page==='index',isNota:st.page==='nota',
+      navItems:NAV.map(([l,p])=>({label:l,fw:p===st.page?700:400,bd:p===st.page?'#F7966B':'transparent',go:e=>{e.preventDefault();this.go(p);}})),
+      chapters:CHAPS.map(([n,l,id,c])=>({n,label:l,fw:st.active===id?700:400,bd:st.active===id?c:'transparent',go:e=>{e.preventDefault();this.scrollToId(id);}})),
+      goCover:()=>this.go('cover'),goCap1:()=>this.go('index',null,'cap1'),goCap2:()=>this.go('index',null,'cap2'),goCap3:()=>this.go('index',null,'cap3'),goNota:()=>this.go('nota'),
+      yearOptions:YEARS.slice().reverse().map(String),yearStr:String(st.year),onYear:e=>this.setState({year:+e.target.value}),
+      rango:`${Q[0].label} a ${Q[N-1].label}`,rangoUp:`${Q[0].label} A ${Q[N-1].label}`,nTrim:String(N),nSeries:String(ALL.length),nInds:String(DEF.reduce((a,D)=>a+D.inds.length,0)),ejemploAportes:ejemploAportes,
+      notaDato:`en ${nN} de ${N} trimestres la banda incluye el 100; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo (base ${baseL}).`,
+      qOptions:[{value:'0',label:'Año completo'}].concat(QDE(st.year).map(i=>({value:String(Q[i].q),label:'Q'+Q[i].q}))),qStr:String(qSel),onQ:e=>this.setState({q:+e.target.value}),
+      baseOptions:[{value:'1519',label:'Base 2015-2019'},{value:'2015',label:'Base 2015'},{value:'2019',label:'Base 2019'}],base:b,onBase:e=>this.setState({base:e.target.value}),
+      baseLabel:baseL,periodLabel:P,periodUp:P.toUpperCase(),distTxt:sgn(dist)+' pts',
+      idxHeadline,idxSub,idxCards,rules,idxChartTitle,contribTitle,idxContrib:diverge(sorted),dimCards,dimRowTitle,take1,
+      idxChart:this.qChart('idx',idxLines,{lo:ALo,hi:AHi},sel),clearHover:()=>this.setState({hover:null}),
+      toggleDims:()=>this.setState(s=>({showDims:!s.showDims})),dimsBtnLabel:st.showDims?'Ocultar dimensiones':'Comparar con las dimensiones',dimsBtnVariant:st.showDims?'primary':'secondary',
+      rank,bridge2,dimTabs:DEF.map(d=>d.short),dimTab:D.short,setDimTab:t=>this.setState({dim:DEF.findIndex(d=>d.short===t),series:null}),
+      dim,dimChart:this.qChart('dim',dimLines,null,sel),take2,
+      bridge3,seriesOptions:ALL.map(s=>({value:s.k,label:`${s.ind.code} · ${s.name}`})),seriesId:S.k,onSeries:e=>this.setState({series:e.target.value}),
+      viewTabs:VIEWS,viewTab:VIEWS[view],setView:t=>this.setState({view:VIEWS.indexOf(t)}),
+      ser,sChart,heat:heatG,heatTitle,yearHeads:YEARS.map(y=>({label:String(y),fill:y===st.year?'#030F50':'#595959'})),synthesis,
+      notaToc:[['01','Qué es el índice','n1'],['02','Dimensiones','n2'],['03','Cómo leerlo','n3'],['04','Metodología','n4'],['05','Fuentes','n5']].map(([n,l,id])=>({n,label:l,go:e=>{e.preventDefault();this.scrollToId(id);}})),
+      notaDims:DEF.map(Dd=>({num:Dd.num,name:Dd.name,color:Dd.color,def:Dd.def,nI:Dd.inds.length,nS:Dd.list.length,hasNote:!!Dd.note,note:Dd.note||'',inds:Dd.inds.map(I=>({code:I.code,name:I.name,desc:I.desc,src:I.src}))})),
+      steps:[
+        {n:'01',k:'Selección de series',t:'De las candidatas del diccionario entran las que tienen cobertura suficiente, no duplican a otra serie y tienen variación medible en el período de referencia. Quedan 23 series en 15 de los 16 indicadores del marco.'},
+        {n:'02',k:'Datos faltantes',t:'Se escribe cero solo donde la fuente lo declara como cero verdadero (por ejemplo, un trimestre sin proyectos aprobados). El resto queda vacío y no se inventan valores.'},
+        {n:'03',k:'Transformación',t:'Los montos se expresan en dólares constantes (IPC de EE.UU.) y por habitante de Paraguay. A las series muy asimétricas se les aplica logaritmo, para que un solo valor extremo no domine.'},
+        {n:'04',k:'Normalización',t:'Cada serie se lleva a un puntaje común (media 100 y desvío 10) con los parámetros de 2015-2024. Esos parámetros quedan congelados, de modo que los valores publicados no cambian al agregar datos nuevos.'},
+        {n:'05',k:'Ponderación y agregación',t:'Se usa un promedio aritmético por niveles, de serie a indicador, de indicador a dimensión y de dimensión al índice, con pesos iguales en cada nivel. Si una serie no tiene dato en un trimestre, su peso se reparte entre las demás de su grupo.'},
+        {n:'06',k:'Presentación',t:'Al final se desplaza el índice para que el promedio del período base elegido valga 100 (por defecto, 2015-2019). No se aplica ajuste estacional; se muestra el dato tal cual.'},
+        {n:'07',k:'Incertidumbre',t:'Un bootstrap de 5.000 réplicas da la banda del 90% de cada trimestre. Las pruebas de sensibilidad y robustez confirman que la trayectoria del índice se mantiene con cualquier combinación razonable de decisiones metodológicas.'}],
+      sourceRows:ALL.map((s,i)=>({n:i+1,name:s.name,code:s.ind.code,dim:DEF[s.d].short,color:DEF[s.d].color,unit:s.unit,src:s.src}))
+    };
+  }
+}
+</script>
+</body>
+</html>

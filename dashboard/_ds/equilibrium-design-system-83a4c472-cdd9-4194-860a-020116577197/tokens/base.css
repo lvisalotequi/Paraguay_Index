@@ -1,0 +1,16 @@
+/* Minimal base + utility classes */
+html,body{background:var(--bg-page);color:var(--fg-2);font-family:var(--font-sans);font-size:var(--fs-body);line-height:var(--lh-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{color:var(--fg-1);font-weight:var(--fw-bold);line-height:var(--lh-snug);margin:0;text-wrap:balance}
+p{margin:0;text-wrap:pretty}
+a{color:var(--eq-blue);text-decoration:underline;text-underline-offset:3px}
+a:hover{color:var(--eq-navy)}
+::selection{background:var(--eq-coral);color:var(--eq-navy)}
+.eq-kicker{font-size:var(--fs-small);font-weight:var(--fw-bold);letter-spacing:var(--ls-kicker);text-transform:uppercase;color:var(--eq-navy)}
+.eq-caps{text-transform:uppercase;letter-spacing:var(--ls-caps)}
+.eq-grain{position:relative;isolation:isolate}
+.eq-grain::after{content:"";position:absolute;inset:0;background-image:var(--tex-grain);mix-blend-mode:multiply;opacity:.35;pointer-events:none;z-index:1}
+.eq-halftone{position:relative;isolation:isolate}
+.eq-halftone::after{content:"";position:absolute;inset:0;background-image:var(--tex-halftone);background-size:var(--tex-halftone-size);mix-blend-mode:multiply;opacity:.6;pointer-events:none;z-index:1}
+.eq-duotone{filter:grayscale(1) contrast(1.05)}
+/* Isotipo motif — inline the official isotipo paths (assets/logos/isotipo-azul.svg) with fill="currentColor"; or use <Isotipo>. Change size/colour/position/crop only; never the geometry. */
+.eq-isotipo{display:block;aspect-ratio:1/1;height:auto;color:var(--eq-coral);overflow:visible;pointer-events:none}
