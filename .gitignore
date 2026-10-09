@@ -72,3 +72,6 @@ src/analysis_index/indice_final/referencia/**/salidas_anteriores/
 # los genera el workflow publicar_dashboard.yml y tampoco se versionan
 !dashboard/US-PY Engagement Index.dc.html
 dashboard/datos/
+
+# Reporte de Bandit (tarea ISO 27001 IAM-JUL-001): evidencia local, no se versiona
+bandit_report.txt
