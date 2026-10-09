@@ -18,15 +18,65 @@
 <link rel="stylesheet" href="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/styles.css">
 <script src="_ds/equilibrium-design-system-83a4c472-cdd9-4194-860a-020116577197/_ds_bundle.js"></script>
 <style>body{margin:0;background:#F7FAF2} a{color:#030F50} a:hover{color:#1A55A6}</style>
+<style>
+/* ===== Animaciones del dashboard =====
+   Solo actuan con html.eq-motion, que el script agrega si el sistema no pide "reducir movimiento".
+   Las entradas usan animation-fill-mode: backwards: al terminar, el elemento vuelve a sus estilos
+   propios (no bloquea los efectos de hover que ya trae el diseno). */
+@keyframes eq-fade{from{opacity:0}to{opacity:1}}
+@keyframes eq-fade-up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes eq-wipe{from{clip-path:inset(-20px 100% -20px -20px)}to{clip-path:inset(-20px -20px -20px -20px)}}
+@keyframes eq-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes eq-orbit{from{opacity:0;transform:rotate(-50deg) scale(.82)}to{opacity:1;transform:none}}
+@keyframes eq-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-12px) rotate(4deg)}}
+
+/* cambio de pagina */
+html.eq-motion [data-anim="page"]{animation:eq-fade .45s ease-out backwards}
+
+/* portada: isotipo y bloques escalonados */
+html.eq-motion [data-screen-label="00 Inicio"]>:first-child{animation:eq-orbit 1.4s cubic-bezier(.2,.7,.2,1) backwards,eq-float 10s ease-in-out 1.4s infinite}
+html.eq-motion [data-anim^="stagger"]>*{animation:eq-fade-up .8s cubic-bezier(.2,.7,.2,1) backwards}
+html.eq-motion [data-anim^="stagger"]>:nth-child(2){animation-delay:.08s}
+html.eq-motion [data-anim^="stagger"]>:nth-child(3){animation-delay:.16s}
+html.eq-motion [data-anim^="stagger"]>:nth-child(4){animation-delay:.24s}
+html.eq-motion [data-anim^="stagger"]>:nth-child(5){animation-delay:.32s}
+html.eq-motion [data-anim="stagger-late"]>:nth-child(1){animation-delay:.45s}
+html.eq-motion [data-anim="stagger-late"]>:nth-child(2){animation-delay:.53s}
+html.eq-motion [data-anim="stagger-late"]>:nth-child(3){animation-delay:.61s}
+html.eq-motion [data-anim="stagger-late"]>:nth-child(4){animation-delay:.69s}
+
+/* aparicion al hacer scroll y dibujo de graficos: los hace el script (activarApariciones) con Web Animations,
+   sin guardar estado en el DOM, porque el runtime reescribe clases y atributos en cada render */
+
+/* al cambiar anio, trimestre, base o serie, las formas se mueven hacia su nuevo valor */
+html.eq-motion svg[data-anim="chart"] rect,
+html.eq-motion svg[data-anim="chart"] circle,
+html.eq-motion svg[data-anim="spark"] circle{transition:x .5s cubic-bezier(.2,.7,.2,1),y .5s cubic-bezier(.2,.7,.2,1),width .5s cubic-bezier(.2,.7,.2,1),height .5s cubic-bezier(.2,.7,.2,1),cx .35s cubic-bezier(.2,.7,.2,1),cy .35s cubic-bezier(.2,.7,.2,1),fill .3s}
+html.eq-motion svg[data-anim="chart"] path,
+html.eq-motion svg[data-anim="spark"] path{transition:d .6s cubic-bezier(.2,.7,.2,1)}
+
+/* barras horizontales: crecen al aparecer y se deslizan al cambiar de periodo */
+html.eq-motion [data-anim^="bar"]{transition:left .6s cubic-bezier(.2,.7,.2,1),width .6s cubic-bezier(.2,.7,.2,1),background-color .3s}
+
+/* mapa de calor y puntajes: el color cambia con transicion */
+html.eq-motion [data-anim="cell"]{transition:background-color .45s ease-out,box-shadow .3s}
+
+/* tooltip */
+html.eq-motion [data-anim="tip"]{animation:eq-fade .18s ease-out backwards;transition:left .2s ease-out}
+
+/* navegacion */
+html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
+
+</style>
 </helmet>
 <div style="font-family:var(--font-sans);color:var(--eq-navy);background:var(--eq-paper);min-height:100vh">
 
 <sc-if value="{{ isCover }}" hint-placeholder-val="{{ true }}">
-<div data-screen-label="00 Inicio" style="position:relative;min-height:100vh;background:var(--eq-navy);color:var(--eq-paper);overflow:hidden;display:flex;flex-direction:column">
+<div data-screen-label="00 Inicio" data-anim="page" style="position:relative;min-height:100vh;background:var(--eq-navy);color:var(--eq-paper);overflow:hidden;display:flex;flex-direction:column">
   <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Isotipo" size="600" color="var(--eq-coral)" style="position:absolute;right:-330px;top:-300px" hint-size="600px,600px"></x-import>
   <div style="position:relative;width:100%;max-width:1200px;margin:0 auto;padding:48px 24px 0;box-sizing:border-box;flex:1;display:flex;flex-direction:column;gap:56px">
     <img src="assets/logos/logo-tagline-blanco.svg" alt="Equilibrium" style="height:56px;width:auto;align-self:flex-start">
-    <div style="display:flex;flex-direction:column;gap:20px;max-width:min(800px,calc(100% - 320px));min-width:280px">
+    <div data-anim="stagger" style="display:flex;flex-direction:column;gap:20px;max-width:min(800px,calc(100% - 320px));min-width:280px">
       <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">ÍNDICE BILATERAL · {{ rangoUp }}</div>
       <h1 style="margin:0;color:var(--eq-paper);font-size:clamp(44px,6.5vw,76px);line-height:1.02;font-weight:700">US-PY Engagement Index</h1>
       <div style="font-size:28px;font-weight:500;color:var(--eq-coral)">Índice de Vínculo Estados Unidos–Paraguay</div>
@@ -36,7 +86,7 @@
         <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="inverse" size="lg" on-click="{{ goNota }}" hint-size="200px,60px">Nota técnica</x-import>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border-top:2px solid var(--eq-paper);margin-top:auto">
+    <div data-anim="stagger-late" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border-top:2px solid var(--eq-paper);margin-top:auto">
       <div onClick="{{ goCap1 }}" style="padding:24px 24px 32px 0;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="opacity:.8">
         <div style="font-size:36px;font-weight:700;color:var(--eq-coral)">01</div>
         <div style="font-size:18px;font-weight:700">El índice</div>
@@ -61,7 +111,7 @@
   </div>
   <div style="position:relative;background:var(--eq-paper);color:var(--eq-navy);border-top-left-radius:64px;margin-left:24px">
     <div style="max-width:1200px;margin:0 auto;padding:20px 24px;box-sizing:border-box;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:14px">
-      <span style="font-style:italic;color:var(--eq-gray-600)">Boceto · cifras agregadas reales; series individuales simuladas para el diseño</span>
+      <span style="font-style:italic;color:var(--eq-gray-600)">Datos: {{ rango }} · Fuente: US-PY Engagement Index, elaboración propia</span>
       <span style="font-weight:700">Equilibrium BDC · Octubre 2026</span>
     </div>
   </div>
@@ -99,10 +149,10 @@
   </div>
 
   <sc-if value="{{ isIndex }}">
-  <div>
+  <div data-anim="page">
     <section id="cap1" data-screen-label="01 El índice" style="background:var(--eq-navy);color:var(--eq-paper)">
       <div style="max-width:1200px;margin:0 auto;padding:56px 24px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
-        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:14px;max-width:960px">
           <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
             <span style="font-size:44px;font-weight:700;color:var(--eq-coral);line-height:1">01</span>
             <span style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">EL ÍNDICE · ¿CUÁN INTENSO ES EL VÍNCULO?</span>
@@ -110,7 +160,7 @@
           <h1 style="margin:0;color:var(--eq-paper);font-size:36px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ idxHeadline }}</h1>
           <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ idxSub }}</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+        <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
           <sc-for list="{{ idxCards }}" as="c" hint-placeholder-count="4">
             <div style="background:rgba(247,250,242,.08);border-radius:20px;box-shadow:inset 0 0 0 1px rgba(247,250,242,.18);padding:22px 24px;display:flex;flex-direction:column;gap:6px">
               <div style="font-size:14px">{{ c.label }}</div>
@@ -121,7 +171,7 @@
         </div>
         <div style="display:flex;flex-direction:column;gap:12px">
           <div style="font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">CÓMO LEER EL ÍNDICE</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+          <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
             <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
               <div style="display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:rgba(247,250,242,.05);box-shadow:inset 0 0 0 1px rgba(247,250,242,.14)">
                 <div style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700"><span style="width:26px;height:26px;border-radius:999px;background:var(--eq-coral);color:var(--eq-navy);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none">{{ r.n }}</span>{{ r.k }}</div>
@@ -133,7 +183,7 @@
       </div>
 
       <div style="max-width:1200px;margin:0 auto;padding:28px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
-        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+        <div data-reveal="stagger" style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
           <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
               <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ idxChartTitle }}</div>
@@ -148,7 +198,7 @@
               <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="{{ dimsBtnVariant }}" size="sm" on-click="{{ toggleDims }}" style="margin-left:auto" hint-size="230px,36px">{{ dimsBtnLabel }}</x-import>
             </div>
             <div style="position:relative" onMouseLeave="{{ clearHover }}">
-              <svg viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
+              <svg data-anim="chart" viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
                 <rect x="{{ idxChart.sel.x }}" y="16" width="{{ idxChart.sel.w }}" height="250" rx="6" style="fill:#FDEEE6"></rect>
                 <sc-for list="{{ idxChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
                 <path d="{{ idxChart.band }}" style="fill:rgba(3,15,80,.12);stroke:none"></path>
@@ -165,7 +215,7 @@
                 <span style="position:absolute;right:0;top:{{ idxChart.last.yp }}%;transform:translate(0,-210%);font-style:italic;color:#030F50;background:#FFFFFF;padding:0 4px">Provisional</span>
               </div>
               <sc-if value="{{ idxChart.hasTip }}">
-                <div style="position:absolute;top:0;left:{{ idxChart.tip.left }}%;transform:{{ idxChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:180px">
+                <div data-anim="tip" style="position:absolute;top:0;left:{{ idxChart.tip.left }}%;transform:{{ idxChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:180px">
                   <div style="font-weight:700">{{ idxChart.tip.label }}</div>
                   <sc-for list="{{ idxChart.tip.rows }}" as="r"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};box-shadow:0 0 0 1px #F7FAF2"></span><span style="flex:1">{{ r.label }}</span><b>{{ r.val }}</b></div></sc-for>
                   <div style="font-size:12px;padding-top:6px;margin-top:2px;border-top:1px solid rgba(247,250,242,.25)">{{ idxChart.tip.band }}</div>
@@ -187,7 +237,7 @@
                 <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 64px;align-items:center;gap:10px">
                   <div style="font-size:13px;font-weight:700;line-height:1.2">{{ r.label }}</div>
                   <div style="position:relative;height:26px;background:#F0F1F4;border-radius:999px;overflow:hidden">
-                    <div style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
+                    <div data-anim="bar" style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
                     <div style="position:absolute;top:0;bottom:0;left:{{ r.zero }}%;width:2px;background:var(--eq-navy)"></div>
                   </div>
                   <div style="font-size:14px;font-weight:700;text-align:right">{{ r.vtxt }}</div>
@@ -206,7 +256,7 @@
             <div style="font-size:22px;font-weight:700">{{ dimRowTitle }}</div>
             <div style="font-size:14px">Valor de cada dimensión en {{ periodLabel }} · selecciona una para analizarla en el capítulo 02</div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+          <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
             <sc-for list="{{ dimCards }}" as="d" hint-placeholder-count="4">
               <div onClick="{{ d.open }}" style="background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:box-shadow 200ms ease-out, transform 200ms ease-out" style-hover="box-shadow:0 2px 4px rgba(3,15,80,.08),0 22px 48px rgba(3,15,80,.22);transform:translateY(-3px)">
                 <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--eq-gray-600)">
@@ -218,7 +268,7 @@
                   <span style="font-size:36px;font-weight:700;line-height:1">{{ d.value }}</span>
                   <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tag" tone="{{ d.tone }}" size="sm" shape="pill" hint-size="110px,24px">{{ d.ctxt }}</x-import>
                 </div>
-                <svg viewBox="0 0 240 44" style="width:100%;height:auto;display:block;overflow:visible">
+                <svg data-anim="spark" viewBox="0 0 240 44" style="width:100%;height:auto;display:block;overflow:visible">
                   <line x1="0" x2="240" y1="{{ d.ref }}" y2="{{ d.ref }}" style="stroke:#C9CBD1;stroke-width:1;stroke-dasharray:2 3"></line>
                   <path d="{{ d.sd }}" style="fill:none;stroke:{{ d.color }};stroke-width:2.5;stroke-linejoin:round"></path>
                   <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="4" style="fill:#030F50;stroke:#FFFFFF;stroke-width:1.5"></circle>
@@ -232,7 +282,7 @@
           <div style="font-size:12px;font-style:italic">Línea punteada: 100 = promedio {{ baseLabel }}. Fuente: US-PY Engagement Index, elaboración propia.</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(247,250,242,.08);box-shadow:inset 0 0 0 1px rgba(247,250,242,.18)">
+        <div data-reveal="block" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(247,250,242,.08);box-shadow:inset 0 0 0 1px rgba(247,250,242,.18)">
           <span style="font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral);padding-top:6px">EN SÍNTESIS</span>
           <p style="margin:0;font-size:22px;line-height:1.4;font-weight:500;text-wrap:pretty">{{ take1 }}</p>
         </div>
@@ -241,14 +291,14 @@
 
     <section id="cap2" data-screen-label="02 Las dimensiones" style="background:var(--eq-teal);color:var(--eq-navy)">
       <div style="max-width:1200px;margin:0 auto;padding:56px 24px 0;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
-        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:14px;max-width:960px">
           <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
             <span style="font-size:44px;font-weight:700;line-height:1">02</span>
             <span style="font-size:14px;font-weight:700;letter-spacing:.14em">LAS DIMENSIONES · ¿QUÉ MUEVE EL ÍNDICE?</span>
           </div>
           <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ bridge2 }}</p>
         </div>
-        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+        <div data-reveal="block" style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
           <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:16px">
             <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ rank.title }}</div>
             <div style="font-size:13px;color:var(--eq-gray-600)">Las {{ nSeries }} series ordenadas por su aporte a la distancia del índice respecto de 100 en {{ periodLabel }}, en puntos</div>
@@ -259,7 +309,7 @@
               <sc-for list="{{ rank.up }}" as="r" hint-placeholder-count="3">
                 <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 60px;gap:12px;align-items:center;font-size:14px">
                   <span style="display:flex;align-items:center;gap:8px;line-height:1.3"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>{{ r.name }}</span>
-                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div style="height:100%;width:{{ r.w }}%;background:#030F50;border-radius:999px"></div></div>
+                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div data-anim="bar-grow" style="height:100%;width:{{ r.w }}%;background:#030F50;border-radius:999px"></div></div>
                   <b style="text-align:right">{{ r.vtxt }}</b>
                 </div>
               </sc-for>
@@ -269,7 +319,7 @@
               <sc-for list="{{ rank.down }}" as="r" hint-placeholder-count="3">
                 <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 60px;gap:12px;align-items:center;font-size:14px">
                   <span style="display:flex;align-items:center;gap:8px;line-height:1.3"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};flex:none"></span>{{ r.name }}</span>
-                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div style="height:100%;width:{{ r.w }}%;background:#F7966B;border-radius:999px"></div></div>
+                  <div style="height:12px;background:#F0F1F4;border-radius:999px;overflow:hidden"><div data-anim="bar-grow" style="height:100%;width:{{ r.w }}%;background:#F7966B;border-radius:999px"></div></div>
                   <b style="text-align:right">{{ r.vtxt }}</b>
                 </div>
               </sc-for>
@@ -279,12 +329,12 @@
         <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tabs" tabs="{{ dimTabs }}" value="{{ dimTab }}" on-change="{{ setDimTab }}" style="flex-wrap:wrap" hint-size="100%,46px"></x-import>
       </div>
       <div style="max-width:1200px;margin:0 auto;padding:36px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:960px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:12px;max-width:960px">
           <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.14em"><span style="width:12px;height:12px;border-radius:4px;background:{{ dim.color }};box-shadow:0 0 0 2px #FFFFFF"></span>DIMENSIÓN {{ dim.num }} · {{ periodUp }}</div>
           <h2 style="margin:0;font-size:32px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ dim.headline }}</h2>
           <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ dim.sub }}</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+        <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
           <sc-for list="{{ dim.cards }}" as="c" hint-placeholder-count="4">
             <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:20px 22px;display:flex;flex-direction:column;gap:6px">
               <div style="font-size:14px;color:var(--eq-gray-600)">{{ c.label }}</div>
@@ -294,7 +344,7 @@
           </sc-for>
         </div>
 
-        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+        <div data-reveal="stagger" style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
           <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
               <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ dim.chartTitle }}</div>
@@ -307,7 +357,7 @@
               </sc-for>
             </div>
             <div style="position:relative" onMouseLeave="{{ clearHover }}">
-              <svg viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
+              <svg data-anim="chart" viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
                 <rect x="{{ dimChart.sel.x }}" y="16" width="{{ dimChart.sel.w }}" height="250" rx="6" style="fill:#FDEEE6"></rect>
                 <sc-for list="{{ dimChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
                 <line x1="44" x2="784" y1="{{ dimChart.refY }}" y2="{{ dimChart.refY }}" style="stroke:#030F50;stroke-width:1.5;stroke-dasharray:2 4"></line>
@@ -320,7 +370,7 @@
                 <sc-for list="{{ dimChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:96.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
               </div>
               <sc-if value="{{ dimChart.hasTip }}">
-                <div style="position:absolute;top:0;left:{{ dimChart.tip.left }}%;transform:{{ dimChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:170px">
+                <div data-anim="tip" style="position:absolute;top:0;left:{{ dimChart.tip.left }}%;transform:{{ dimChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:170px">
                   <div style="font-weight:700">{{ dimChart.tip.label }}</div>
                   <sc-for list="{{ dimChart.tip.rows }}" as="r"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};box-shadow:0 0 0 1px #F7FAF2"></span><span style="flex:1">{{ r.label }}</span><b>{{ r.val }}</b></div></sc-for>
                 </div>
@@ -338,7 +388,7 @@
           </div>
         </div>
 
-        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+        <div data-reveal="block" style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
           <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE">
             <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ dim.tableTitle }}</div>
             <div style="font-size:13px;color:var(--eq-gray-600)">Indicadores y series de la dimensión en {{ periodLabel }} · aporte en puntos del índice · clic en una serie para explorarla en el capítulo 03</div>
@@ -358,14 +408,14 @@
                   <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(260px,2.4fr) 170px 110px 150px minmax(180px,1.4fr);gap:14px;align-items:center;padding:10px 10px;margin:0 -10px;border-bottom:1px solid #EEF0F3;border-radius:10px;cursor:pointer;font-size:14px" style-hover="background:#F4F6FA">
                     <span style="line-height:1.3;padding-left:14px">{{ r.name }}</span>
                     <span style="text-align:right">{{ r.val }}</span>
-                    <span style="text-align:center;padding:6px 0;background:{{ r.bg }};border-radius:999px;font-weight:700">{{ r.z }}</span>
-                    <svg viewBox="0 0 140 30" style="width:140px;height:30px;display:block;overflow:visible">
+                    <span data-anim="cell" style="text-align:center;padding:6px 0;background:{{ r.bg }};border-radius:999px;font-weight:700">{{ r.z }}</span>
+                    <svg data-anim="spark" viewBox="0 0 140 30" style="width:140px;height:30px;display:block;overflow:visible">
                       <path d="{{ r.sd }}" style="fill:none;stroke:#030F50;stroke-width:2;stroke-linejoin:round"></path>
                       <circle cx="{{ r.cx }}" cy="{{ r.cy }}" r="3.5" style="fill:#F7966B"></circle>
                     </svg>
                     <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px;gap:8px;align-items:center">
                       <div style="position:relative;height:14px;background:#F0F1F4;border-radius:999px;overflow:hidden">
-                        <div style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
+                        <div data-anim="bar" style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
                         <div style="position:absolute;top:0;bottom:0;left:{{ r.zero }}%;width:2px;background:var(--eq-navy)"></div>
                       </div>
                       <span style="text-align:right;font-weight:700;font-size:13px">{{ r.vtxt }}</span>
@@ -378,7 +428,7 @@
           <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:12px">{{ dim.note }}</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(255,255,255,.45)">
+        <div data-reveal="block" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;padding:28px 32px;border-radius:20px;background:rgba(255,255,255,.45)">
           <span style="font-size:13px;font-weight:700;letter-spacing:.14em;padding-top:6px">EN SÍNTESIS</span>
           <p style="margin:0;font-size:22px;line-height:1.4;font-weight:500;text-wrap:pretty">{{ take2 }}</p>
         </div>
@@ -387,7 +437,7 @@
 
     <section id="cap3" data-screen-label="03 Las series" style="background:var(--eq-periwinkle);color:var(--eq-navy)">
       <div style="max-width:1200px;margin:0 auto;padding:56px 24px 0;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
-        <div style="display:flex;flex-direction:column;gap:14px;max-width:960px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:14px;max-width:960px">
           <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
             <span style="font-size:44px;font-weight:700;line-height:1">03</span>
             <span style="font-size:14px;font-weight:700;letter-spacing:.14em">LAS SERIES · ¿QUÉ DATOS ESTÁN DETRÁS?</span>
@@ -400,12 +450,12 @@
         </div>
       </div>
       <div style="max-width:1200px;margin:0 auto;padding:36px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:960px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:12px;max-width:960px">
           <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.14em"><span style="width:12px;height:12px;border-radius:4px;background:{{ ser.color }};box-shadow:0 0 0 2px #FFFFFF"></span>{{ ser.kicker }}</div>
           <h2 style="margin:0;font-size:32px;line-height:1.2;font-weight:700;text-wrap:pretty">{{ ser.headline }}</h2>
           <p style="margin:0;font-size:18px;line-height:1.5;text-wrap:pretty">{{ ser.sub }}</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+        <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
           <sc-for list="{{ ser.cards }}" as="c" hint-placeholder-count="4">
             <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:20px 22px;display:flex;flex-direction:column;gap:6px">
               <div style="font-size:14px;color:var(--eq-gray-600)">{{ c.label }}</div>
@@ -414,7 +464,7 @@
             </div>
           </sc-for>
         </div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+        <div data-reveal="stagger" style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
           <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
               <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ ser.chartTitle }}</div>
@@ -422,7 +472,7 @@
               <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tabs" tabs="{{ viewTabs }}" value="{{ viewTab }}" on-change="{{ setView }}" style="flex-wrap:wrap" hint-size="100%,46px"></x-import>
             </div>
             <div style="position:relative">
-              <svg viewBox="0 0 800 280" style="width:100%;height:auto;display:block;overflow:visible">
+              <svg data-anim="chart" viewBox="0 0 800 280" style="width:100%;height:auto;display:block;overflow:visible">
                 <sc-for list="{{ sChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
                 <sc-for list="{{ sChart.bars }}" as="b"><rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="3" style="fill:{{ b.fill }};cursor:pointer" onClick="{{ b.click }}"></rect></sc-for>
                 <line x1="44" x2="784" y1="{{ sChart.baseY }}" y2="{{ sChart.baseY }}" style="stroke:#030F50;stroke-width:1.5"></line>
@@ -444,7 +494,7 @@
             </sc-for>
           </div>
         </div>
-        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+        <div data-reveal="block" style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
           <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE">
             <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ heatTitle }}</div>
             <div style="font-size:13px;color:var(--eq-gray-600)">Promedio anual de cada serie normalizada, re-centrado en 100 = promedio {{ baseLabel }} · coral: por debajo · teal: por encima · clic en una fila para seleccionarla</div>
@@ -452,16 +502,16 @@
           </div>
           <div style="overflow-x:auto">
             <div style="min-width:920px">
-              <div style="display:grid;grid-template-columns:minmax(260px,2fr) repeat(11,minmax(48px,1fr));gap:3px;padding:10px 0 6px;font-size:12px;font-weight:700;color:var(--eq-gray-600)">
+              <div style="display:grid;grid-template-columns:minmax(260px,2fr) repeat({{ nYears }},minmax(48px,1fr));gap:3px;padding:10px 0 6px;font-size:12px;font-weight:700;color:var(--eq-gray-600)">
                 <span>SERIE</span>
                 <sc-for list="{{ yearHeads }}" as="y"><span style="text-align:center;color:{{ y.fill }}">{{ y.label }}</span></sc-for>
               </div>
               <sc-for list="{{ heat }}" as="g" hint-placeholder-count="4">
                 <div style="font-size:13px;font-weight:700;padding:14px 0 6px;border-bottom:2px solid var(--eq-navy);display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ g.color }}"></span>{{ g.name }}</div>
                 <sc-for list="{{ g.rows }}" as="r">
-                  <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(260px,2fr) repeat(11,minmax(48px,1fr));gap:3px;align-items:stretch;cursor:pointer;padding:2px 6px;margin:0 -6px;border-radius:8px;background:{{ r.bg }}" style-hover="background:#EEEEEE">
+                  <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:minmax(260px,2fr) repeat({{ nYears }},minmax(48px,1fr));gap:3px;align-items:stretch;cursor:pointer;padding:2px 6px;margin:0 -6px;border-radius:8px;background:{{ r.bg }}" style-hover="background:#EEEEEE">
                     <span style="font-size:13px;font-weight:{{ r.fw }};padding:6px 8px 6px 0;line-height:1.25">{{ r.name }}</span>
-                    <sc-for list="{{ r.cells }}" as="c"><span style="display:flex;align-items:center;justify-content:center;font-size:12px;background:{{ c.bg }};border-radius:6px;min-height:30px;font-weight:{{ c.fw }};box-shadow:{{ c.ring }}">{{ c.t }}</span></sc-for>
+                    <sc-for list="{{ r.cells }}" as="c"><span data-anim="cell" style="display:flex;align-items:center;justify-content:center;font-size:12px;background:{{ c.bg }};border-radius:6px;min-height:30px;font-weight:{{ c.fw }};box-shadow:{{ c.ring }}">{{ c.t }}</span></sc-for>
                   </div>
                 </sc-for>
               </sc-for>
@@ -474,11 +524,11 @@
     <section id="cap4" data-screen-label="04 Síntesis" style="position:relative;background:var(--eq-navy);color:var(--eq-paper);overflow:hidden">
       <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Isotipo" size="460" color="var(--eq-coral)" style="position:absolute;right:-200px;bottom:-220px" hint-size="460px,460px"></x-import>
       <div style="position:relative;max-width:1200px;margin:0 auto;padding:64px 24px 72px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px">
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:800px">
+        <div data-reveal="block" style="display:flex;flex-direction:column;gap:12px;max-width:800px">
           <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">SÍNTESIS · {{ periodUp }}</div>
           <h2 style="margin:0;color:var(--eq-paper);font-size:36px;line-height:1.2;font-weight:700">Lo que muestra el índice en {{ periodLabel }}</h2>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;max-width:calc(100% - 140px);min-width:min(100%,280px)">
+        <div data-reveal="stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;max-width:calc(100% - 140px);min-width:min(100%,280px)">
           <sc-for list="{{ synthesis }}" as="s" hint-placeholder-count="3">
             <div style="display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:2px solid var(--eq-paper)">
               <div style="font-size:32px;font-weight:700;color:var(--eq-coral)">{{ s.n }}</div>
@@ -497,7 +547,7 @@
   </sc-if>
 
   <sc-if value="{{ isNota }}">
-  <div data-screen-label="Nota técnica">
+  <div data-screen-label="Nota técnica" data-anim="page">
     <div style="background:var(--eq-navy);color:var(--eq-paper)">
       <div style="max-width:1200px;margin:0 auto;padding:56px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
         <div style="font-size:14px;font-weight:700;letter-spacing:.14em;color:var(--eq-coral)">NOTA TÉCNICA</div>
@@ -631,6 +681,28 @@ function mostrarError(m){const pintar=()=>{document.body.innerHTML='<div style="
 const num=v=>{if(v===undefined||v===null)return NaN;const s=String(v).trim().replace(/,/g,'');return s===''?NaN:Number(s);};
 const fin=x=>typeof x==='number'&&isFinite(x);
 const mean=a=>{const f=a.filter(fin);return f.length?f.reduce((x,y)=>x+y,0)/f.length:NaN;};
+// animaciones: solo si el sistema no pide reducir movimiento (ver el bloque de estilos de la cabecera)
+const MOVIMIENTO=!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)&&'IntersectionObserver' in window;
+if(MOVIMIENTO)document.documentElement.classList.add('eq-motion');
+function activarApariciones(){if(!MOVIMIENTO)return;try{
+  // el runtime reescribe clases y atributos en cada render, asi que no se guarda estado en el DOM:
+  // lo ya animado se recuerda en memoria, y ningun bloque queda nunca oculto (si algo falla, solo no se anima)
+  const curva='cubic-bezier(.2,.7,.2,1)',vistos=new WeakSet();
+  const subir=(el,demora)=>el.animate([{opacity:0,transform:'translateY(26px)'},{opacity:1,transform:'none'}],{duration:800,delay:demora,easing:curva,fill:'backwards'});
+  const animar=el=>{
+    // un bloque entero, o sus hijos escalonados (tarjetas de una grilla)
+    if(el.dataset.reveal==='stagger')[...el.children].forEach((h,i)=>subir(h,Math.min(i,4)*80));else subir(el,0);
+    // graficos: se dibujan de izquierda a derecha
+    el.querySelectorAll('svg[data-anim="chart"]').forEach(s=>s.animate([{clipPath:'inset(-20px 100% -20px -20px)'},{clipPath:'inset(-20px -20px -20px -20px)'}],{duration:1400,delay:300,easing:'cubic-bezier(.65,0,.25,1)',fill:'backwards'}));
+    // barras del ranking: crecen desde la izquierda; barras de aportes (divergentes): aparecen
+    el.querySelectorAll('[data-anim="bar-grow"]').forEach(b=>b.animate([{transform:'scaleX(0)',transformOrigin:'left center'},{transform:'scaleX(1)',transformOrigin:'left center'}],{duration:900,delay:300,easing:curva,fill:'backwards'}));
+    el.querySelectorAll('[data-anim="bar"]').forEach(b=>b.animate([{opacity:0},{opacity:1}],{duration:900,delay:300,easing:'ease-out',fill:'backwards'}));};
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);animar(e.target);}}),{threshold:0});
+  // cada bloque nuevo (al cambiar de pagina se montan otros) se observa una sola vez
+  const observar=()=>document.querySelectorAll('[data-reveal]').forEach(el=>{if(vistos.has(el))return;vistos.add(el);io.observe(el);});
+  let pendiente=false;new MutationObserver(()=>{if(pendiente)return;pendiente=true;window.requestAnimationFrame(()=>{pendiente=false;observar();});}).observe(document.body,{childList:true,subtree:true});
+  observar();}
+  catch(e){console.warn('animaciones de aparicion desactivadas:',e);}}
 let FILAS,DICC;
 try{FILAS=leerCSV('ancho');DICC=leerCSV('diccionario');}
 catch(e){mostrarError(e.message);throw e;}
@@ -748,7 +820,7 @@ const VIEWS=['Unidad original','Normalizada','Aporte al índice'];
 
 class Component extends DCLogic {
   state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,showDims:false,active:'cap1'};
-  componentDidMount(){this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
+  componentDidMount(){activarApariciones();this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
   componentWillUnmount(){window.removeEventListener('scroll',this._onScroll);}
   headH(){const s=document.getElementById('stickyHead');return (s?s.getBoundingClientRect().height:72)+12;}
   scrollToId(id){const el=document.getElementById(id);if(!el)return;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-this.headH(),behavior:'smooth'});}
@@ -787,7 +859,7 @@ class Component extends DCLogic {
       xTicks:YEARS.map(y=>({xp:(pl+(QDE(y)[0]+QDE(y).length/2)*slot)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'}))};
   }
   renderVals(){
-    const st=this.state,b=st.base,showLooker=this.props.showLooker??true;
+    const st=this.state,b=st.base,showLooker=false;
     // periodo elegido: un trimestre o los trimestres disponibles del anio (el ultimo anio puede estar incompleto)
     const yi=YEARS.indexOf(st.year),qSel=st.q&&IDX[st.year+'-Q'+st.q]!==undefined?st.q:0;
     const sel=qSel?[IDX[st.year+'-Q'+qSel]]:QDE(st.year);
@@ -882,7 +954,7 @@ class Component extends DCLogic {
       chapters:CHAPS.map(([n,l,id,c])=>({n,label:l,fw:st.active===id?700:400,bd:st.active===id?c:'transparent',go:e=>{e.preventDefault();this.scrollToId(id);}})),
       goCover:()=>this.go('cover'),goCap1:()=>this.go('index',null,'cap1'),goCap2:()=>this.go('index',null,'cap2'),goCap3:()=>this.go('index',null,'cap3'),goNota:()=>this.go('nota'),
       yearOptions:YEARS.slice().reverse().map(String),yearStr:String(st.year),onYear:e=>this.setState({year:+e.target.value}),
-      rango:`${Q[0].label} a ${Q[N-1].label}`,rangoUp:`${Q[0].label} A ${Q[N-1].label}`,nTrim:String(N),nSeries:String(ALL.length),nInds:String(DEF.reduce((a,D)=>a+D.inds.length,0)),ejemploAportes:ejemploAportes,
+      rango:`${Q[0].label} a ${Q[N-1].label}`,rangoUp:`${Q[0].label} A ${Q[N-1].label}`,nTrim:String(N),nYears:String(YEARS.length),nSeries:String(ALL.length),nInds:String(DEF.reduce((a,D)=>a+D.inds.length,0)),ejemploAportes:ejemploAportes,
       notaDato:`en ${nN} de ${N} trimestres la banda incluye el 100; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo (base ${baseL}).`,
       qOptions:[{value:'0',label:'Año completo'}].concat(QDE(st.year).map(i=>({value:String(Q[i].q),label:'Q'+Q[i].q}))),qStr:String(qSel),onQ:e=>this.setState({q:+e.target.value}),
       baseOptions:[{value:'1519',label:'Base 2015-2019'},{value:'2015',label:'Base 2015'},{value:'2019',label:'Base 2019'}],base:b,onBase:e=>this.setState({base:e.target.value}),
