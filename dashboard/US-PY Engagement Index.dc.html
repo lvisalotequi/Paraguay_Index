@@ -187,33 +187,36 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
 
       <div style="max-width:1200px;margin:0 auto;padding:28px 24px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
         <div data-reveal="stagger" style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
-          <div style="flex:2 1 560px;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
+          <div style="flex:1 1 100%;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px">
             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:14px;border-bottom:1px solid #E6E8EE;margin-bottom:14px">
               <div style="font-size:19px;font-weight:700;line-height:1.3;text-wrap:pretty">{{ idxChartTitle }}</div>
-              <div style="font-size:13px;color:var(--eq-gray-600)">Índice agregado por trimestre y banda de incertidumbre del 90% · base {{ baseLabel }} = 100 · clic en un trimestre para analizarlo</div>
+              <div style="font-size:13px;color:var(--eq-gray-600)">{{ idxChartSub }}</div>
               <sc-if value="{{ showLooker }}"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--eq-blue);background:#E6F3FA;padding:5px 8px">Looker · Serie temporal con banda + línea de referencia</span></sc-if>
             </div>
             <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:10px;border-radius:3px;background:rgba(3,15,80,.14)"></span>Banda 90%</div>
+              <sc-if value="{{ idxChart.hasBand }}"><div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:10px;border-radius:3px;background:rgba(3,15,80,.14)"></span>Banda 90%</div></sc-if>
               <sc-for list="{{ idxChart.paths }}" as="p" hint-placeholder-count="1">
                 <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:4px;border-radius:2px;background:{{ p.color }}"></span>{{ p.label }}</div>
               </sc-for>
-              <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="{{ dimsBtnVariant }}" size="sm" on-click="{{ toggleDims }}" style="margin-left:auto" hint-size="230px,36px">{{ dimsBtnLabel }}</x-import>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ idxViewOptions }}" value="{{ idxViewStr }}" on-change="{{ onIdxView }}" style="width:420px;max-width:100%" hint-size="420px,48px"></x-import>
+                <sc-if value="{{ bandAvail }}"><x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="{{ bandBtnVariant }}" size="sm" on-click="{{ toggleBand }}" hint-size="230px,36px">{{ bandBtnLabel }}</x-import></sc-if>
+              </div>
             </div>
             <div style="position:relative" onMouseLeave="{{ clearHover }}">
-              <svg data-anim="chart" viewBox="0 0 800 300" style="width:100%;height:auto;display:block;overflow:visible">
-                <rect x="{{ idxChart.sel.x }}" y="16" width="{{ idxChart.sel.w }}" height="250" rx="6" style="fill:#FDEEE6"></rect>
+              <svg data-anim="chart" viewBox="0 0 800 360" style="width:100%;height:auto;display:block;overflow:visible">
+                <rect x="{{ idxChart.sel.x }}" y="16" width="{{ idxChart.sel.w }}" height="310" rx="6" style="fill:#FDEEE6"></rect>
                 <sc-for list="{{ idxChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
                 <path d="{{ idxChart.band }}" style="fill:rgba(3,15,80,.12);stroke:none"></path>
                 <line x1="44" x2="784" y1="{{ idxChart.refY }}" y2="{{ idxChart.refY }}" style="stroke:#030F50;stroke-width:1.5;stroke-dasharray:2 4"></line>
                 <sc-for list="{{ idxChart.paths }}" as="p"><path d="{{ p.d }}" style="fill:none;stroke:{{ p.color }};stroke-width:{{ p.w }};stroke-dasharray:{{ p.dash }};stroke-linejoin:round;stroke-linecap:round"></path></sc-for>
                 <circle cx="{{ idxChart.last.x }}" cy="{{ idxChart.last.y }}" r="6" style="fill:#FFFFFF;stroke:#030F50;stroke-width:2.5;stroke-dasharray:3 2"></circle>
                 <sc-for list="{{ idxChart.dots }}" as="p"><circle cx="{{ p.cx }}" cy="{{ p.cy }}" r="6" style="fill:{{ p.color }};stroke:#FFFFFF;stroke-width:3"></circle></sc-for>
-                <sc-for list="{{ idxChart.cols }}" as="c"><rect x="{{ c.x }}" y="0" width="{{ c.w }}" height="300" style="fill:transparent;cursor:pointer" onMouseEnter="{{ c.enter }}" onClick="{{ c.click }}"></rect></sc-for>
+                <sc-for list="{{ idxChart.cols }}" as="c"><rect x="{{ c.x }}" y="0" width="{{ c.w }}" height="360" style="fill:transparent;cursor:pointer" onMouseEnter="{{ c.enter }}" onClick="{{ c.click }}"></rect></sc-for>
               </svg>
               <div style="position:absolute;inset:0;pointer-events:none;font-size:11px;color:#595959">
                 <sc-for list="{{ idxChart.yTicks }}" as="t"><span style="position:absolute;left:0;width:4.5%;text-align:right;top:{{ t.yp }}%;transform:translateY(-50%)">{{ t.label }}</span></sc-for>
-                <sc-for list="{{ idxChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:96.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
+                <sc-for list="{{ idxChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:97.2%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
                 <span style="position:absolute;left:6.5%;top:{{ idxChart.refYp }}%;transform:translateY(-120%);font-style:italic;color:#030F50">100 = promedio {{ baseLabel }}</span>
                 <span style="position:absolute;right:0;top:{{ idxChart.last.yp }}%;transform:translate(0,-210%);font-style:italic;color:#030F50;background:#FFFFFF;padding:0 4px">Provisional</span>
               </div>
@@ -221,8 +224,8 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
                 <div data-anim="tip" style="position:absolute;top:0;left:{{ idxChart.tip.left }}%;transform:{{ idxChart.tip.tx }};background:var(--eq-navy);color:var(--eq-paper);padding:12px 14px;border-radius:12px;box-shadow:0 10px 28px rgba(3,15,80,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:4px;min-width:180px">
                   <div style="font-weight:700">{{ idxChart.tip.label }}</div>
                   <sc-for list="{{ idxChart.tip.rows }}" as="r"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ r.color }};box-shadow:0 0 0 1px #F7FAF2"></span><span style="flex:1">{{ r.label }}</span><b>{{ r.val }}</b></div></sc-for>
-                  <div style="font-size:12px;padding-top:6px;margin-top:2px;border-top:1px solid rgba(247,250,242,.25)">{{ idxChart.tip.band }}</div>
-                  <div style="font-size:12px;font-weight:700;color:var(--eq-coral)">{{ idxChart.tip.status }}</div>
+                  <sc-if value="{{ idxChart.hasBand }}"><div style="font-size:12px;padding-top:6px;margin-top:2px;border-top:1px solid rgba(247,250,242,.25)">{{ idxChart.tip.band }}</div>
+                  <div style="font-size:12px;font-weight:700;color:var(--eq-coral)">{{ idxChart.tip.status }}</div></sc-if>
                 </div>
               </sc-if>
             </div>
@@ -568,7 +571,7 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
       <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:2px solid var(--eq-navy)"><span style="font-size:28px;font-weight:700;color:var(--eq-coral)">01</span><span style="font-size:26px;font-weight:700">Qué es el índice</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
         <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Un valor mayor significa más vínculo: más fondos, más comercio e inversión, más actividad diplomática y más atención pública. Un valor menor significa menos vínculo.</div>
-        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Mide intensidad, no si la relación es buena o mala.</div>
+        <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Mide la intensidad del vínculo entre EE.UU. y Paraguay. Su interpretación siempre requiere observar el comportamiento de las dimensiones.</div>
         <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Base de presentación por defecto: 100 = promedio 2015-2019. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.</div>
         <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:22px;font-size:15px;line-height:1.5">Cada valor del índice agregado tiene una banda de incertidumbre del 90%. Dos valores solo son distintos si sus bandas no se superponen. El último trimestre es provisional.</div>
       </div>
@@ -616,8 +619,8 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
             <div style="font-size:14px;line-height:1.45;background:var(--eq-paper);border-radius:12px;padding:10px 12px"><b>Dato:</b> {{ notaDato }}</div>
           </div>
           <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
-            <div style="font-size:18px;font-weight:700">Intensidad, no calidad</div>
-            <div style="font-size:14px;line-height:1.5">Subir significa más vínculo, no una mejor relación. El índice no evalúa si la relación es buena o mala.</div>
+            <div style="font-size:18px;font-weight:700">Leerlo siempre junto a las dimensiones</div>
+            <div style="font-size:14px;line-height:1.5">El índice mide la intensidad del vínculo entre EE.UU. y Paraguay. Un mismo valor puede resultar de dimensiones que se mueven en sentidos distintos, por eso su interpretación siempre requiere observar el comportamiento de cada dimensión.</div>
           </div>
           <div style="background:var(--eq-white);border-radius:20px;box-shadow:0 14px 36px rgba(3,15,80,.12);padding:22px;display:flex;flex-direction:column;gap:10px">
             <div style="font-size:18px;font-weight:700">El último dato es provisional</div>
@@ -858,15 +861,15 @@ const NAV=[['Inicio','cover'],['US-PY Index','index'],['Nota técnica','nota']];
 const VIEWS=['Unidad original','Normalizada','Aporte al índice'];
 
 class Component extends DCLogic {
-  state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,showDims:false,active:'cap1'};
+  state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,idxView:'agg',showBand:true,active:'cap1'};
   componentDidMount(){activarApariciones();activarDefiniciones();this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
   componentWillUnmount(){window.removeEventListener('scroll',this._onScroll);}
   headH(){const s=document.getElementById('stickyHead');return (s?s.getBoundingClientRect().height:72)+12;}
   scrollToId(id){const el=document.getElementById(id);if(!el)return;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-this.headH(),behavior:'smooth'});}
   go(p,extra,sec){this.setState(Object.assign({page:p,hover:null},extra||{}),()=>{if(sec)setTimeout(()=>this.scrollToId(sec),60);else window.scrollTo(0,0);});}
   pick(i){this.setState({year:Q[i].y,q:Q[i].q});}
-  qChart(key,lines,band,sel){
-    const W=800,H=300,pl=44,pr=16,pt=16,pb=34;
+  qChart(key,lines,band,sel,H=300){
+    const W=800,pl=44,pr=16,pt=16,pb=34;
     let vals=lines.reduce((a,l)=>a.concat(l.vals),[100]);if(band)vals=vals.concat(band.lo,band.hi);
     let step=niceStep(Math.max(...vals)-Math.min(...vals));const lo=Math.floor((Math.min(...vals)-0.5)/step)*step,hi=Math.ceil((Math.max(...vals)+0.5)/step)*step;
     const X=i=>pl+i*(W-pl-pr)/(N-1),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb),cw=(W-pl-pr)/(N-1);
@@ -882,7 +885,7 @@ class Component extends DCLogic {
       last:{x:X(N-1),y:Y(lines[0].vals[N-1]),yp:Y(lines[0].vals[N-1])/H*100},
       dots:lines.map(l=>({cx:X(di),cy:Y(l.vals[di]),color:l.color})),
       cols:Q.map((_,i)=>({x:X(i)-cw/2,w:cw,enter:()=>this.setState({hover:{c:key,i}}),click:()=>this.pick(i)})),
-      hasTip:hv!==null,
+      hasTip:hv!==null,hasBand:!!band,
       tip:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:Q[di].label+(di===N-1?' · provisional':''),rows:lines.map(l=>({label:l.label,color:l.color,val:fmt(l.vals[di])})),
         band:band?`Banda 90%: ${fmt(band.lo[di])} a ${fmt(band.hi[di])}`:'',status:st==='sobre'?'Claramente sobre 100':st==='bajo'?'Claramente bajo 100':band?'Rango normal (la banda incluye el 100)':''}};
   }
@@ -926,9 +929,14 @@ class Component extends DCLogic {
       {label:'Distancia a 100',value:sgn(dist)+' pts',note:'puntos, no porcentajes'},
       {label:'Lectura según la banda',value:qSel?(selSt[0]==='normal'?'Rango normal':selSt[0]==='sobre'?'Sobre 100':'Bajo 100'):(cS?cS+' trim. sobre 100':cB?cB+' trim. bajo 100':'Rango normal'),note:qSel?'banda del 90% frente a 100':`${4-cS-cB} de 4 trimestres en rango normal`},
       {label:Pprev?`Cambio frente a ${Pprev}`:'Cambio frente al año anterior',value:Pprev?sgn(v-prevV)+' pts':'—',note:Pprev?`${Pprev}: ${fmt(prevV)}`:'sin dato previo'}];
-    const rules=[{n:'1',k:'Compara contra 100',t:`100 es el promedio ${baseL}. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.`},{n:'2',k:'Mira las bandas',t:'Dos valores solo son distintos si sus bandas del 90% no se superponen.'},{n:'3',k:'Más vínculo, no mejor relación',t:'Subir indica más intensidad del vínculo; no indica si la relación es buena o mala.'},{n:'4',k:'El último dato es provisional',t:`${Q[N-1].label} es el último trimestre disponible y puede revisarse.`}];
-    const idxLines=[{label:'Índice agregado',vals:A,color:'#030F50',w:3.5}].concat(st.showDims?DEF.map((D,k)=>({label:D.name,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
-    const idxChartTitle=`En ${nN} de ${N} trimestres el índice está en rango normal; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo`;
+    const rules=[{n:'1',k:'Compara contra 100',t:`100 es el promedio ${baseL}. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.`},{n:'2',k:'Mira las bandas',t:'Dos valores solo son distintos si sus bandas del 90% no se superponen.'},{n:'3',k:'Mide la intensidad del vínculo',t:'El índice mide la intensidad del vínculo entre EE.UU. y Paraguay. Su interpretación siempre requiere observar el comportamiento de las dimensiones.'},{n:'4',k:'El último dato es provisional',t:`${Q[N-1].label} es el último trimestre disponible y puede revisarse.`}];
+    // vista del grafico principal: 'agg' (indice agregado), 'cmp' (indice y sus dimensiones) o el numero de una dimension;
+    // las bandas solo existen para el indice agregado (bootstrap de 9.3)
+    const iv=st.idxView,ivDim=iv==='agg'||iv==='cmp'?null:+iv,bandAvail=ivDim===null,bandOn=bandAvail&&st.showBand;
+    const aggLine={label:'Índice agregado',vals:A,color:'#030F50',w:3.5};
+    const idxLines=ivDim!==null?[{label:DEF[ivDim].name,vals:DS[ivDim],color:DEF[ivDim].color,w:3.5}]:[aggLine].concat(iv==='cmp'?DEF.map((D,k)=>({label:D.name,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
+    const idxChartTitle=ivDim!==null?`${DEF[ivDim].name}: ${fmt(pv(DS[ivDim]))} en ${P}, ${ptsTxt(pv(DS[ivDim])-100)} el promedio ${baseL}`:`En ${nN} de ${N} trimestres el índice está en rango normal; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo`;
+    const idxChartSub=(ivDim!==null?'Dimensión por trimestre':iv==='cmp'?'Índice agregado y sus cuatro dimensiones por trimestre':'Índice agregado por trimestre')+(bandOn?' y banda de incertidumbre del 90%':'')+` · base ${baseL} = 100 · clic en un trimestre para analizarlo`+(ivDim!==null?' · las bandas de confianza solo existen para el índice agregado':'');
     const contribTitle=`${top.label} explica la mayor parte de la distancia a 100 en ${P}`;
     const annA=annual(A);
     const dimCards=DEF.map((D,k)=>{const dv=pv(DS[k]),ann=annual(DS[k]);const sp=spark(DS[k],240,44,sel[sel.length-1],100);
@@ -999,8 +1007,9 @@ class Component extends DCLogic {
       baseOptions:[{value:'1519',label:'Base 2015-2019'},{value:'2015',label:'Base 2015'},{value:'2019',label:'Base 2019'}],base:b,onBase:e=>this.setState({base:e.target.value}),
       baseLabel:baseL,periodLabel:P,periodUp:P.toUpperCase(),distTxt:sgn(dist)+' pts',
       idxHeadline,idxSub,idxCards,rules,idxChartTitle,contribTitle,idxContrib:diverge(sorted),dimCards,dimRowTitle,take1,
-      idxChart:this.qChart('idx',idxLines,{lo:ALo,hi:AHi},sel),clearHover:()=>this.setState({hover:null}),
-      toggleDims:()=>this.setState(s=>({showDims:!s.showDims})),dimsBtnLabel:st.showDims?'Ocultar dimensiones':'Comparar con las dimensiones',dimsBtnVariant:st.showDims?'primary':'secondary',
+      idxChart:this.qChart('idx',idxLines,bandOn?{lo:ALo,hi:AHi}:null,sel,360),idxChartSub,clearHover:()=>this.setState({hover:null}),
+      idxViewOptions:[{value:'agg',label:'Índice agregado'}].concat(DEF.map((D,k)=>({value:String(k),label:D.name})),[{value:'cmp',label:'Comparación: índice y dimensiones'}]),idxViewStr:String(iv),onIdxView:e=>this.setState({idxView:e.target.value,hover:null}),
+      bandAvail,toggleBand:()=>this.setState(s=>({showBand:!s.showBand})),bandBtnLabel:st.showBand?'Ocultar bandas de confianza':'Mostrar bandas de confianza',bandBtnVariant:st.showBand?'primary':'secondary',
       rank,bridge2,dimTabs:DEF.map(d=>d.name),dimTab:D.name,setDimTab:t=>this.setState({dim:DEF.findIndex(d=>d.name===t),series:null}),
       dim,dimChart:this.qChart('dim',dimLines,null,sel),take2,
       bridge3,seriesOptions:ALL.map(s=>({value:s.k,label:`${s.ind.code} · ${s.name}`})),seriesId:S.k,onSeries:e=>this.setState({series:e.target.value}),
