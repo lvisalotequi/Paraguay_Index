@@ -67,6 +67,10 @@ html.eq-motion [data-anim="tip"]{animation:eq-fade .18s ease-out backwards;trans
 /* navegacion */
 html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
 
+/* definicion de cada dimension al pasar el mouse sobre su nombre (activarDefiniciones) */
+::highlight(eq-dim){text-decoration:underline dotted;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.eq-def{position:fixed;z-index:1000;max-width:340px;padding:12px 14px;border-radius:12px;background:#030F50;color:#F7FAF2;font-family:var(--font-sans);font-size:13px;line-height:1.45;box-shadow:0 0 0 1px rgba(247,250,242,.35),0 10px 28px rgba(3,15,80,.35);pointer-events:none;opacity:0;transition:opacity .15s ease-out;display:flex;flex-direction:column;gap:4px}
+.eq-def b{color:#F7966B}
 </style>
 </helmet>
 <div style="font-family:var(--font-sans);color:var(--eq-navy);background:var(--eq-paper);min-height:100vh">
@@ -703,6 +707,42 @@ function activarApariciones(){if(!MOVIMIENTO)return;try{
   let pendiente=false;new MutationObserver(()=>{if(pendiente)return;pendiente=true;window.requestAnimationFrame(()=>{pendiente=false;observar();});}).observe(document.body,{childList:true,subtree:true});
   observar();}
   catch(e){console.warn('animaciones de aparicion desactivadas:',e);}}
+// definicion de cada dimension al pasar el mouse (o tocar) su nombre, en cualquier parte de la pagina, incluidos
+// los nombres dentro de frases. No se toca el DOM del runtime (lo reescribe en cada render): el subrayado usa la
+// CSS Custom Highlight API y el tooltip es un elemento propio fuera del arbol del dashboard
+function activarDefiniciones(){try{
+  const dims=DEF.map(D=>({clave:D.name.toLowerCase(),name:D.name,def:D.def}));
+  let tip=null,actual=null,ocurrencias=[];
+  // cada aparicion de un nombre de dimension (sin distinguir mayusculas: los textos usan "compromiso..." y "Compromiso...")
+  const buscar=()=>{ocurrencias=[];
+    const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:n=>(tip&&tip.contains(n))||!n.parentElement||n.parentElement.closest('script,style,select')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    for(let n=w.nextNode();n;n=w.nextNode()){const t=n.nodeValue.toLowerCase();
+      for(const d of dims)for(let i=t.indexOf(d.clave);i>=0;i=t.indexOf(d.clave,i+1)){const r=document.createRange();r.setStart(n,i);r.setEnd(n,i+d.clave.length);ocurrencias.push({n,i,f:i+d.clave.length,r,d});}}
+    if(window.CSS&&CSS.highlights&&window.Highlight)CSS.highlights.set('eq-dim',new Highlight(...ocurrencias.map(o=>o.r)));};
+  // la aparicion que esta bajo el puntero, si hay alguna
+  const enPunto=(x,y)=>{let n,o;
+    if(document.caretPositionFromPoint){const c=document.caretPositionFromPoint(x,y);if(!c)return null;n=c.offsetNode;o=c.offset;}
+    else if(document.caretRangeFromPoint){const c=document.caretRangeFromPoint(x,y);if(!c)return null;n=c.startContainer;o=c.startOffset;}
+    else return null;
+    return ocurrencias.find(c=>c.n===n&&o>=c.i&&o<=c.f&&[...c.r.getClientRects()].some(b=>x>=b.left&&x<=b.right&&y>=b.top&&y<=b.bottom))||null;};
+  const mostrar=c=>{
+    if(!tip){tip=document.createElement('div');tip.className='eq-def';tip.setAttribute('role','tooltip');document.body.appendChild(tip);}
+    if(actual!==c.d){actual=c.d;const t=document.createElement('b'),d=document.createElement('div');t.textContent=c.d.name;d.textContent=c.d.def;tip.replaceChildren(t,d);}
+    // debajo del nombre; arriba si no entra, y siempre dentro de la ventana
+    const b=c.r.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;
+    tip.style.left=Math.min(Math.max(8,b.left),window.innerWidth-w-8)+'px';
+    tip.style.top=(b.bottom+8+h>window.innerHeight-8?b.top-h-8:b.bottom+8)+'px';
+    tip.style.opacity='1';};
+  const ocultar=()=>{if(tip)tip.style.opacity='0';};
+  let evento=null,enCola=false;
+  const mover=e=>{evento=e;if(enCola)return;enCola=true;window.requestAnimationFrame(()=>{enCola=false;const c=enPunto(evento.clientX,evento.clientY);c?mostrar(c):ocultar();});};
+  document.addEventListener('pointermove',mover,{passive:true});
+  document.addEventListener('pointerdown',mover,{passive:true});
+  window.addEventListener('scroll',ocultar,{passive:true});
+  // los textos cambian con cada interaccion (anio, base, dimension elegida): se vuelven a buscar los nombres
+  let pendiente=false;new MutationObserver(ms=>{if(tip&&ms.every(m=>tip.contains(m.target)))return;if(pendiente)return;pendiente=true;window.requestAnimationFrame(()=>{pendiente=false;buscar();});}).observe(document.body,{childList:true,subtree:true,characterData:true});
+  buscar();}
+  catch(e){console.warn('definiciones de dimensiones desactivadas:',e);}}
 let FILAS,DICC;
 try{FILAS=leerCSV('ancho');DICC=leerCSV('diccionario');}
 catch(e){mostrarError(e.message);throw e;}
@@ -820,7 +860,7 @@ const VIEWS=['Unidad original','Normalizada','Aporte al índice'];
 
 class Component extends DCLogic {
   state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,showDims:false,active:'cap1'};
-  componentDidMount(){activarApariciones();this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
+  componentDidMount(){activarApariciones();activarDefiniciones();this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
   componentWillUnmount(){window.removeEventListener('scroll',this._onScroll);}
   headH(){const s=document.getElementById('stickyHead');return (s?s.getBoundingClientRect().height:72)+12;}
   scrollToId(id){const el=document.getElementById(id);if(!el)return;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-this.headH(),behavior:'smooth'});}
