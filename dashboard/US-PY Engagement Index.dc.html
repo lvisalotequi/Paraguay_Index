@@ -420,10 +420,15 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
                     <span style="line-height:1.3;padding-left:14px">{{ r.name }}</span>
                     <span style="text-align:right">{{ r.val }}</span>
                     <span data-anim="cell" style="text-align:center;padding:6px 0;background:{{ r.bg }};border-radius:999px;font-weight:700">{{ r.z }}</span>
-                    <svg data-anim="spark" viewBox="0 0 140 30" style="width:140px;height:30px;display:block;overflow:visible">
+                    <div style="position:relative;width:140px" onMouseLeave="{{ clearHover }}">
+                    <svg data-anim="spark" viewBox="0 0 140 30" onMouseMove="{{ r.mover }}" style="width:140px;height:30px;display:block;overflow:visible;cursor:crosshair">
                       <path d="{{ r.sd }}" style="fill:none;stroke:#030F50;stroke-width:2;stroke-linejoin:round"></path>
                       <circle cx="{{ r.cx }}" cy="{{ r.cy }}" r="3.5" style="fill:#F7966B"></circle>
                     </svg>
+                    <sc-if value="{{ r.tipOn }}">
+                      <div style="position:absolute;bottom:calc(100% + 6px);left:{{ r.tipLeft }}%;transform:translateX(-50%);z-index:5;padding:6px 10px;font-size:12px;background:var(--eq-navy);color:var(--eq-paper);border-radius:10px;box-shadow:0 10px 28px rgba(3,15,80,.3);pointer-events:none;white-space:nowrap">{{ r.tip }}</div>
+                    </sc-if>
+                    </div>
                     <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px;gap:8px;align-items:center">
                       <div style="position:relative;height:14px;background:#F0F1F4;border-radius:999px;overflow:hidden">
                         <div data-anim="bar" style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
@@ -482,16 +487,23 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
               <div style="font-size:13px;color:var(--eq-gray-600)">{{ ser.chartSub }}</div>
               <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Tabs" tabs="{{ viewTabs }}" value="{{ viewTab }}" on-change="{{ setView }}" style="flex-wrap:wrap" hint-size="100%,46px"></x-import>
             </div>
-            <div style="position:relative">
+            <div style="position:relative" onMouseLeave="{{ clearHover }}">
               <svg data-anim="chart" viewBox="0 0 800 280" style="width:100%;height:auto;display:block;overflow:visible">
                 <sc-for list="{{ sChart.yTicks }}" as="t"><line x1="44" x2="784" y1="{{ t.y }}" y2="{{ t.y }}" style="stroke:#E6E8EE;stroke-width:1;stroke-dasharray:3 5"></line></sc-for>
                 <sc-for list="{{ sChart.bars }}" as="b"><rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="3" style="fill:{{ b.fill }};cursor:pointer" onClick="{{ b.click }}"></rect></sc-for>
                 <line x1="44" x2="784" y1="{{ sChart.baseY }}" y2="{{ sChart.baseY }}" style="stroke:#030F50;stroke-width:1.5"></line>
+                <sc-for list="{{ sChart.cols }}" as="c"><rect x="{{ c.x }}" y="0" width="{{ c.w }}" height="280" style="fill:transparent;cursor:pointer" onMouseEnter="{{ c.enter }}" onClick="{{ c.click }}"></rect></sc-for>
               </svg>
               <div style="position:absolute;inset:0;pointer-events:none;font-size:11px;color:#595959">
                 <sc-for list="{{ sChart.yTicks }}" as="t"><span style="position:absolute;left:0;width:4.5%;text-align:right;top:{{ t.yp }}%;transform:translateY(-50%)">{{ t.label }}</span></sc-for>
                 <sc-for list="{{ sChart.xTicks }}" as="t"><span style="position:absolute;left:{{ t.xp }}%;top:95.7%;transform:translate(-50%,-50%);color:{{ t.fill }};font-weight:{{ t.fw }}">{{ t.label }}</span></sc-for>
               </div>
+              <sc-if value="{{ sChart.hasTip }}">
+                <div data-anim="tip" style="position:absolute;top:0;left:{{ sChart.tip.left }}%;transform:{{ sChart.tip.tx }};padding:10px 14px;font-size:13px;display:flex;flex-direction:column;gap:2px;background:var(--eq-navy);color:var(--eq-paper);border-radius:10px;box-shadow:0 10px 28px rgba(3,15,80,.3);pointer-events:none;white-space:nowrap">
+                  <div style="font-weight:700">{{ sChart.tip.label }}</div>
+                  <div>{{ sChart.tip.val }}</div>
+                </div>
+              </sc-if>
             </div>
             <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:12px">En coral, el período seleccionado. Fuente: {{ ser.src }}.</div>
           </div>
@@ -901,15 +913,19 @@ class Component extends DCLogic {
       tip:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:eje.label(di)+(di===n-1?' · provisional':''),rows:lines.map(l=>({label:l.label,color:l.color,val:fmt(l.vals[di])})),
         band:band?`Banda 90%: ${fmt(band.lo[di])} a ${fmt(band.hi[di])}`:'',status:st==='sobre'?'Claramente sobre 100':st==='bajo'?'Claramente bajo 100':band?'Rango normal (la banda incluye el 100)':''}};
   }
-  barChart(vals,baseline,sel,dec){
+  barChart(vals,baseline,sel,dec,unidad){
     const W=800,H=280,pl=44,pr=16,pt=16,pb=34;
     const vf=vals.filter(fin);const mn=Math.min(baseline,...vf),mx=Math.max(baseline,...vf);const step=niceStep((mx-mn)||1);
     const lo=Math.floor(mn/step)*step,hi=Math.ceil(mx/step)*step;const H2=hi===lo?lo+step:hi;
     const Y=v=>pt+(H2-v)/(H2-lo)*(H-pt-pb),slot=(W-pl-pr)/N,bw=slot*0.64,ss=new Set(sel);
     const yTicks=[];for(let v=lo;v<=H2+1e-9;v+=step)yTicks.push({y:Y(v),yp:Y(v)/H*100,label:fmt(v,step<0.1?2:step<1?1:0)});
     const sy=Q[sel[0]].y;
-    return {yTicks,baseY:Y(baseline),
-      bars:vals.map((v,i)=>{if(!fin(v))v=baseline;const y1=Y(Math.max(v,baseline)),y2=Y(Math.min(v,baseline));return {x:pl+i*slot+(slot-bw)/2,w:bw,y:y1,h:Math.max(1,y2-y1),fill:ss.has(i)?'#F7966B':'#030F50',click:()=>this.pick(i)};}),
+    // trimestre bajo el mouse: se resalta su barra y se muestra su valor
+    const hv=this.state.hover&&this.state.hover.c==='ser'?this.state.hover.i:null,tipLeft=hv===null?0:(pl+(hv+.5)*slot)/W*100;
+    return {yTicks,baseY:Y(baseline),hasTip:hv!==null,
+      tip:hv===null?{}:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:Q[hv].label+(hv===N-1?' · provisional':''),val:fin(vals[hv])?`${fmt(vals[hv],dec)} ${unidad}`:'sin dato'},
+      cols:vals.map((_,i)=>({x:pl+i*slot,w:slot,enter:()=>this.setState({hover:{c:'ser',i}}),click:()=>this.pick(i)})),
+      bars:vals.map((v,i)=>{if(!fin(v))v=baseline;const y1=Y(Math.max(v,baseline)),y2=Y(Math.min(v,baseline));return {x:pl+i*slot+(slot-bw)/2,w:bw,y:y1,h:Math.max(1,y2-y1),fill:ss.has(i)?'#F7966B':i===hv?'#1A55A6':'#030F50',click:()=>this.pick(i)};}),
       xTicks:YEARS.map(y=>({xp:(pl+(QDE(y)[0]+QDE(y).length/2)*slot)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'}))};
   }
   renderVals(){
@@ -967,7 +983,10 @@ class Component extends DCLogic {
 
     const dk=st.dim===null?top.k:st.dim,D=DEF[dk],dsv=pv(DS[dk]),dann=annual(DS[dk]),dcur=qSel?DS[dk][sel[0]]:dann[yi],dcmp=qSel?DS[dk]:dann;
     const dExt=Math.abs(dcur-Math.max(...dcmp))<1e-9?'su máximo del período':Math.abs(dcur-Math.min(...dcmp))<1e-9?'su mínimo del período':null;
-    const groups=D.inds.map(I=>{let rows=I.series.map(s=>{const c=sc(s),sp=spark(s.z,140,30,sel[sel.length-1]),zb=pv(s.z)-bmean(s.z,b)+100;return {v:c,id:s.id,name:s.name,color:c>=0?'#030F50':'#F7966B',val:fmt(pv(s.raw),s.dec)+' '+s.unit,z:fmt(zb,0),bg:heat(zb),sd:sp.d,cx:sp.cx,cy:sp.cy,up:psel?pv(s.raw)>pv(s.raw,psel):false,above:zb>=100,open:()=>{this.setState({series:s.k});setTimeout(()=>this.scrollToId('cap3'),30);}};});return {code:I.code,name:I.name,v:rows.reduce((a,r)=>a+r.v,0),rows};});
+    const groups=D.inds.map(I=>{let rows=I.series.map(s=>{const clave='sp:'+s.k,hs=st.hover&&st.hover.c===clave?st.hover.i:null;
+      // trimestre mas cercano al mouse dentro de la minigrafica (x de spark(): 2 + i*(140-4)/(N-1))
+      const mover=e=>{const r=e.currentTarget.getBoundingClientRect(),i=Math.max(0,Math.min(N-1,Math.round(((e.clientX-r.left)/r.width*140-2)/136*(N-1))));const h=this.state.hover;if(!h||h.c!==clave||h.i!==i)this.setState({hover:{c:clave,i}});};
+      const c=sc(s),sp=spark(s.z,140,30,hs!==null?hs:sel[sel.length-1]),zb=pv(s.z)-bmean(s.z,b)+100;return {v:c,mover,tipOn:hs!==null,tipLeft:hs===null?0:(2+hs*136/(N-1))/140*100,tip:hs===null?'':`${Q[hs].label}: ${fmt(s.z[hs]-bmean(s.z,b)+100,0)} normalizada · ${fin(s.raw[hs])?fmt(s.raw[hs],s.dec)+' '+s.unit:'sin dato'}`,id:s.id,name:s.name,color:c>=0?'#030F50':'#F7966B',val:fmt(pv(s.raw),s.dec)+' '+s.unit,z:fmt(zb,0),bg:heat(zb),sd:sp.d,cx:sp.cx,cy:sp.cy,up:psel?pv(s.raw)>pv(s.raw,psel):false,above:zb>=100,open:()=>{this.setState({series:s.k});setTimeout(()=>this.scrollToId('cap3'),30);}};});return {code:I.code,name:I.name,v:rows.reduce((a,r)=>a+r.v,0),rows};});
     const allRows=diverge(groups.reduce((a,g)=>a.concat(g.rows),[]));let ri=0;groups.forEach(g=>{g.rows=g.rows.map(()=>allRows[ri++]);g.vtxt=sgn(g.v)+' pts';});
     const gs=groups.slice().sort((a,c)=>c.v-a.v),flat=allRows.slice().sort((a,c)=>c.v-a.v);
     const nAbove=allRows.filter(r=>r.above).length,nUp=allRows.filter(r=>r.up).length;
@@ -987,7 +1006,7 @@ class Component extends DCLogic {
     const ponds=S.pond.map(x=>x-bmean(S.pond,b));const Swa=pv(S.w);const zbs=S.z.map(x=>x-bmean(S.z,b)+100);
     const chg=Pprev?(S.kind==='lin'?sraw-pv(S.raw,psel):(sraw/pv(S.raw,psel)-1)*100):null;
     const view=st.view;
-    const sChart=view===0?this.barChart(S.raw,S.kind==='lin'?Math.min(0,...S.raw):0,sel,S.dec):view===1?this.barChart(zbs,100,sel,0):this.barChart(ponds,0,sel,2);
+    const sChart=view===0?this.barChart(S.raw,S.kind==='lin'?Math.min(0,...S.raw):0,sel,S.dec,S.unit):view===1?this.barChart(zbs,100,sel,0,`(100 = promedio ${baseL})`):this.barChart(ponds,0,sel,2,'puntos de aporte al índice');
     const ser={color:SD.color,src:S.src,kicker:`${S.ind.code} · ${S.ind.name.toUpperCase()}`,
       headline:`${S.name}: ${fin(sraw)?fmt(sraw,S.dec)+' '+S.unit:'sin dato'} en ${P}, con un aporte de ${sgn(scv)} puntos al índice.`,
       sub:S.def,
