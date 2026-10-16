@@ -1,9 +1,8 @@
 name: Run Pipeline
 
+# solo manual, desde la pestana Actions (antes corria solo cada 3 meses)
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 1 */3 *"  # cada 3 meses: 1 de enero/abril/julio/octubre, 00:00 UTC
 
 jobs:
   run-pipeline:
