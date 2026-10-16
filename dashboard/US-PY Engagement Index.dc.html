@@ -234,7 +234,7 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
             </div>
             <div style="display:flex;flex-direction:column;gap:14px">
               <sc-for list="{{ idxContrib }}" as="r" hint-placeholder-count="4">
-                <div style="display:grid;grid-template-columns:120px minmax(0,1fr) 64px;align-items:center;gap:10px">
+                <div style="display:grid;grid-template-columns:minmax(150px,200px) minmax(0,1fr) 64px;align-items:center;gap:10px">
                   <div style="font-size:13px;font-weight:700;line-height:1.2">{{ r.label }}</div>
                   <div style="position:relative;height:26px;background:#F0F1F4;border-radius:999px;overflow:hidden">
                     <div data-anim="bar" style="position:absolute;top:0;bottom:0;left:{{ r.left }}%;width:{{ r.width }}%;background:{{ r.color }};border-radius:999px"></div>
@@ -731,14 +731,14 @@ const lc=s=>s.charAt(0).toLowerCase()+s.slice(1);
 
 // textos de cada dimension e indicador (el Sheet solo trae codigos)
 const DIM_META={
- 1:{short:'Financiero oficial',name:'Compromiso financiero oficial',color:'#F7966B',
+ 1:{name:'Compromiso financiero oficial',color:'#F7966B',
   def:'Recursos financieros de origen público estadounidense comprometidos y desembolsados hacia Paraguay, por vía directa o indirecta. Capta el respaldo financiero que el Estado de EE.UU. decide destinar a Paraguay y excluye los flujos privados.'},
- 2:{short:'Diplomático',name:'Actividad gubernamental y diplomática',color:'#7CCCBF',
+ 2:{name:'Actividad gubernamental y diplomática',color:'#7CCCBF',
   def:'Intensidad y continuidad del vínculo político-institucional entre ambos gobiernos, a través de canales oficiales de diálogo, negociación y compromiso jurídico. Capta la relación Estado a Estado.',
   note:'El indicador 2.1 (reuniones del Consejo de Comercio e Inversión) no entra al índice. Son eventos demasiado escasos para medirse por trimestre.'},
- 3:{short:'Económico privado',name:'Compromiso económico privado',color:'#1A55A6',
+ 3:{name:'Compromiso económico privado',color:'#1A55A6',
   def:'Profundidad del vínculo económico entre ambas sociedades a través de decisiones de actores privados (empresas, inversionistas y personas), no de política pública.'},
- 4:{short:'Mediático',name:'Visibilidad mediática y relevancia pública',color:'#788EC7',
+ 4:{name:'Visibilidad mediática y relevancia pública',color:'#788EC7',
   def:'Qué tan presente está la relación en el espacio público digital y con qué tono se la cubre. Mide percepción y atención pública, no actividad institucional.'}};
 const IND_META={
  '1.1':{name:'Asistencia oficial de EE.UU. a Paraguay',desc:'obligaciones y desembolsos de cooperación.'},
@@ -873,7 +873,7 @@ class Component extends DCLogic {
     const nS=Q.filter((_,i)=>statusB(i)==='sobre').length,nB=Q.filter((_,i)=>statusB(i)==='bajo').length,nN=N-nS-nB;
     const v=pv(A),dist=v-100;
     const DS=DEF.map(D=>D.DB[b]);
-    const contrib=DEF.map((D,k)=>({k,label:D.short,name:D.name,color:D.color,v:0.25*(pv(DS[k])-100)}));
+    const contrib=DEF.map((D,k)=>({k,label:D.name,name:D.name,color:D.color,v:0.25*(pv(DS[k])-100)}));
     const sorted=contrib.slice().sort((a,c)=>c.v-a.v),top=sorted[0],bot=sorted[3];
     const selSt=sel.map(statusB),cS=selSt.filter(x=>x==='sobre').length,cB=selSt.filter(x=>x==='bajo').length;
     const ptsTxt=x=>x>=0?`${fmt(x)} puntos sobre`:`${fmt(-x)} puntos bajo`;
@@ -888,7 +888,7 @@ class Component extends DCLogic {
       {label:'Lectura según la banda',value:qSel?(selSt[0]==='normal'?'Rango normal':selSt[0]==='sobre'?'Sobre 100':'Bajo 100'):(cS?cS+' trim. sobre 100':cB?cB+' trim. bajo 100':'Rango normal'),note:qSel?'banda del 90% frente a 100':`${4-cS-cB} de 4 trimestres en rango normal`},
       {label:Pprev?`Cambio frente a ${Pprev}`:'Cambio frente al año anterior',value:Pprev?sgn(v-prevV)+' pts':'—',note:Pprev?`${Pprev}: ${fmt(prevV)}`:'sin dato previo'}];
     const rules=[{n:'1',k:'Compara contra 100',t:`100 es el promedio ${baseL}. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.`},{n:'2',k:'Mira las bandas',t:'Dos valores solo son distintos si sus bandas del 90% no se superponen.'},{n:'3',k:'Más vínculo, no mejor relación',t:'Subir indica más intensidad del vínculo; no indica si la relación es buena o mala.'},{n:'4',k:'El último dato es provisional',t:`${Q[N-1].label} es el último trimestre disponible y puede revisarse.`}];
-    const idxLines=[{label:'Índice agregado',vals:A,color:'#030F50',w:3.5}].concat(st.showDims?DEF.map((D,k)=>({label:D.short,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
+    const idxLines=[{label:'Índice agregado',vals:A,color:'#030F50',w:3.5}].concat(st.showDims?DEF.map((D,k)=>({label:D.name,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
     const idxChartTitle=`En ${nN} de ${N} trimestres el índice está en rango normal; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo`;
     const contribTitle=`${top.label} explica la mayor parte de la distancia a 100 en ${P}`;
     const annA=annual(A);
@@ -896,7 +896,7 @@ class Component extends DCLogic {
       const valsCmp=qSel?DS[k]:ann,cur=qSel?DS[k][sel[0]]:ann[yi];const ext=Math.abs(cur-Math.max(...valsCmp))<1e-9?'Máximo del período':Math.abs(cur-Math.min(...valsCmp))<1e-9?'Mínimo del período':`${D.list.length} series · ${D.inds.length} indicadores`;
       return {num:D.num,name:D.name,color:D.color,value:fmt(dv,0),ctxt:sgn(contrib[k].v)+' pts al índice',tone:contrib[k].v>=0?'teal':'coral',sd:sp.d,cx:sp.cx,cy:sp.cy,ref:sp.ref,ext,open:()=>{this.setState({dim:k,series:null});setTimeout(()=>this.scrollToId('cap2'),30);}};});
     const hiD=DEF.map((D,k)=>({k,v:pv(DS[k])})).sort((a,c)=>c.v-a.v);
-    const dimRowTitle=`${DEF[hiD[0].k].short} es la dimensión más alta en ${P} (${fmt(hiD[0].v,0)}) y ${lc(DEF[hiD[3].k].short)} la más baja (${fmt(hiD[3].v,0)})`;
+    const dimRowTitle=`${DEF[hiD[0].k].name} es la dimensión más alta en ${P} (${fmt(hiD[0].v,0)}) y ${lc(DEF[hiD[3].k].name)} la más baja (${fmt(hiD[3].v,0)})`;
     const take1=`El índice está ${ptsTxt(dist)} 100 en ${P}. ${top.name} aporta ${sgn(top.v)} puntos`+(bot.v<0?` y ${lc(bot.name)} resta ${fmt(-bot.v)}.`:'.')+` El capítulo 02 muestra qué indicadores y series explican esos aportes.`;
 
     const sc=s=>pv(s.pond)-bmean(s.pond,b);
@@ -912,16 +912,16 @@ class Component extends DCLogic {
     const allRows=diverge(groups.reduce((a,g)=>a.concat(g.rows),[]));let ri=0;groups.forEach(g=>{g.rows=g.rows.map(()=>allRows[ri++]);g.vtxt=sgn(g.v)+' pts';});
     const gs=groups.slice().sort((a,c)=>c.v-a.v),flat=allRows.slice().sort((a,c)=>c.v-a.v);
     const nAbove=allRows.filter(r=>r.above).length,nUp=allRows.filter(r=>r.up).length;
-    const dim={num:D.num,short:D.short,color:D.color,
+    const dim={num:D.num,color:D.color,
       headline:`${D.name}: ${fmt(dsv,0)} puntos en ${P}`+(dExt?`, ${dExt}.`:`, ${ptsTxt(dsv-100)} el promedio ${baseL}.`),
       sub:`Aporta ${sgn(contrib[dk].v)} puntos a la distancia del índice respecto de 100. ${D.def}`,
       cards:[{label:`Valor ${P}`,value:fmt(dsv,1),note:`base ${baseL} = 100`},{label:'Aporte al índice',value:sgn(contrib[dk].v)+' pts',note:'peso de la dimensión: 25%'},{label:Pprev?`Cambio frente a ${Pprev}`:'Cambio frente al año anterior',value:Pprev?sgn(dsv-pv(DS[dk],psel))+' pts':'—',note:Pprev?`${Pprev}: ${fmt(pv(DS[dk],psel))}`:'sin dato previo'},{label:'Indicadores · series',value:`${D.inds.length} · ${D.list.length}`,note:'pesos iguales en cada nivel'}],
-      chartTitle:`${D.short}: ${dsv>=v?'por encima del':'por debajo del'} índice agregado en ${P} (${fmt(dsv,0)} frente a ${fmt(v,0)})`,
+      chartTitle:`${D.name}: ${dsv>=v?'por encima del':'por debajo del'} índice agregado en ${P} (${fmt(dsv,0)} frente a ${fmt(v,0)})`,
       bullets:[{k:'INDICADOR QUE MÁS SUMA',t:`${gs[0].code} ${gs[0].name} (${gs[0].vtxt}).`},gs[gs.length-1].v<0?{k:'INDICADOR QUE MÁS RESTA',t:`${gs[gs.length-1].code} ${gs[gs.length-1].name} (${gs[gs.length-1].vtxt}).`}:{k:'MENOR APORTE',t:`${gs[gs.length-1].code} ${gs[gs.length-1].name} (${gs[gs.length-1].vtxt}).`},{k:'NIVEL',t:`${nAbove} de ${allRows.length} series están sobre su promedio ${baseL}.`},{k:'DIRECCIÓN',t:Pprev?`${nUp} de ${allRows.length} series aumentaron en su unidad original frente a ${Pprev}.`:'Sin período previo para comparar.'}],
-      tableTitle:`${flat[0].name} es la serie con mayor aporte dentro de ${lc(D.short)} (${flat[0].vtxt} pts)`,
+      tableTitle:`${flat[0].name} es la serie con mayor aporte dentro de ${lc(D.name)} (${flat[0].vtxt} pts)`,
       note:(D.note?D.note+' ':'')+'Normalizada: puntaje de media 100 y desvío 10, re-centrado en el período base. Coral: bajo 100 · teal: sobre 100.',groups};
     const take2=`Dentro de ${lc(D.name)}, ${lc(flat[0].name)} es la serie que más aporta (${flat[0].vtxt} pts). En el capítulo 03 puedes verla en su unidad original, normalizada y ponderada.`;
-    const dimLines=[{label:D.short,vals:DS[dk],color:D.color,w:3.5},{label:'Índice agregado',vals:A,color:'#030F50',w:2,dash:'6 5'}];
+    const dimLines=[{label:D.name,vals:DS[dk],color:D.color,w:3.5},{label:'Índice agregado',vals:A,color:'#030F50',w:2,dash:'6 5'}];
 
     const S=ALL.find(s=>s.k===st.series)||ALL.find(s=>s.k===D.list.slice().sort((a,c)=>sc(c)-sc(a))[0].k),SD=DEF[S.d];
     const sraw=pv(S.raw),szb=pv(S.z)-bmean(S.z,b)+100,scv=sc(S);
@@ -962,7 +962,7 @@ class Component extends DCLogic {
       idxHeadline,idxSub,idxCards,rules,idxChartTitle,contribTitle,idxContrib:diverge(sorted),dimCards,dimRowTitle,take1,
       idxChart:this.qChart('idx',idxLines,{lo:ALo,hi:AHi},sel),clearHover:()=>this.setState({hover:null}),
       toggleDims:()=>this.setState(s=>({showDims:!s.showDims})),dimsBtnLabel:st.showDims?'Ocultar dimensiones':'Comparar con las dimensiones',dimsBtnVariant:st.showDims?'primary':'secondary',
-      rank,bridge2,dimTabs:DEF.map(d=>d.short),dimTab:D.short,setDimTab:t=>this.setState({dim:DEF.findIndex(d=>d.short===t),series:null}),
+      rank,bridge2,dimTabs:DEF.map(d=>d.name),dimTab:D.name,setDimTab:t=>this.setState({dim:DEF.findIndex(d=>d.name===t),series:null}),
       dim,dimChart:this.qChart('dim',dimLines,null,sel),take2,
       bridge3,seriesOptions:ALL.map(s=>({value:s.k,label:`${s.ind.code} · ${s.name}`})),seriesId:S.k,onSeries:e=>this.setState({series:e.target.value}),
       viewTabs:VIEWS,viewTab:VIEWS[view],setView:t=>this.setState({view:VIEWS.indexOf(t)}),
@@ -977,7 +977,7 @@ class Component extends DCLogic {
         {n:'05',k:'Ponderación y agregación',t:'Se usa un promedio aritmético por niveles, de serie a indicador, de indicador a dimensión y de dimensión al índice, con pesos iguales en cada nivel. Si una serie no tiene dato en un trimestre, su peso se reparte entre las demás de su grupo.'},
         {n:'06',k:'Presentación',t:'Al final se desplaza el índice para que el promedio del período base elegido valga 100 (por defecto, 2015-2019). No se aplica ajuste estacional; se muestra el dato tal cual.'},
         {n:'07',k:'Incertidumbre',t:'Un bootstrap de 5.000 réplicas da la banda del 90% de cada trimestre. Las pruebas de sensibilidad y robustez confirman que la trayectoria del índice se mantiene con cualquier combinación razonable de decisiones metodológicas.'}],
-      sourceRows:ALL.map((s,i)=>({n:i+1,name:s.name,code:s.ind.code,dim:DEF[s.d].short,color:DEF[s.d].color,unit:s.unit,src:s.src}))
+      sourceRows:ALL.map((s,i)=>({n:i+1,name:s.name,code:s.ind.code,dim:DEF[s.d].name,color:DEF[s.d].color,unit:s.unit,src:s.src}))
     };
   }
 }
