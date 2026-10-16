@@ -92,8 +92,8 @@ no automatizada todavía.
   sin conversión. Expone `run()`, igual que ingestion; `run_processing.py`
   los descubre automáticamente con `pkgutil.iter_modules` (mismo patrón que
   `run_pipeline.py`) y registra la corrida en la pestaña `processing_log`
-  del Sheet (separada de `pipeline_log`). No forma parte del schedule
-  automático de GitHub Actions todavía — se corre a mano cuando hace
+  del Sheet (separada de `pipeline_log`). No forma parte de los
+  workflows de GitHub Actions todavía — se corre a mano cuando hace
   falta. Cubre las 4 dimensiones — ver sección 6.
 
 - Cada módulo en `src/ingestion/` expone una función `run()` sin argumentos.
@@ -170,9 +170,16 @@ no automatizada todavía.
   un archivo aparte (`write_dataframe(..., spreadsheet_id=...)`) porque lo
   consume un dashboard: nunca se borra ni se recrea, solo se reemplaza el
   contenido de sus dos pestañas.
-- **Ejecución**: GitHub Actions, disparo manual (`workflow_dispatch`) desde la
-  pestaña Actions del repo, y programado cada 3 meses (`schedule` cron
-  `0 0 1 */3 *`, 1 de enero/abril/julio/octubre, UTC).
+- **Ejecución**: GitHub Actions, **solo disparo manual** (`workflow_dispatch`)
+  desde la pestaña Actions del repo ("Run Pipeline"). Hasta el 2026-10-16
+  también corría programado cada 3 meses (cron `0 0 1 */3 *`); se quitó a
+  pedido del usuario.
+- **Dashboard**: `.github/workflows/publicar_dashboard.yml` publica
+  `dashboard/` en GitHub Pages. Es el único workflow programado (todos los
+  días, 11:00 UTC), además de correr al cambiar `dashboard/` y a mano. Lee el
+  Sheet `us_py_engagement_index` con la cuenta de servicio
+  (`dashboard/exportar_datos.py`, secret `GOOGLE_SHEETS_CREDENTIALS`): el Sheet
+  sigue privado porque la organización no permite publicarlo en la web.
 
 ## 4. Convenciones de código
 
@@ -781,8 +788,8 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
 - `SHEET_ID` apunta hoy a un Sheet de **prueba** (en Mi unidad personal, no en
   la Unidad compartida del proyecto) porque compartir con la cuenta de
   servicio falló dentro de la Unidad compartida (ver pendientes).
-- Repo público desde 2026-08-26, con el workflow disparándose cada 3 meses
-  además de manual.
+- Repo público desde 2026-08-26. El pipeline se dispara solo a mano desde el
+  2026-10-16 (antes, también cada 3 meses).
 - **Carpetas de dimensión renombradas a mano por el usuario (descubierto
   2026-09-02):** las 4 carpetas de dimensión dentro de `01_crudas` pasaron
   a llamarse `{dimensión}_crudas` (ej. `3_Compromiso_economico_privado_crudas`)
@@ -831,7 +838,7 @@ requests             # fuentes que exponen una API normal (BEA, ForeignAssistanc
   mezclados. `src/processing/_common.py` centraliza esta convención
   (`subir_variable()`/`reescalar()`) para que ningún módulo arme el CSV a
   mano. Corridos con `run_processing.py` (auto-descubrimiento, ver sección
-  2) — separado del schedule automático de GitHub Actions, se corre a
+  2) — no está en los workflows de GitHub Actions, se corre a
   mano. Probados con datos reales el 2026-09-03:
   - `compromiso_financiero_oficial.py` (dimensión 1, **12 variables** desde
     el 2026-09-22 — antes 7, ver historial en el módulo y en
