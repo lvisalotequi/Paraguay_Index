@@ -199,6 +199,7 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
                 <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:18px;height:4px;border-radius:2px;background:{{ p.color }}"></span>{{ p.label }}</div>
               </sc-for>
               <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ freqOptions }}" value="{{ freqStr }}" on-change="{{ onFreq }}" style="width:150px" hint-size="150px,48px"></x-import>
                 <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Select" options="{{ idxViewOptions }}" value="{{ idxViewStr }}" on-change="{{ onIdxView }}" style="width:420px;max-width:100%" hint-size="420px,48px"></x-import>
                 <sc-if value="{{ bandAvail }}"><x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Button" variant="{{ bandBtnVariant }}" size="sm" on-click="{{ toggleBand }}" hint-size="230px,36px">{{ bandBtnLabel }}</x-import></sc-if>
               </div>
@@ -230,6 +231,10 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
               </sc-if>
             </div>
             <div style="font-size:12px;font-style:italic;color:var(--eq-gray-600);margin-top:10px">El último trimestre es provisional. Sin ajuste estacional.</div>
+            <div style="margin-top:16px;padding:16px 18px;border-radius:14px;background:#F4F6FA;border-left:4px solid var(--eq-coral)">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--eq-gray-600);margin-bottom:6px">LECTURA DE {{ periodUp }}</div>
+              <p style="margin:0;font-size:15px;line-height:1.6;text-wrap:pretty">{{ lectura }}</p>
+            </div>
           </div>
 
           <div style="flex:1 1 320px;min-width:0;background:var(--eq-white);color:var(--eq-navy);border-radius:20px;box-shadow:0 1px 2px rgba(3,15,80,.06),0 14px 36px rgba(3,15,80,.12);padding:24px;display:flex;flex-direction:column">
@@ -761,6 +766,9 @@ const BASEI={'1519':Q.map((x,i)=>x.y>=2015&&x.y<=2019?i:-1).filter(i=>i>=0),'201
 const BASEL={'1519':'2015-2019','2015':'2015','2019':'2019'};
 const bmean=(a,b)=>mean(BASEI[b].map(i=>a[i]));
 const annual=a=>YEARS.map(y=>mean(QDE(y).map(i=>a[i])));
+// eje del grafico principal: cuantos puntos tiene, como se rotulan y que periodo se elige al hacer clic
+const EJE_T={n:N,label:i=>Q[i].label,anio:i=>Q[i].y,de:y=>QDE(y),elegir:i=>({year:Q[i].y,q:Q[i].q})};
+const EJE_A={n:YEARS.length,label:i=>String(YEARS[i]),anio:i=>YEARS[i],de:y=>[YEARS.indexOf(y)],elegir:i=>({year:YEARS[i],q:0})};
 
 // indice agregado y banda de 90% (bootstrap del conjunto de series, 9.3), ya en cada base
 let AGG_B,LO_B,HI_B;
@@ -774,13 +782,17 @@ const lc=s=>s.charAt(0).toLowerCase()+s.slice(1);
 // textos de cada dimension e indicador (el Sheet solo trae codigos)
 const DIM_META={
  1:{name:'Compromiso financiero oficial',color:'#F7966B',
+  que:'el respaldo financiero del Estado de EE.UU. hacia Paraguay',sube:'se fortaleció',baja:'se debilitó',
   def:'Recursos financieros de origen público estadounidense comprometidos y desembolsados hacia Paraguay, por vía directa o indirecta. Capta el respaldo financiero que el Estado de EE.UU. decide destinar a Paraguay y excluye los flujos privados.'},
  2:{name:'Actividad gubernamental y diplomática',color:'#7CCCBF',
+  que:'el vínculo político-institucional entre ambos gobiernos',sube:'se fortaleció',baja:'se debilitó',
   def:'Intensidad y continuidad del vínculo político-institucional entre ambos gobiernos, a través de canales oficiales de diálogo, negociación y compromiso jurídico. Capta la relación Estado a Estado.',
   note:'El indicador 2.1 (reuniones del Consejo de Comercio e Inversión) no entra al índice. Son eventos demasiado escasos para medirse por trimestre.'},
  3:{name:'Compromiso económico privado',color:'#1A55A6',
+  que:'el vínculo económico entre empresas, inversionistas y personas de ambos países',sube:'se intensificó',baja:'se redujo',
   def:'Profundidad del vínculo económico entre ambas sociedades a través de decisiones de actores privados (empresas, inversionistas y personas), no de política pública.'},
  4:{name:'Visibilidad mediática y relevancia pública',color:'#788EC7',
+  que:'la presencia de la relación en los medios y en el interés del público',sube:'aumentó',baja:'disminuyó',
   def:'Qué tan presente está la relación en el espacio público digital y con qué tono se la cubre. Mide percepción y atención pública, no actividad institucional.'}};
 const IND_META={
  '1.1':{name:'Asistencia oficial de EE.UU. a Paraguay',desc:'obligaciones y desembolsos de cooperación.'},
@@ -861,32 +873,32 @@ const NAV=[['Inicio','cover'],['US-PY Index','index'],['Nota técnica','nota']];
 const VIEWS=['Unidad original','Normalizada','Aporte al índice'];
 
 class Component extends DCLogic {
-  state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,idxView:'agg',showBand:true,active:'cap1'};
+  state={page:'cover',year:YEARS[YEARS.length-1],q:0,base:'1519',dim:null,series:null,view:0,hover:null,idxView:'agg',showBand:true,freq:'t',active:'cap1'};
   componentDidMount(){activarApariciones();activarDefiniciones();this._onScroll=()=>{if(this.state.page!=='index')return;let a='cap1';for(const c of ['cap1','cap2','cap3']){const el=document.getElementById(c);if(el&&el.getBoundingClientRect().top<this.headH()+60)a=c;}if(a!==this.state.active)this.setState({active:a});};window.addEventListener('scroll',this._onScroll,{passive:true});}
   componentWillUnmount(){window.removeEventListener('scroll',this._onScroll);}
   headH(){const s=document.getElementById('stickyHead');return (s?s.getBoundingClientRect().height:72)+12;}
   scrollToId(id){const el=document.getElementById(id);if(!el)return;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-this.headH(),behavior:'smooth'});}
   go(p,extra,sec){this.setState(Object.assign({page:p,hover:null},extra||{}),()=>{if(sec)setTimeout(()=>this.scrollToId(sec),60);else window.scrollTo(0,0);});}
   pick(i){this.setState({year:Q[i].y,q:Q[i].q});}
-  qChart(key,lines,band,sel,H=300){
-    const W=800,pl=44,pr=16,pt=16,pb=34;
+  qChart(key,lines,band,sel,H=300,eje=EJE_T){
+    const W=800,pl=44,pr=16,pt=16,pb=34,n=eje.n;
     let vals=lines.reduce((a,l)=>a.concat(l.vals),[100]);if(band)vals=vals.concat(band.lo,band.hi);
     let step=niceStep(Math.max(...vals)-Math.min(...vals));const lo=Math.floor((Math.min(...vals)-0.5)/step)*step,hi=Math.ceil((Math.max(...vals)+0.5)/step)*step;
-    const X=i=>pl+i*(W-pl-pr)/(N-1),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb),cw=(W-pl-pr)/(N-1);
+    const X=i=>pl+i*(W-pl-pr)/(n-1),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb),cw=(W-pl-pr)/(n-1);
     const yTicks=[];for(let v=lo;v<=hi+1e-9;v+=step)yTicks.push({y:Y(v),yp:Y(v)/H*100,label:fmt(v,0)});
     const hv=this.state.hover&&this.state.hover.c===key?this.state.hover.i:null;const di=hv!==null?hv:sel[sel.length-1];
-    const tipLeft=X(di)/W*100;const sy=Q[sel[0]].y;
+    const tipLeft=X(di)/W*100;const sy=eje.anio(sel[0]);
     const st=band?(band.lo[di]>100+1e-6?'sobre':band.hi[di]<100-1e-6?'bajo':'normal'):null;
     return {yTicks,refY:Y(100),refYp:Y(100)/H*100,
       sel:{x:X(sel[0])-cw/2,w:X(sel[sel.length-1])-X(sel[0])+cw},
-      xTicks:YEARS.map(y=>({xp:X(QDE(y)[0]+(QDE(y).length-1)/2)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'})),
-      paths:lines.map(l=>({label:l.label,color:l.color,w:l.w,dash:l.dash||'none',d:smooth(l.vals.map((v,i)=>[X(i),Y(v)]))})),
+      xTicks:YEARS.map(y=>({xp:X(eje.de(y)[0]+(eje.de(y).length-1)/2)/W*100,label:String(y),fw:y===sy?700:400,fill:y===sy?'#030F50':'#595959'})),
+      paths:lines.map(l=>({label:l.label,color:l.color,w:l.w,dash:l.dash||'none',d:(n<20?(pts=>'M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' L')):smooth)(l.vals.map((v,i)=>[X(i),Y(v)]))})),
       band:band?'M'+band.hi.map((v,i)=>X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' L')+' L'+band.lo.map((v,i)=>[X(i),Y(v)]).reverse().map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')+' Z':'',
-      last:{x:X(N-1),y:Y(lines[0].vals[N-1]),yp:Y(lines[0].vals[N-1])/H*100},
+      last:{x:X(n-1),y:Y(lines[0].vals[n-1]),yp:Y(lines[0].vals[n-1])/H*100},
       dots:lines.map(l=>({cx:X(di),cy:Y(l.vals[di]),color:l.color})),
-      cols:Q.map((_,i)=>({x:X(i)-cw/2,w:cw,enter:()=>this.setState({hover:{c:key,i}}),click:()=>this.pick(i)})),
+      cols:Array.from({length:n},(_,i)=>({x:X(i)-cw/2,w:cw,enter:()=>this.setState({hover:{c:key,i}}),click:()=>this.setState(eje.elegir(i))})),
       hasTip:hv!==null,hasBand:!!band,
-      tip:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:Q[di].label+(di===N-1?' · provisional':''),rows:lines.map(l=>({label:l.label,color:l.color,val:fmt(l.vals[di])})),
+      tip:{left:tipLeft,tx:tipLeft>62?'translateX(calc(-100% - 14px))':'translateX(14px)',label:eje.label(di)+(di===n-1?' · provisional':''),rows:lines.map(l=>({label:l.label,color:l.color,val:fmt(l.vals[di])})),
         band:band?`Banda 90%: ${fmt(band.lo[di])} a ${fmt(band.hi[di])}`:'',status:st==='sobre'?'Claramente sobre 100':st==='bajo'?'Claramente bajo 100':band?'Rango normal (la banda incluye el 100)':''}};
   }
   barChart(vals,baseline,sel,dec){
@@ -932,11 +944,11 @@ class Component extends DCLogic {
     const rules=[{n:'1',k:'Compara contra 100',t:`100 es el promedio ${baseL}. Un valor de 106 significa 6 puntos sobre ese promedio; son puntos, no porcentajes.`},{n:'2',k:'Mira las bandas',t:'Dos valores solo son distintos si sus bandas del 90% no se superponen.'},{n:'3',k:'Mide la intensidad del vínculo',t:'El índice mide la intensidad del vínculo entre EE.UU. y Paraguay. Su interpretación siempre requiere observar el comportamiento de las dimensiones.'},{n:'4',k:'El último dato es provisional',t:`${Q[N-1].label} es el último trimestre disponible y puede revisarse.`}];
     // vista del grafico principal: 'agg' (indice agregado), 'cmp' (indice y sus dimensiones) o el numero de una dimension;
     // las bandas solo existen para el indice agregado (bootstrap de 9.3)
-    const iv=st.idxView,ivDim=iv==='agg'||iv==='cmp'?null:+iv,bandAvail=ivDim===null,bandOn=bandAvail&&st.showBand;
-    const aggLine={label:'Índice agregado',vals:A,color:'#030F50',w:3.5};
-    const idxLines=ivDim!==null?[{label:DEF[ivDim].name,vals:DS[ivDim],color:DEF[ivDim].color,w:3.5}]:[aggLine].concat(iv==='cmp'?DEF.map((D,k)=>({label:D.name,vals:DS[k],color:D.color,w:2,dash:'6 4'})):[]);
+    const iv=st.idxView,ivDim=iv==='agg'||iv==='cmp'?null:+iv,anual=st.freq==='a',bandAvail=ivDim===null&&!anual,bandOn=bandAvail&&st.showBand,fq=anual?annual:x=>x;
+    const aggLine={label:'Índice agregado',vals:fq(A),color:'#030F50',w:3.5};
+    const idxLines=ivDim!==null?[{label:DEF[ivDim].name,vals:fq(DS[ivDim]),color:DEF[ivDim].color,w:3.5}]:[aggLine].concat(iv==='cmp'?DEF.map((D,k)=>({label:D.name,vals:fq(DS[k]),color:D.color,w:2,dash:'6 4'})):[]);
     const idxChartTitle=ivDim!==null?`${DEF[ivDim].name}: ${fmt(pv(DS[ivDim]))} en ${P}, ${ptsTxt(pv(DS[ivDim])-100)} el promedio ${baseL}`:`En ${nN} de ${N} trimestres el índice está en rango normal; ${nS} quedan claramente sobre 100 y ${nB} claramente debajo`;
-    const idxChartSub=(ivDim!==null?'Dimensión por trimestre':iv==='cmp'?'Índice agregado y sus cuatro dimensiones por trimestre':'Índice agregado por trimestre')+(bandOn?' y banda de incertidumbre del 90%':'')+` · base ${baseL} = 100 · clic en un trimestre para analizarlo`+(ivDim!==null?' · las bandas de confianza solo existen para el índice agregado':'');
+    const idxChartSub=(ivDim!==null?'Dimensión':iv==='cmp'?'Índice agregado y sus cuatro dimensiones':'Índice agregado')+(anual?', promedio anual':' por trimestre')+(bandOn?' y banda de incertidumbre del 90%':'')+` · base ${baseL} = 100 · clic en un ${anual?'año':'trimestre'} para analizarlo`+(ivDim!==null?' · las bandas de confianza solo existen para el índice agregado':anual?' · las bandas de confianza se calcularon por trimestre':'');
     const contribTitle=`${top.label} explica la mayor parte de la distancia a 100 en ${P}`;
     const annA=annual(A);
     const dimCards=DEF.map((D,k)=>{const dv=pv(DS[k]),ann=annual(DS[k]);const sp=spark(DS[k],240,44,sel[sel.length-1],100);
@@ -990,6 +1002,43 @@ class Component extends DCLogic {
 
     const yE=YEARS[YEARS.length-1],cE=DEF.map((D,k)=>({name:lc(D.name),v:0.25*(mean(QDE(yE).map(i=>DS[k][i]))-100)})).sort((a,c)=>c.v-a.v),dE=mean(QDE(yE).map(i=>A[i]))-100;
     const ejemploAportes=`en ${yE} el índice está ${ptsTxt(dE)} 100 (base ${baseL}); la dimensión ${cE[0].name} aporta ${sgn(cE[0].v)}`+(cE[3].v<0?` y la dimensión ${cE[3].name} resta ${fmt(-cE[3].v)}.`:'.');
+    // lectura del periodo elegido: cuanto se movio el indice, que implica para la intensidad del vinculo y que dimensiones
+    // (y dentro de la principal, que serie) explican el movimiento. Reglas explicitas sobre los datos, sin juicio de bueno o malo
+    const lectura=(()=>{
+      const lcN=s=>/^[A-ZÁÉÍÓÚ][a-záéíóúñ]/.test(s)?lc(s):s;
+      const lista=xs=>xs.length<2?xs.join(''):xs.slice(0,-1).join(', ')+' y '+xs[xs.length-1];
+      const prov=sel.includes(N-1)?' Es un dato provisional y puede revisarse.':'';
+      // periodo inmediatamente anterior: el trimestre previo, o el anio previo si se eligio un anio completo
+      const ant=qSel?(sel[0]>0?[sel[0]-1]:null):(QDE(st.year-1).length?QDE(st.year-1):null),Pant=ant?(qSel?Q[ant[0]].label:String(st.year-1)):null;
+      // nivel frente a 100 segun la banda de incertidumbre (en un anio, segun la mayoria de sus trimestres)
+      const est=qSel?statusB(sel[0]):(cS>=3?'sobre':cB>=3?'bajo':'normal');
+      if(!ant)return `${P} es el primer período de la serie, así que no hay uno anterior con el cual comparar. `+(est==='sobre'?`El vínculo entre EE.UU. y Paraguay arranca claramente por encima de su promedio ${baseL}.`:est==='bajo'?`El vínculo entre EE.UU. y Paraguay arranca claramente por debajo de su promedio ${baseL}.`:`El vínculo entre EE.UU. y Paraguay arranca en un nivel comparable a su promedio ${baseL}.`)+prov;
+      const d=pv(A)-pv(A,ant),ad=Math.abs(d),sg=d>=0?1:-1,unidad=qSel?'trimestre':'año';
+      // tamanio del cambio frente a lo que el indice suele moverse a la misma frecuencia (percentiles 33 y 75)
+      const serieF=qSel?A:annual(A);const hist=serieF.map((x,i)=>i?Math.abs(x-serieF[i-1]):NaN).filter(fin).sort((a,c)=>a-c);
+      const pc=q=>hist[Math.floor(q*(hist.length-1))];const tam=ad<pc(.33)?'leve':ad<pc(.75)?'moderada':'marcada';
+      const s1=ad<0.05?`En ${P}, el índice se mantuvo prácticamente igual que en ${Pant}.`:`En ${P}, el índice ${d>0?'subió':'bajó'} ${fmt(ad)} puntos frente a ${Pant}, una variación ${tam} para lo que suele moverse de un ${unidad} a otro.`;
+      const s2=est==='sobre'?(d>=0?` Esto implica que el vínculo entre EE.UU. y Paraguay gana intensidad y se ubica claramente por encima de su promedio ${baseL}.`:` Esto implica que, pese a la baja, el vínculo entre EE.UU. y Paraguay sigue siendo claramente más intenso que en su promedio ${baseL}.`)
+        :est==='bajo'?(d<0?` Esto implica que el vínculo entre EE.UU. y Paraguay pierde intensidad y queda claramente por debajo de su promedio ${baseL}.`:` Esto implica que, pese a la suba, el vínculo entre EE.UU. y Paraguay sigue siendo claramente menos intenso que en su promedio ${baseL}.`)
+        :` Esto implica que la intensidad del vínculo entre EE.UU. y Paraguay sigue en un nivel comparable a su promedio ${baseL}: ${qSel?'su banda de incertidumbre incluye el 100':'la mayoría de sus trimestres tiene una banda que incluye el 100'}, así que el cambio no alcanza para hablar de un vínculo ${d>=0?'más':'menos'} intenso que en ese período.`;
+      // dimensiones: cuanto se movio cada una y en que sentido respecto del indice
+      const dims=DEF.map((D,k)=>({D,dd:pv(DS[k])-pv(DS[k],ant)})).filter(x=>Math.abs(x.dd)>=0.1);
+      const frase=x=>`${x.D.que} (dimensión ${lc(x.D.name)}) ${x.dd>0?x.D.sube:x.D.baja} en ${fmt(Math.abs(x.dd))} puntos`;
+      const breve=x=>`${x.D.que} (${sgn(x.dd)})`;
+      const aFavor=dims.filter(x=>Math.sign(x.dd)===sg).sort((a,c)=>Math.abs(c.dd)-Math.abs(a.dd)),enContra=dims.filter(x=>Math.sign(x.dd)===-sg).sort((a,c)=>Math.abs(c.dd)-Math.abs(a.dd));
+      const ppal=aFavor[0]||enContra[0];
+      let s3='';
+      if(!ppal)s3=' Ninguna de las cuatro dimensiones se movió de forma apreciable.';
+      else if(!enContra.length&&aFavor.length===4)s3=` El movimiento fue generalizado: las cuatro dimensiones ${sg>0?'subieron':'bajaron'}, y el cambio más fuerte fue que ${frase(ppal)}, mientras que ${lista(aFavor.slice(1).map(breve))} acompañaron.`;
+      else if(!enContra.length)s3=` A nivel de dimensiones, el cambio se explica sobre todo porque ${frase(aFavor[0])}`+(aFavor.length>1?`, junto con ${lista(aFavor.slice(1).map(breve))}`:'')+'; el resto casi no se movió.';
+      else if(!aFavor.length)s3=` A nivel de dimensiones, ${lista(enContra.map(frase))}.`;
+      else s3=` A nivel de dimensiones, ${d>0?'la suba':'la caída'} se explica sobre todo porque ${frase(aFavor[0])}`+(aFavor.length>1?`, junto con ${lista(aFavor.slice(1).map(breve))}`:'')+`. En cambio, ${frase(enContra[0])}`+(enContra.length>1?`, al igual que ${lista(enContra.slice(1).map(breve))}`:'')+`, lo que moderó ${d>0?'la suba':'la caída'}.`;
+      // por que: la serie que mas pesó en la dimension principal
+      let s4='';
+      if(ppal){const sgD=Math.sign(ppal.dd);const top=ppal.D.list.map(s=>({s,c:pv(s.pond)-pv(s.pond,ant)})).filter(x=>Math.sign(x.c)===sgD).sort((a,c)=>Math.abs(c.c)-Math.abs(a.c))[0];
+        if(top){const r1=pv(top.s.raw),r0=pv(top.s.raw,ant);s4=` Dentro de ${lc(ppal.D.name)}, lo que más pesó fue `+(fin(r1)&&fin(r0)&&r1!==r0?`${r1>r0?'el aumento':'la caída'} en ${lcN(top.s.name)}.`:`${lcN(top.s.name)}.`);}}
+      const s5=enContra.length&&aFavor.length?' Como las dimensiones se movieron en sentidos opuestos, el valor del índice debe leerse junto con cada una de ellas.':'';
+      return s1+s2+s3+s4+s5+prov;})();
     const synthesis=[
       {n:'01',k:'EL ÍNDICE',t:`${qSel?'Se ubicó en':'Promedió'} ${fmt(v)} puntos, ${ptsTxt(dist)} el promedio ${baseL}. ${qSel?(selSt[0]==='normal'?'Su banda incluye el 100.':'Su banda no incluye el 100.'):(cS||cB?`${cS} trimestres claramente sobre 100 y ${cB} bajo 100.`:'Los 4 trimestres están en rango normal.')}`},
       {n:'02',k:'LAS DIMENSIONES',t:`${top.name} suma ${sgn(top.v)} puntos`+(bot.v<0?`; ${lc(bot.name)} resta ${fmt(-bot.v)}.`:'.')},
@@ -1007,7 +1056,8 @@ class Component extends DCLogic {
       baseOptions:[{value:'1519',label:'Base 2015-2019'},{value:'2015',label:'Base 2015'},{value:'2019',label:'Base 2019'}],base:b,onBase:e=>this.setState({base:e.target.value}),
       baseLabel:baseL,periodLabel:P,periodUp:P.toUpperCase(),distTxt:sgn(dist)+' pts',
       idxHeadline,idxSub,idxCards,rules,idxChartTitle,contribTitle,idxContrib:diverge(sorted),dimCards,dimRowTitle,take1,
-      idxChart:this.qChart('idx',idxLines,bandOn?{lo:ALo,hi:AHi}:null,sel,360),idxChartSub,clearHover:()=>this.setState({hover:null}),
+      idxChart:this.qChart('idx',idxLines,bandOn?{lo:ALo,hi:AHi}:null,anual?[yi]:sel,360,anual?EJE_A:EJE_T),idxChartSub,lectura,
+      freqOptions:[{value:'t',label:'Trimestral'},{value:'a',label:'Anual'}],freqStr:st.freq,onFreq:e=>this.setState(e.target.value==='a'?{freq:'a',q:0,hover:null}:{freq:'t',hover:null}),clearHover:()=>this.setState({hover:null}),
       idxViewOptions:[{value:'agg',label:'Índice agregado'}].concat(DEF.map((D,k)=>({value:String(k),label:D.name})),[{value:'cmp',label:'Comparación: índice y dimensiones'}]),idxViewStr:String(iv),onIdxView:e=>this.setState({idxView:e.target.value,hover:null}),
       bandAvail,toggleBand:()=>this.setState(s=>({showBand:!s.showBand})),bandBtnLabel:st.showBand?'Ocultar bandas de confianza':'Mostrar bandas de confianza',bandBtnVariant:st.showBand?'primary':'secondary',
       rank,bridge2,dimTabs:DEF.map(d=>d.name),dimTab:D.name,setDimTab:t=>this.setState({dim:DEF.findIndex(d=>d.name===t),series:null}),
