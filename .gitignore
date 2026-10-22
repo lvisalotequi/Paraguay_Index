@@ -57,15 +57,15 @@ mre_scraping/checkpoint.ndjson
 CONTEXTO_INFORME_AVANCES.md
 DICCIONARIO_VARIABLES.md
 
-# Analisis del indice (src/analysis_index/indice_final): lo que se versiona es el
+# Analisis del indice (src/analysis_index/versiones_anteriores/indice_final): lo que se versiona es el
 # .qmd, el css y el ESTADO. Las salidas del render y los archivos intermedios se
 # regeneran al correr el documento
-src/analysis_index/indice_final/salidas/
-src/analysis_index/indice_final/*_files/
-src/analysis_index/indice_final/borradores/*_files/
-src/analysis_index/indice_final/borradores/*.pkl
-src/analysis_index/indice_final/referencia/**/*_files/
-src/analysis_index/indice_final/referencia/**/salidas_anteriores/
+src/analysis_index/versiones_anteriores/indice_final/salidas/
+src/analysis_index/versiones_anteriores/indice_final/*_files/
+src/analysis_index/versiones_anteriores/indice_final/borradores/*_files/
+src/analysis_index/versiones_anteriores/indice_final/borradores/*.pkl
+src/analysis_index/versiones_anteriores/indice_final/referencia/**/*_files/
+src/analysis_index/versiones_anteriores/indice_final/referencia/**/salidas_anteriores/
 
 # Dashboard (GitHub Pages): se versiona la pagina final, que *.html excluiria. Las otras
 # versiones de Claude Design tienen datos simulados y no se versionan. Los datos (datos/*.csv)
@@ -75,3 +75,7 @@ dashboard/datos/
 
 # Reporte de Bandit (tarea ISO 27001 IAM-JUL-001): evidencia local, no se versiona
 bandit_report.txt
+
+# Informe (secciones 4 a 6): objetos de la corrida del indice y salidas del render
+src/analysis_index/salidas/
+src/analysis_index/*_files/

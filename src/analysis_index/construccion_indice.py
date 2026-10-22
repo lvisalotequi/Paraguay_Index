@@ -96,7 +96,7 @@ ARCHIVO_PANEL = "panel_trimestral_largo.csv"
 
 RUTA_DICCIONARIO = RAIZ_REPO / "docs" / "diccionario_variables.xlsx"
 
-CARPETA_SCRIPT = RAIZ_REPO / "src" / "analysis_index" / "indice_script"
+CARPETA_SCRIPT = RAIZ_REPO / "src" / "analysis_index"
 
 ARCHIVO_CACHE = CARPETA_SCRIPT / "cache_panel_trimestral_largo.csv"
 
