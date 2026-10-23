@@ -18,7 +18,7 @@ archivo nuevo en vez de sobreescribir el anterior.
 """
 from urllib.parse import urljoin
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import resolve_ingestion_folder, subir_si_cambio
 from src.ingestion._bcp_common import (
     URL_BASE,
     descargar_bytes,
@@ -55,14 +55,12 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     nombre, url = _obtener_archivo()
 
-    if existe_archivo(nombre, carpeta_id):
-        print(f"[{FUENTE}] '{nombre}' ya existia, no se subio de nuevo.")
-        return
-
+    # se descarga siempre y se compara por contenido (md5): si el BCP republica
+    # el archivo CON EL MISMO NOMBRE, la version vieja ya no queda congelada
     extension = nombre.rsplit(".", 1)[1]
     contenido = descargar_bytes(url)
-    subir_archivo(contenido, nombre, carpeta_id, mime_type=mime_de(extension))
-    print(f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}).")
+    resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type=mime_de(extension))
+    print(f"[{FUENTE}] '{nombre}': {resultado} (Drive: {DIMENSION}/{FUENTE}).")
 
 
 if __name__ == "__main__":

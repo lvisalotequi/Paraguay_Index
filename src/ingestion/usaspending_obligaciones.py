@@ -16,23 +16,25 @@ Nota tecnica: el endpoint de descarga masiva de USAspending solo acepta
 rangos de fecha de hasta 1 anio por pedido, por eso se pide anio por anio
 en vez de todo el rango de una vez.
 
-Es idempotente por anio: una vez subido un anio, no se vuelve a pedir. Ojo:
-el anio en curso queda "congelado" en el valor que tenia al momento de la
-primera corrida - si hace falta refrescarlo, borrar el archivo de ese anio
-en Drive y volver a correr el pipeline (mismo criterio que fa_gov_asistencia_oficial.py).
+Es idempotente por anio para los anios cerrados: una vez subidos, no se
+vuelven a pedir. Los ultimos ANIOS_A_REFRESCAR anios se piden siempre y se
+reemplazan en Drive (subir_si_cambio) - mismo criterio que
+fa_gov_asistencia_oficial.py. El nombre del archivo no cambia, asi que
+processing, que suma todos los ZIP de la carpeta, no cuenta un año dos veces.
 """
 import time
 from datetime import datetime, timezone
 
 import requests
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import existe_archivo, resolve_ingestion_folder, subir_si_cambio
 
 URL_BULK_DOWNLOAD = "https://api.usaspending.gov/api/v2/bulk_download/awards/"
 URL_STATUS = "https://api.usaspending.gov/api/v2/download/status"
 
 PAIS = "PRY"
 ANIO_MINIMO = 2015
+ANIOS_A_REFRESCAR = 2  # el año en curso y el anterior se piden siempre (datos aun en revision)
 
 # Todos los tipos de prime award (BID solo permite un grupo por pedido en el
 # endpoint de busqueda paginada, pero bulk_download si acepta todos juntos).
@@ -93,10 +95,11 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     anio_actual = datetime.now(timezone.utc).year
 
-    nuevos, existentes, errores = [], [], []
+    nuevos, actualizados, existentes, errores = [], [], [], []
     for anio in range(ANIO_MINIMO, anio_actual + 1):
         nombre = f"usaspending_paraguay_{anio}.zip"
-        if existe_archivo(nombre, carpeta_id):
+        refrescar = anio > anio_actual - ANIOS_A_REFRESCAR
+        if not refrescar and existe_archivo(nombre, carpeta_id):
             existentes.append(nombre)
             continue
 
@@ -105,20 +108,27 @@ def run():
             file_url = _esperar_archivo(file_name)
 
             contenido = requests.get(file_url, timeout=120).content
-            subir_archivo(contenido, nombre, carpeta_id, mime_type="application/zip")
-            nuevos.append(nombre)
+            resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type="application/zip")
         except Exception as exc:  # noqa: BLE001
             errores.append((nombre, repr(exc)))
+            continue
+
+        if resultado == "nuevo":
+            nuevos.append(nombre)
+        elif resultado == "actualizado":
+            actualizados.append(nombre)
+        else:
+            existentes.append(nombre)
 
     print(
-        f"[{FUENTE}] {len(nuevos)} nuevos, {len(existentes)} ya existian, "
+        f"[{FUENTE}] {len(nuevos)} nuevos, {len(actualizados)} actualizados, {len(existentes)} sin cambios, "
         f"{len(errores)} errores (Drive: {DIMENSION}/{FUENTE})"
     )
     for nombre, err in errores:
         print(f"    [!] {nombre}: {err}")
 
-    if errores and not nuevos and not existentes:
-        raise RuntimeError(f"No se pudo subir ningun archivo: {errores}")
+    if errores:
+        raise RuntimeError(f"{len(errores)} archivos fallaron: {errores}")
 
 
 if __name__ == "__main__":

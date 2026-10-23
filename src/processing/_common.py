@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from src.drive import existe_archivo, resolve_variable_folder, subir_archivo
+from src.drive import resolve_variable_folder, subir_si_cambio
 
 
 def reescalar(valores, factor):
@@ -29,8 +29,12 @@ def reescalar(valores, factor):
 def subir_variable(dimension_limpia, variable, valores, unidad):
     """Sube un CSV (trimestre, anio, trimestre_num, valor, unidad) a
     02_limpias/{dimension_limpia}/{variable}/. `valores` es
-    {(anio,trim): valor}. Idempotente por dia. Devuelve True si subio algo
-    nuevo, False si no habia datos o ya se habia corrido hoy."""
+    {(anio,trim): valor}. Un archivo por variable y por dia: si ya hay uno de
+    hoy con el mismo contenido no hace nada, y si el contenido cambio (una
+    segunda corrida el mismo dia, con crudos refrescados) lo REEMPLAZA en vez
+    de saltearlo - antes el archivo del dia quedaba obsoleto y habia que
+    mandarlo a la papelera a mano. Devuelve True si subio o actualizo algo,
+    False si no habia datos o ya estaba al dia."""
     if not valores:
         print(f"    [!] {variable}: sin datos, no se sube nada")
         return False
@@ -39,20 +43,20 @@ def subir_variable(dimension_limpia, variable, valores, unidad):
     fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     nombre = f"{variable}_trimestral_{fecha}.csv"
 
-    if existe_archivo(nombre, carpeta_id):
-        print(f"    [{variable}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
-        return False
-
     filas = [
         {"trimestre": f"{anio}-Q{trim}", "anio": anio, "trimestre_num": trim, "valor": valor, "unidad": unidad}
         for (anio, trim), valor in sorted(valores.items())
     ]
     df = pd.DataFrame(filas)
     contenido = df.to_csv(index=False).encode("utf-8")
-    subir_archivo(contenido, nombre, carpeta_id, mime_type="text/csv")
+    resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type="text/csv")
+
+    if resultado == "sin_cambios":
+        print(f"    [{variable}] '{nombre}' ya estaba al dia (mismo contenido), no se subio de nuevo.")
+        return False
 
     print(
-        f"    [{variable}] '{nombre}' subido ({len(df)} trimestres, "
+        f"    [{variable}] '{nombre}' {resultado} ({len(df)} trimestres, "
         f"{df['trimestre'].min()} a {df['trimestre'].max()})"
     )
     return True

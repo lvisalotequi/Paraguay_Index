@@ -25,7 +25,7 @@ from urllib.parse import unquote, urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import resolve_ingestion_folder, subir_si_cambio
 
 URL_BASE = "https://www.dfc.gov"
 URL_PAGINA = "https://www.dfc.gov/our-impact/transaction-data"
@@ -63,20 +63,18 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     nombre, url = _obtener_archivo()
 
-    if existe_archivo(nombre, carpeta_id):
-        print(f"[{FUENTE}] '{nombre}' ya existia, no se subio de nuevo.")
-        return
-
+    # se descarga siempre (~300 KB) y se compara por contenido: DFC republica
+    # el Excel con el mismo nombre y antes la primera version quedaba congelada
     resp = requests.get(url, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
     resp.raise_for_status()
 
-    subir_archivo(
+    resultado = subir_si_cambio(
         resp.content,
         nombre,
         carpeta_id,
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    print(f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}).")
+    print(f"[{FUENTE}] '{nombre}': {resultado} (Drive: {DIMENSION}/{FUENTE}).")
 
 
 if __name__ == "__main__":

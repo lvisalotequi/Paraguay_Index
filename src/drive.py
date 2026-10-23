@@ -40,6 +40,7 @@ y reemplazando el contenido del mismo archivo en cada corrida
 (subir_o_reemplazar), en vez de acumular una foto por dia como ingestion y
 processing. El motivo esta explicado en el docstring de esa funcion.
 """
+import hashlib
 import io
 import os
 import time
@@ -153,7 +154,7 @@ def _buscar_hijo(drive, nombre, carpeta_id):
         drive.files()
         .list(
             q=f"'{carpeta_id}' in parents and name = '{nombre_seguro}' and trashed = false",
-            fields="files(id, name)",
+            fields="files(id, name, md5Checksum)",
             supportsAllDrives=True,
             includeItemsFromAllDrives=True,
         )
@@ -313,11 +314,15 @@ def subir_o_reemplazar(contenido, nombre, carpeta_id, mime_type="application/oct
     if not existente:
         return subir_archivo(contenido, nombre, carpeta_id, mime_type=mime_type)
 
+    return _reemplazar_contenido(drive, existente["id"], contenido, mime_type)
+
+
+def _reemplazar_contenido(drive, file_id, contenido, mime_type):
     media = MediaIoBaseUpload(io.BytesIO(contenido), mimetype=mime_type, resumable=False)
     archivo = (
         drive.files()
         .update(
-            fileId=existente["id"],
+            fileId=file_id,
             media_body=media,
             fields="id",
             supportsAllDrives=True,
@@ -325,6 +330,32 @@ def subir_o_reemplazar(contenido, nombre, carpeta_id, mime_type="application/oct
         .execute()
     )
     return archivo["id"]
+
+
+def subir_si_cambio(contenido, nombre, carpeta_id, mime_type="application/octet-stream"):
+    """Sube `contenido` como `nombre`, pero solo si hace falta. Devuelve
+    "nuevo" (no habia archivo con ese nombre), "actualizado" (habia uno con
+    contenido distinto: se reemplaza con files.update, el rol Writer lo
+    permite) o "sin_cambios" (el md5 coincide, no se toca nada).
+
+    Es la salida al problema de la idempotencia por nombre: una fuente que
+    republica su archivo CON EL MISMO NOMBRE (remesas del BCP, DFC, el año
+    fiscal en curso de ForeignAssistance.gov) quedaba congelada con la
+    primera version subida, y como la cuenta de servicio no puede borrar,
+    solo una persona podia destrabarla. Drive guarda el historial de
+    versiones de lo reemplazado."""
+    drive = _client()
+    existente = _buscar_hijo_con_reintentos(drive, nombre, carpeta_id)
+
+    if not existente:
+        subir_archivo(contenido, nombre, carpeta_id, mime_type=mime_type)
+        return "nuevo"
+
+    if existente.get("md5Checksum") == hashlib.md5(contenido).hexdigest():
+        return "sin_cambios"
+
+    _reemplazar_contenido(drive, existente["id"], contenido, mime_type)
+    return "actualizado"
 
 
 def resolver_hoja_de_calculo(nombre, carpeta_id):

@@ -43,7 +43,20 @@ publique): buscar "turismo" en el buscador del propio sitio
 "Cuadro 2.4.2. Turismo receptivo por mes, segun nacionalidad. Año {año}" -
 agregar la URL a AÑOS_HISTORICOS.
 
+**Descubrimiento automatico de años nuevos (2026-10, rama de ajuste):** el
+buscador del INE sigue siendo inutil para `requests`, pero los archivos del
+Anuario 2017 en adelante siguen un patron de nombre estable
+(`assets/documento/{0|61}/2.4.2_AE{año}.xlsx`, verificado con 2022-2024; 2023
+lleva un punto de mas). En cada corrida, para cada año posterior al ultimo de
+AÑOS_HISTORICOS y anterior al año en curso, se prueban esas URL candidatas; la
+que responda con un Excel valido (con la fila "Estados Unidos") se suma a esa
+corrida. Si el INE cambia el patron, no se encuentra nada y el año queda sin
+dato (el aviso lo dice), igual que antes. Cuando se confirme una URL nueva
+conviene agregarla a AÑOS_HISTORICOS.
+
 Sube un unico Excel (una fila por año) a Drive. Es idempotente por dia.
+Si un año del historico no se puede verificar en la corrida, NO se sube un
+archivo parcial (processing toma el ultimo y se perderia ese año).
 """
 import io
 from datetime import datetime, timezone
@@ -112,6 +125,33 @@ def _fila_eeuu_desde_pdf_2015(contenido):
     raise RuntimeError("no se encontro el Cuadro 2.4.2 con la fila de Estados Unidos en el PDF de 2015")
 
 
+PLANTILLAS_URL_NUEVOS = (
+    "https://www.ine.gov.py/assets/documento/0/2.4.2_AE{anio}.xlsx",
+    "https://www.ine.gov.py/assets/documento/61/2.4.2_AE{anio}.xlsx",
+    "https://www.ine.gov.py/assets/documento/0/2.4.2_AE{anio}..xlsx",
+    "https://www.ine.gov.py/assets/documento/61/2.4.2_AE{anio}..xlsx",
+)
+
+
+def _descubrir_anios_nuevos(anio_actual):
+    """{anio: (url, total, meses)} de los años posteriores al historico fijo
+    cuyo Cuadro 2.4.2 ya este publicado bajo el patron de nombre del INE."""
+    encontrados = {}
+    for anio in range(max(AÑOS_HISTORICOS) + 1, anio_actual):
+        for plantilla in PLANTILLAS_URL_NUEVOS:
+            url = plantilla.format(anio=anio)
+            try:
+                resp = requests.get(url, impersonate=IMPERSONATE, timeout=60)
+                if resp.status_code != 200 or "html" in (resp.headers.get("content-type") or "").lower():
+                    continue
+                total, meses = _fila_eeuu_desde_xlsx(resp.content)
+            except Exception:  # noqa: BLE001
+                continue
+            encontrados[anio] = (url, total, meses)
+            break
+    return encontrados
+
+
 def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -122,6 +162,7 @@ def run():
         return
 
     filas = []
+    errores = []
     for anio, url in sorted(AÑOS_HISTORICOS.items()):
         try:
             resp = requests.get(url, impersonate=IMPERSONATE, timeout=60)
@@ -132,15 +173,22 @@ def run():
                 total, meses = _fila_eeuu_desde_xlsx(resp.content)
         except Exception as exc:  # noqa: BLE001
             print(f"    [!] {anio}: {exc!r}")
+            errores.append(anio)
             continue
 
         fila = {"anio": anio, "total": total}
         fila.update(dict(zip(MESES, meses)))
         filas.append(fila)
 
-    if not filas:
-        print(f"[{FUENTE}] no se pudo verificar ningun año del historico esta corrida.")
-        return
+    if errores:
+        raise RuntimeError(f"no se pudo verificar {errores} del historico: no se sube un archivo parcial")
+
+    nuevos = _descubrir_anios_nuevos(datetime.now(timezone.utc).year)
+    for anio, (url, total, meses) in sorted(nuevos.items()):
+        print(f"[{FUENTE}] año nuevo descubierto: {anio} ({url}). Conviene agregarlo a AÑOS_HISTORICOS.")
+        fila = {"anio": anio, "total": total}
+        fila.update(dict(zip(MESES, meses)))
+        filas.append(fila)
 
     df = pd.DataFrame(filas).sort_values("anio")
 
@@ -152,7 +200,7 @@ def run():
 
     print(
         f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - "
-        f"{len(df)}/{len(AÑOS_HISTORICOS)} años verificados, años: {sorted(df['anio'].tolist())}."
+        f"{len(AÑOS_HISTORICOS)} años del historico verificados + {len(nuevos)} descubiertos, años: {sorted(df['anio'].tolist())}."
     )
 
 

@@ -13,6 +13,8 @@ pandas>=2.2,<3        # (techo <3, ver nota mas abajo) filtrado local / armar ex
 pypdf>=5.0               # leer texto del PDF "Treaties in Force" (state_gov_tif_vigentes.py) - no es escaneado, texto real extraible
 pytrends>=4.9             # scraping no oficial de Google Trends (google_trends_paraguay.py) - sin API oficial
 requests>=2.31           # fuentes que exponen una API normal (BEA, ForeignAssistance.gov, USAspending, BID, Banco Mundial, DFC, Congreso EE.UU.)
+google-cloud-bigquery>=3.25,<4.0   # gdelt_proxy_b.py / _gdelt_auto.py: extraccion de GDELT con la cuenta de servicio (antes solo en gdelt_extraction/requirements.txt)
+db-dtypes>=1.2,<2.0                # tipos de BigQuery al pasar el resultado a pandas (to_dataframe)
 
 # Techo de pandas en <3 (2026-09-09): con Python 3.14, pip resuelve pandas 3.0.x,
 # que trae cambios de comportamiento (dtype de strings por defecto, copy-on-write
