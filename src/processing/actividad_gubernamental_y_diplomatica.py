@@ -140,7 +140,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
+from src.drive import descargar_archivo, listar_archivos, resolve_ingestion_folder
 from src.processing._common import subir_variable
 
 DIMENSION_CRUDA = "2_Actividad_gubernamental_y_diplomatica"
@@ -151,7 +151,7 @@ UMBRAL_MENCIONES_RELEVANTE = 3  # ver docstring del modulo (piloto 2026-09-10)
 
 
 def _excel_mas_reciente(fuente):
-    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, fuente)]
+    carpeta_id = resolve_ingestion_folder(DIMENSION_CRUDA, fuente)
     archivos = listar_archivos(carpeta_id)
     archivo = sorted(archivos, key=lambda a: a["name"])[-1]
     contenido = descargar_archivo(archivo["id"])
@@ -163,7 +163,7 @@ def _csv_mas_reciente(fuente, prefijo_nombre):
     prefijo - mre_menciones_eeuu.py sube mas de un archivo por corrida
     (noticias_clasificadas_*.csv y manifiesto_*.json), hace falta elegir
     cual de los dos."""
-    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, fuente)]
+    carpeta_id = resolve_ingestion_folder(DIMENSION_CRUDA, fuente)
     archivos = [a for a in listar_archivos(carpeta_id) if a["name"].startswith(prefijo_nombre)]
     archivo = sorted(archivos, key=lambda a: a["name"])[-1]
     contenido = descargar_archivo(archivo["id"])
@@ -318,12 +318,14 @@ def _extraer_mre():
 
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
+    errores = []
 
     try:
         proyectos_relevantes, menciones_totales = _extraer_congreso()
         subir_variable(DIMENSION_LIMPIA, "congreso_proyectos_relevantes_paraguay", proyectos_relevantes, "cantidad")
         subir_variable(DIMENSION_LIMPIA, "congreso_menciones_totales_paraguay", menciones_totales, "cantidad")
     except Exception as exc:  # noqa: BLE001
+        errores.append(("congreso_menciones_paraguay", repr(exc)))
         print(f"    [!] congreso_menciones_paraguay: {exc!r}")
 
     for nombre_variable, extraer in (
@@ -334,6 +336,7 @@ def run():
         try:
             subir_variable(DIMENSION_LIMPIA, nombre_variable, extraer(), "cantidad")
         except Exception as exc:  # noqa: BLE001
+            errores.append((nombre_variable, repr(exc)))
             print(f"    [!] {nombre_variable}: {exc!r}")
 
     try:
@@ -341,7 +344,11 @@ def run():
         subir_variable(DIMENSION_LIMPIA, "mre_noticias_bilaterales", noticias_bilaterales, "cantidad")
         subir_variable(DIMENSION_LIMPIA, "mre_menciones_totales_eeuu", menciones_totales_mre, "cantidad")
     except Exception as exc:  # noqa: BLE001
+        errores.append(("mre_menciones_eeuu", repr(exc)))
         print(f"    [!] mre_menciones_eeuu: {exc!r}")
+
+    if errores:
+        raise RuntimeError(f"Fallaron {len(errores)} fuentes de {DIMENSION_LIMPIA}: {errores}")
 
 
 if __name__ == "__main__":

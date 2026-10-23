@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import existe_archivo, resolve_ingestion_folder, subir_si_cambio
 
 DIMENSION = "insumos_indice"
 FUENTE = "bls_ipc_eeuu"
@@ -78,17 +78,30 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     anio_actual = datetime.now(timezone.utc).year
 
-    nuevos, existentes = [], []
-    for anio_desde, anio_hasta in _tramos_de_anios(ANIO_MINIMO, anio_actual):
+    # los tramos cerrados no cambian; el ULTIMO (el que incluye el año en
+    # curso) se pide siempre y se reemplaza si el BLS publico meses nuevos
+    # (antes quedaba congelado con el IPC del dia de la primera corrida)
+    tramos = _tramos_de_anios(ANIO_MINIMO, anio_actual)
+    nuevos, actualizados, existentes = [], [], []
+    for indice, (anio_desde, anio_hasta) in enumerate(tramos):
         nombre = f"{SERIE_IPC}_{anio_desde}_{anio_hasta}.json"
-        if existe_archivo(nombre, carpeta_id):
+        es_ultimo = indice == len(tramos) - 1
+        if not es_ultimo and existe_archivo(nombre, carpeta_id):
             existentes.append(nombre)
             continue
         contenido = _pedir_tramo(anio_desde, anio_hasta)
-        subir_archivo(contenido, nombre, carpeta_id, mime_type="application/json")
-        nuevos.append(nombre)
+        resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type="application/json")
+        if resultado == "nuevo":
+            nuevos.append(nombre)
+        elif resultado == "actualizado":
+            actualizados.append(nombre)
+        else:
+            existentes.append(nombre)
 
-    print(f"[{FUENTE}] {len(nuevos)} nuevos, {len(existentes)} ya existian (Drive: {DIMENSION}/{FUENTE})")
+    print(
+        f"[{FUENTE}] {len(nuevos)} nuevos, {len(actualizados)} actualizados, {len(existentes)} sin cambios "
+        f"(Drive: {DIMENSION}/{FUENTE})"
+    )
 
 
 if __name__ == "__main__":

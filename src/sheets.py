@@ -56,6 +56,33 @@ def write_dataframe(tab_name, df, spreadsheet_id=None):
     ws.update([df.columns.tolist()] + rows)
 
 
+def leer_pestana(tab_name):
+    """Devuelve las filas de una pestana del Sheet de auditoria como lista de
+    dicts (encabezado = claves). Lista vacia si la pestana no existe todavia."""
+    sh = _spreadsheet()
+    try:
+        ws = sh.worksheet(tab_name)
+    except gspread.WorksheetNotFound:
+        return []
+    return ws.get_all_records()
+
+
+def agregar_filas(tab_name, encabezado, filas):
+    """Agrega `filas` (listas de valores) al final de una pestana de registro,
+    creandola con `encabezado` si no existe. Nunca borra ni reescribe lo que ya
+    hay: es el patron de los registros (gdelt_registro), a diferencia de
+    write_dataframe, que reemplaza la pestana completa."""
+    if not filas:
+        return
+    sh = _spreadsheet()
+    try:
+        ws = sh.worksheet(tab_name)
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=tab_name, rows=1, cols=len(encabezado))
+        ws.append_row(encabezado)
+    ws.append_rows(filas, value_input_option="RAW")
+
+
 def append_log_row(started, finished, modules_run, errors, tab_name="pipeline_log"):
     """Agrega una fila a la pestana de log (por defecto 'pipeline_log',
     creandola si no existe). run_processing.py usa tab_name='processing_log'

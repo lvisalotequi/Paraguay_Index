@@ -1,12 +1,27 @@
 name: Run Pipeline
 
-# solo manual, desde la pestana Actions (antes corria solo cada 3 meses)
+# solo manual, desde la pestana Actions. Un solo disparo corre la etapa 01
+# (ingestion) y despues la etapa 02 (processing), asi los datos limpios de
+# 02_limpias quedan al dia sin pasos locales. La ingestion de GDELT y de la
+# Cancillería (MRE) no puede correr aca (necesita BigQuery con login personal y
+# horas de scraping): esos modulos quedan "omitidos" y processing usa lo que ya
+# esta en Drive.
 on:
   workflow_dispatch:
+    inputs:
+      etapas:
+        description: "Etapas a correr"
+        type: choice
+        default: ingestion_y_processing
+        options:
+          - ingestion_y_processing
+          - solo_ingestion
+          - solo_processing
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 240
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,10 +42,20 @@ jobs:
           printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$GITHUB_WORKSPACE/service-account.json"
           chmod 600 "$GITHUB_WORKSPACE/service-account.json"
 
-      - name: Run pipeline
+      - name: Run ingestion (etapa 01)
+        if: ${{ inputs.etapas != 'solo_processing' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
           SHEET_ID: ${{ secrets.SHEET_ID }}
           BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
           CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python run_pipeline.py
+
+      # corre aunque la ingestion haya fallado en alguna fuente (lo ya subido a
+      # Drive sigue siendo valido); el job igual queda en rojo por el paso anterior
+      - name: Run processing (etapa 02)
+        if: ${{ !cancelled() && inputs.etapas != 'solo_ingestion' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+        run: python run_processing.py

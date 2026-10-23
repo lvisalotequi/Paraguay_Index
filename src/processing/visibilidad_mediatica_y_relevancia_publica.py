@@ -75,7 +75,7 @@ import io
 
 import pandas as pd
 
-from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
+from src.drive import descargar_archivo, listar_archivos, resolve_ingestion_folder
 from src.processing._common import subir_variable
 
 DIMENSION_CRUDA = "4_Visibilidad_mediatica_y_relevancia_publica"
@@ -103,7 +103,7 @@ def _extraer_gdelt():
     {(anio,trim): valor} - tone_ponderado solo tiene clave para los
     trimestres con al menos 1 articulo de ese pais (ver docstring del
     modulo para que significa cada uno de los 3)."""
-    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, FUENTE)]
+    carpeta_id = resolve_ingestion_folder(DIMENSION_CRUDA, FUENTE)
     archivos = [a for a in listar_archivos(carpeta_id) if a["name"].startswith("monthly_")]
 
     filas = []
@@ -135,7 +135,7 @@ def _extraer_google_trends():
     los 3 terminos fijos - promedio simple de los meses del trimestre
     (indice relativo, no cantidad - ver docstring del modulo), descartando
     el mes marcado isPartial (todavia acumulando busquedas)."""
-    carpeta_id = FOLDER_IDS[(DIMENSION_CRUDA, FUENTE_TRENDS)]
+    carpeta_id = resolve_ingestion_folder(DIMENSION_CRUDA, FUENTE_TRENDS)
     archivos = listar_archivos(carpeta_id)
     archivo = sorted(archivos, key=lambda a: a["name"])[-1]
     df = pd.read_excel(io.BytesIO(descargar_archivo(archivo["id"])))
@@ -157,24 +157,28 @@ def _extraer_google_trends():
 
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
+    errores = []
+
     try:
         resultado = _extraer_gdelt()
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] gdelt_proxy_b: {exc!r}")
-        resultado = None
-
-    if resultado is not None:
         for pais, sufijo in SUFIJO_VARIABLE.items():
             articulos, tone_ponderado = resultado[pais]
             subir_variable(DIMENSION_LIMPIA, f"gdelt_proxy_articles{sufijo}", articulos, "cantidad")
             subir_variable(DIMENSION_LIMPIA, f"gdelt_tone_promedio{sufijo}", tone_ponderado, "indice")
+    except Exception as exc:  # noqa: BLE001
+        errores.append(("gdelt_proxy_b", repr(exc)))
+        print(f"    [!] gdelt_proxy_b: {exc!r}")
 
     try:
         trends = _extraer_google_trends()
         for nombre_variable, valores in trends.items():
             subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, "indice")
     except Exception as exc:  # noqa: BLE001
+        errores.append(("google_trends_paraguay", repr(exc)))
         print(f"    [!] google_trends_paraguay: {exc!r}")
+
+    if errores:
+        raise RuntimeError(f"Fallaron {len(errores)} fuentes de {DIMENSION_LIMPIA}: {errores}")
 
 
 if __name__ == "__main__":

@@ -92,9 +92,11 @@ no automatizada todavía.
   sin conversión. Expone `run()`, igual que ingestion; `run_processing.py`
   los descubre automáticamente con `pkgutil.iter_modules` (mismo patrón que
   `run_pipeline.py`) y registra la corrida en la pestaña `processing_log`
-  del Sheet (separada de `pipeline_log`). No forma parte de los
-  workflows de GitHub Actions todavía — se corre a mano cuando hace
-  falta. Cubre las 4 dimensiones — ver sección 6.
+  del Sheet (separada de `pipeline_log`). Desde la rama
+  `Pruebas-de-ajuste` (2026-10-23) el workflow "Run Pipeline" lo corre
+  después de ingestion en el mismo disparo manual (input `etapas`:
+  `ingestion_y_processing`, `solo_ingestion` o `solo_processing`); también se
+  puede correr a mano. Cubre las 4 dimensiones — ver sección 6.
 
 - Cada módulo en `src/ingestion/` expone una función `run()` sin argumentos.
   Efecto esperado: descarga cada archivo **en memoria** y lo sube directo a
@@ -173,7 +175,50 @@ no automatizada todavía.
 - **Ejecución**: GitHub Actions, **solo disparo manual** (`workflow_dispatch`)
   desde la pestaña Actions del repo ("Run Pipeline"). Hasta el 2026-10-16
   también corría programado cada 3 meses (cron `0 0 1 */3 *`); se quitó a
-  pedido del usuario.
+  pedido del usuario. El disparo manual corre ingestion y luego processing
+  (ver sección 2).
+- **Refresco de lo congelado (rama `Pruebas-de-ajuste`, 2026-10-23)**: la
+  idempotencia por nombre dejaba congelada la primera versión de todo archivo
+  que la fuente actualiza con el mismo nombre (año fiscal en curso de
+  ForeignAssistance.gov, USAspending, BLS, remesas/IED/boletín del BCP, DFC,
+  población INE) y la cuenta de servicio no puede borrar para destrabarlo.
+  `src/drive.py` tiene `subir_si_cambio()` (compara md5 y reemplaza con
+  `files.update`, que el rol Writer sí permite). fa_gov, USAspending y BLS
+  piden siempre el año en curso y el anterior; el resto descarga y compara.
+  `subir_variable()` de processing también reemplaza el CSV del día si
+  cambió. Convención nueva: `run()` de ingestion puede devolver
+  `"omitido: motivo"` (GDELT/MRE sin extracción local, Google Trends
+  bloqueado) y `run_pipeline.py` lo registra como `OMITIDO`, no como `OK`.
+  Los módulos de processing ahora terminan con error (exit 1) si falla
+  cualquier variable, después de subir las que sí salieron bien.
+- **GDELT y MRE ya no son manuales (rama `Pruebas-de-ajuste`, 2026-10-23)**:
+  las "excepciones documentadas" de las secciones 2 y 4 (extracción local con
+  `output/` en disco) quedan superadas para el uso normal; el modo manual sigue
+  existiendo como respaldo.
+  - `gdelt_proxy_b.py` + `_gdelt_auto.py`: deduce qué meses faltan por los
+    `monthly_*.csv` que ya están en Drive y los extrae con la cuenta de
+    servicio (mismo SQL y mismos topes que la extracción manual). Cada consulta
+    se registra en la pestaña `gdelt_registro` del Sheet de auditoría (el
+    reemplazo de `*.complete.json` y `query_usage_ledger.json`); el `job_id` es
+    determinístico, así que una corrida cortada se recupera sin volver a
+    facturar. **Requisito único en Google Cloud**: habilitar la API Cloud
+    Billing en el proyecto y dar a la cuenta de servicio un rol de lectura (p.
+    ej. Browser) para la verificación "proyecto sin facturación" (falla cerrada).
+    Para sembrar el registro con el historial local: `python -m
+    src.ingestion._gdelt_auto --sembrar`. El catálogo de dominios
+    (`media_catalogue_v2.json`) ahora está versionado en `gdelt_extraction/`.
+  - `mre_menciones_eeuu.py` + `mre_scraping/actualizar_incremental.py`: parte
+    del último `noticias_clasificadas_*.csv` de Drive, recorre el archivo actual
+    del MRE hasta una racha de noticias conocidas y procesa solo lo nuevo (más
+    reintentos de `error_descarga` y re-evaluación de las de 2026 marcadas
+    `fuera_periodo`). Minutos, no horas. `scraper_mre.py` pide ahora los
+    artículos del archivo actual con barra final (el sitio responde 301 a un
+    host roto, `https://www/...`, si se piden sin ella).
+  - Otros automatizados: cuota del IBRD (lee la tabla vigente de
+    worldbank.org y suma el año fiscal nuevo) y turismo del INE (prueba el
+    patrón de nombre de archivo para años nuevos).
+  - Tests: `python -m unittest discover -s tests` (30 pruebas con Drive,
+    Sheets y BigQuery simulados).
 - **Dashboard**: `.github/workflows/publicar_dashboard.yml` publica
   `dashboard/` en GitHub Pages. Es el único workflow programado (todos los
   días, 11:00 UTC), además de correr al cambiar `dashboard/` y a mano. Lee el

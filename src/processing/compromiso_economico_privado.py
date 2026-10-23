@@ -76,7 +76,7 @@ import unicodedata
 
 import pandas as pd
 
-from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
+from src.drive import descargar_archivo, listar_archivos, resolve_ingestion_folder
 from src.processing._common import reescalar, subir_variable
 
 DIMENSION_CRUDA = "3_Compromiso_economico_privado"
@@ -93,19 +93,33 @@ MESES_A_TRIM = {
 }
 
 
-def _archivo_mas_reciente(dimension, fuente, prefijo_nombre=None):
+PATRON_BOLETIN_TRIM = re.compile(r"(\d)_?trim_?(\d{4})", re.IGNORECASE)
+
+
+def _clave_boletin(archivo):
+    """Orden cronologico real de un boletin del BCP ("..._al_2_Trim_2026.xlsx"):
+    (año, trimestre). El orden alfabetico por nombre elegia mal (4_Trim_2025
+    quedaba por encima de 1_Trim_2026). Sin patron reconocible va al final de
+    la fila (0, 0, nombre)."""
+    match = PATRON_BOLETIN_TRIM.search(archivo["name"])
+    if not match:
+        return (0, 0, archivo["name"])
+    return (int(match.group(2)), int(match.group(1)), archivo["name"])
+
+
+def _archivo_mas_reciente(dimension, fuente, prefijo_nombre=None, clave=None):
     """Devuelve (nombre, bytes) del archivo mas reciente (por nombre, orden
     alfabetico - sirve para nombres con fecha ISO como los de bea) de una
     carpeta de ingestion. Si prefijo_nombre esta dado, filtra primero por
     archivos cuyo nombre empiece con ese prefijo (case-insensitive) - para
     carpetas que tienen archivos de mas de un formato/fuente historica."""
-    carpeta_id = FOLDER_IDS[(dimension, fuente)]
+    carpeta_id = resolve_ingestion_folder(dimension, fuente)
     archivos = listar_archivos(carpeta_id)
     if prefijo_nombre:
         archivos = [a for a in archivos if a["name"].lower().startswith(prefijo_nombre.lower())]
     if not archivos:
         raise RuntimeError(f"No hay archivos en {dimension}/{fuente} (prefijo={prefijo_nombre!r})")
-    archivo = sorted(archivos, key=lambda a: a["name"])[-1]
+    archivo = sorted(archivos, key=clave or (lambda a: a["name"]))[-1]
     return archivo["name"], descargar_archivo(archivo["id"])
 
 
@@ -158,7 +172,9 @@ def _extraer_fila_pais_trimestral(df, fila_anio_idx, fila_trim_idx, fila_pais):
 def _extraer_comercio_exterior():
     """Devuelve (exportaciones, importaciones), cada una {(anio,trim): valor
     nativo en miles de USD FOB - el reescalado a USD pasa en _armar_tabla}."""
-    _, contenido = _archivo_mas_reciente(DIMENSION_CRUDA, "bcp_comercio_exterior", prefijo_nombre="boletin")
+    _, contenido = _archivo_mas_reciente(
+        DIMENSION_CRUDA, "bcp_comercio_exterior", prefijo_nombre="boletin", clave=_clave_boletin
+    )
     xls = pd.ExcelFile(io.BytesIO(contenido))
 
     exportaciones = _extraer_fila_pais_trimestral(
@@ -338,8 +354,11 @@ def run():
         errores.append(("turismo_receptivo_eeuu", repr(exc)))
         print(f"    [!] turismo_receptivo_eeuu: {exc!r}")
 
-    if errores and len(errores) == 5:
-        raise RuntimeError(f"Fallaron todas las fuentes de {DIMENSION_LIMPIA}: {errores}")
+    # se intentaron todas las variables y se subieron las que salieron bien;
+    # recien ahora se avisa del resto, para que la corrida quede en rojo y no
+    # figure como OK con variables sin actualizar
+    if errores:
+        raise RuntimeError(f"Fallaron {len(errores)} fuentes de {DIMENSION_LIMPIA}: {errores}")
 
 
 if __name__ == "__main__":

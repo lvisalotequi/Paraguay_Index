@@ -316,8 +316,14 @@ def discover_current(fetcher: Fetcher, max_pages: int | None) -> Iterator[Candid
                 desc = clean_text(p.get_text(" ")) if p else ""
             if original not in seen:
                 seen.add(original)
+                # canonical_url le saca la barra final, pero el sitio actual
+                # responde 301 a "https://www/<slug>/" (host roto, "Could not
+                # resolve host: www") cuando se pide el articulo SIN barra
+                # final (verificado 2026-10-23). Se pide con barra; la URL
+                # canonica (sin barra) sigue siendo la clave de deduplicacion.
+                fetch = original if urlsplit(original).query else original + "/"
                 candidates.append(Candidate(
-                    source="actual", fetch_url=original, original_url=original,
+                    source="actual", fetch_url=fetch, original_url=original,
                     listing_date=found_date, listing_title=clean_text(link.get_text(" ")),
                     listing_description=desc,
                 ))

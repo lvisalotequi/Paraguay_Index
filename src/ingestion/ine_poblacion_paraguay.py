@@ -38,7 +38,7 @@ import unicodedata
 
 import requests
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import resolve_ingestion_folder, subir_si_cambio
 
 DIMENSION = "insumos_indice"
 FUENTE = "ine_poblacion_paraguay"
@@ -60,18 +60,14 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     nombre = _sanear_nombre(URL_ARCHIVO.rsplit("/", 1)[-1])
 
-    if existe_archivo(nombre, carpeta_id):
-        print(f"[{FUENTE}] '{nombre}' ya existia, no se subio de nuevo.")
-        return
-
     resp = requests.get(URL_ARCHIVO, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
     resp.raise_for_status()
 
-    subir_archivo(
+    resultado = subir_si_cambio(
         resp.content, nombre, carpeta_id,
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    print(f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}).")
+    print(f"[{FUENTE}] '{nombre}': {resultado} (Drive: {DIMENSION}/{FUENTE}).")
 
 
 if __name__ == "__main__":

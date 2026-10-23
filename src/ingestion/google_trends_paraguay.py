@@ -122,7 +122,7 @@ def run():
         df = _pedir_interes_con_reintentos()
     except Exception as exc:  # noqa: BLE001
         print(f"[{FUENTE}] [!] no se pudo obtener datos de Google Trends esta corrida: {exc!r}")
-        return
+        return "omitido: Google Trends no respondio (el ultimo archivo subido sigue vigente)"
 
     df = df.reset_index().rename(columns={"date": "fecha"})
     df["fecha"] = df["fecha"].dt.strftime("%Y-%m-%d")

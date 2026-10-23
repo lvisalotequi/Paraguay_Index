@@ -93,7 +93,8 @@ SEPARADOR_EXTRACTOS = " ||| "  # entre extractos de distintas menciones
 QUERY_GOVINFO = "Paraguay AND collection:BILLS"
 
 ANIO_MINIMO = 2015
-ANIO_MAXIMO = 2025
+ANIO_MAXIMO = datetime.now(timezone.utc).year  # el año en curso: ya no hay que subirlo a mano cada edicion
+INTENTOS_POR_PROYECTO = 3
 
 # "BILLS-{congreso}{tipo}{numero}{version}", ej. "BILLS-119hres1056ih".
 # El orden importa: los codigos largos van primero para que la alternancia
@@ -117,7 +118,7 @@ IDENTIFICADOR_POR_TIPO = {
 
 DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
 FUENTE = "congreso_menciones_paraguay"
-DESCRIPCION = "Proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay, 2015-2025"
+DESCRIPCION = f"Proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay, {ANIO_MINIMO}-{ANIO_MAXIMO}"
 URL_FUENTE = "https://www.congress.gov"
 
 
@@ -230,6 +231,19 @@ def _fila_desde_proyecto(congreso, tipo, numero, versiones, bill, cantidad_menci
     }
 
 
+def _con_reintentos(funcion, *args):
+    """Llama funcion(*args) hasta INTENTOS_POR_PROYECTO veces antes de rendirse
+    (un fallo transitorio de la API no debe dejar un proyecto fuera del
+    archivo ni contarlo como 0 menciones)."""
+    for intento in range(1, INTENTOS_POR_PROYECTO + 1):
+        try:
+            return funcion(*args)
+        except Exception:  # noqa: BLE001
+            if intento == INTENTOS_POR_PROYECTO:
+                raise
+            time.sleep(2 * intento)
+
+
 def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -249,16 +263,11 @@ def run():
     errores = []
     for (congreso, tipo, numero), info in sorted(candidatos.items()):
         try:
-            bill = _enriquecer_proyecto(congreso, tipo, numero)
+            bill = _con_reintentos(_enriquecer_proyecto, congreso, tipo, numero)
+            cantidad_menciones, extractos = _con_reintentos(_menciones_paraguay, info["package_id_ref"])
         except Exception as exc:  # noqa: BLE001
             errores.append((f"{congreso}-{tipo}-{numero}", repr(exc)))
             continue
-
-        try:
-            cantidad_menciones, extractos = _menciones_paraguay(info["package_id_ref"])
-        except Exception as exc:  # noqa: BLE001
-            print(f"    [!] no se pudo contar menciones de {congreso}-{tipo}-{numero}: {exc!r}")
-            cantidad_menciones, extractos = 0, ""
 
         fila = _fila_desde_proyecto(congreso, tipo, numero, info["versiones"], bill, cantidad_menciones, extractos)
         fecha_intro = fila["fecha_introduccion"] or ""
@@ -269,7 +278,15 @@ def run():
         filas.append(fila)
         time.sleep(0.2)  # pausa breve para no saturar la API
 
-    if not filas and not errores:
+    if errores:
+        # un archivo con proyectos faltantes (o con menciones contadas como 0)
+        # pasaria a ser "el mas reciente" que lee processing: mejor no subir
+        # nada y dejar el ultimo archivo completo
+        for identificador, err in errores:
+            print(f"    [!] {identificador}: {err}")
+        raise RuntimeError(f"{len(errores)} proyectos fallaron tras {INTENTOS_POR_PROYECTO} intentos; no se sube un archivo parcial")
+
+    if not filas:
         print(f"[{FUENTE}] no se encontro ningun proyecto en el rango {ANIO_MINIMO}-{ANIO_MAXIMO}.")
         return
 
@@ -283,10 +300,8 @@ def run():
 
     print(
         f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - "
-        f"{len(filas)} proyectos, {len(errores)} errores."
+        f"{len(filas)} proyectos."
     )
-    for identificador, err in errores:
-        print(f"    [!] {identificador}: {err}")
 
 
 if __name__ == "__main__":
