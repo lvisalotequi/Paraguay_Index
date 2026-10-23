@@ -16,6 +16,8 @@ looker/
 *.xls
 *.xlsx
 *.xlsb
+# Insumo del indice (lo lee construccion_indice.py): no es dato sensible y debe viajar con el repo
+!docs/diccionario_variables.xlsx
 
 # Datos crudos descargados por src/ingestion/ (no se versionan)
 data/
