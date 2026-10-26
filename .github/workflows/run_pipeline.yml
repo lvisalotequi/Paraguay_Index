@@ -35,7 +35,7 @@ jobs:
       modulos_fallidos: ${{ steps.ingestion.outputs.modulos_fallidos }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preparar entorno
         uses: ./.github/actions/preparar-entorno
@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preparar entorno
         uses: ./.github/actions/preparar-entorno
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 240
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preparar entorno
         uses: ./.github/actions/preparar-entorno
