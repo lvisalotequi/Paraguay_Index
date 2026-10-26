@@ -29,10 +29,11 @@ Salidas (02_limpias/insumos_indice_limpias/{variable}/):
 """
 import io
 import json
+from datetime import datetime, timezone
 
 import pandas as pd
 
-from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
+from src.drive import descargar_archivo, listar_archivos, resolve_ingestion_folder
 from src.processing._common import subir_variable
 
 DIMENSION_CRUDA = "insumos_indice"
@@ -40,8 +41,9 @@ DIMENSION_LIMPIA = "insumos_indice_limpias"
 
 ANIO_MINIMO = 2015
 
-# la proyeccion del INE llega a 2050; se corta en el ultimo anio del panel
-ANIO_MAXIMO_POBLACION = 2026
+# la proyeccion del INE llega a 2050; se corta en el año en curso (antes era una
+# constante a mano que habia que subir en cada edicion)
+ANIO_MAXIMO_POBLACION = datetime.now(timezone.utc).year
 
 # meses que el BLS declara inexistentes; se excluyen del promedio y no
 # cuentan como faltantes del trimestre
@@ -52,7 +54,7 @@ ROTULO_POBLACION = "Total País"
 
 
 def _carpeta(fuente):
-    return FOLDER_IDS[(DIMENSION_CRUDA, fuente)]
+    return resolve_ingestion_folder(DIMENSION_CRUDA, fuente)
 
 
 def _extraer_ipc():
@@ -161,8 +163,8 @@ def run():
         errores.append(("poblacion_paraguay", repr(exc)))
         print(f"    [!] poblacion_paraguay: {exc!r}")
 
-    if errores and len(errores) == 2:
-        raise RuntimeError(f"Fallaron todas las fuentes de {DIMENSION_LIMPIA}: {errores}")
+    if errores:
+        raise RuntimeError(f"Fallaron {len(errores)} fuentes de {DIMENSION_LIMPIA}: {errores}")
 
 
 if __name__ == "__main__":

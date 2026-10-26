@@ -39,6 +39,7 @@ def run():
     started = datetime.now(timezone.utc)
     modules_run = []
     errors = {}
+    omitidos = {}
     catalogo = []
 
     for name in discover_ingestion_modules():
@@ -49,9 +50,18 @@ def run():
 
         print(f"[run] src/ingestion/{name}.py")
         try:
-            module.run()
-            modules_run.append(name)
-            estado = "OK"
+            resultado = module.run()
+            # convencion: run() puede devolver "omitido: motivo" cuando no pudo
+            # traer nada nuevo sin que sea un error (extraccion local ausente,
+            # Google bloqueando el scraping). No pone la corrida en rojo, pero
+            # tampoco se registra como "OK": queda visible en el log y el catalogo.
+            if isinstance(resultado, str) and resultado.startswith("omitido"):
+                omitidos[name] = resultado
+                modules_run.append(f"{name} (omitido)")
+                estado = "OMITIDO"
+            else:
+                modules_run.append(name)
+                estado = "OK"
         except Exception as exc:
             errors[name] = repr(exc)
             print(f"[error] {name}: {exc}", file=sys.stderr)
@@ -84,6 +94,11 @@ def run():
     if errors:
         print(f"Pipeline termino con errores: {errors}", file=sys.stderr)
         sys.exit(1)
+
+    if omitidos:
+        print("Modulos omitidos (sin error, pero sin datos nuevos):")
+        for nombre, motivo in omitidos.items():
+            print(f"    - {nombre}: {motivo}")
 
     print(f"Pipeline OK. Modulos de ingestion ejecutados: {modules_run or '(ninguno todavia)'}")
 

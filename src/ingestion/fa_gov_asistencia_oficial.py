@@ -10,23 +10,26 @@ country_dashboard/activities/PRY/0/{anio}/{medida} -ya filtrado a Paraguay
 por la propia API, no hace falta bajar el dataset global (3.75 GB, todos
 los paises)- y sube el JSON crudo consolidado a Drive. No lo transforma.
 
-Es idempotente por anio+medida: una vez subido un anio, no se vuelve a
-pedir. Ojo: el anio fiscal en curso queda "congelado" en el valor que tenia
-al momento de la primera corrida - ForeignAssistance.gov sigue actualizando
-esos datos durante el anio. Si hace falta refrescarlo, borrar el archivo de
-ese anio en Drive y volver a correr el pipeline.
+Es idempotente por anio+medida para los anios cerrados: una vez subidos, no
+se vuelven a pedir. Los ultimos ANIOS_A_REFRESCAR anios (el fiscal en curso y
+el anterior) SI se piden en cada corrida y se reemplazan en Drive si
+cambiaron (subir_si_cambio): ForeignAssistance.gov sigue actualizando esos
+datos durante el anio, y la cuenta de servicio no puede borrar el archivo
+viejo para destrabarlo (rol Writer), asi que el refresco no puede depender de
+una persona.
 """
 import json
 from datetime import datetime, timezone
 
 import requests
 
-from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.drive import existe_archivo, resolve_ingestion_folder, subir_si_cambio
 
 URL_BASE = "https://foreignassistance.gov/country_dashboard/activities"
 PAIS = "PRY"
 MEDIDAS = ["Obligations", "Disbursements"]
 ANIO_MINIMO = 2015
+ANIOS_A_REFRESCAR = 2  # el año en curso y el anterior se piden siempre (datos aun en revision)
 PAGE_SIZE = 100
 
 DIMENSION = "1_Compromiso_financiero_oficial"
@@ -61,33 +64,39 @@ def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     anio_actual = datetime.now(timezone.utc).year
 
-    nuevos, existentes, errores = [], [], []
+    nuevos, actualizados, existentes, errores = [], [], [], []
     for anio in range(ANIO_MINIMO, anio_actual + 1):
+        refrescar = anio > anio_actual - ANIOS_A_REFRESCAR
         for medida in MEDIDAS:
             nombre = f"{PAIS}_{medida}_{anio}.json"
-            if existe_archivo(nombre, carpeta_id):
+            if not refrescar and existe_archivo(nombre, carpeta_id):
                 existentes.append(nombre)
                 continue
 
             try:
                 filas = _pedir_medida(anio, medida)
+                contenido = json.dumps(filas, ensure_ascii=False, indent=2).encode("utf-8")
+                resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type="application/json")
             except Exception as exc:  # noqa: BLE001
                 errores.append((nombre, repr(exc)))
                 continue
 
-            contenido = json.dumps(filas, ensure_ascii=False, indent=2).encode("utf-8")
-            subir_archivo(contenido, nombre, carpeta_id, mime_type="application/json")
-            nuevos.append(nombre)
+            if resultado == "nuevo":
+                nuevos.append(nombre)
+            elif resultado == "actualizado":
+                actualizados.append(nombre)
+            else:
+                existentes.append(nombre)
 
     print(
-        f"[{FUENTE}] {len(nuevos)} nuevos, {len(existentes)} ya existian, "
+        f"[{FUENTE}] {len(nuevos)} nuevos, {len(actualizados)} actualizados, {len(existentes)} sin cambios, "
         f"{len(errores)} errores (Drive: {DIMENSION}/{FUENTE})"
     )
     for nombre, err in errores:
         print(f"    [!] {nombre}: {err}")
 
-    if errores and not nuevos and not existentes:
-        raise RuntimeError(f"No se pudo subir ningun archivo: {errores}")
+    if errores:
+        raise RuntimeError(f"{len(errores)} archivos fallaron: {errores}")
 
 
 if __name__ == "__main__":

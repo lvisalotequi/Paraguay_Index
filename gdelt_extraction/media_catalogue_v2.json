@@ -1,0 +1,952 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-08-27",
+  "scope": "31 dominios observados; catálogo inicial, no exhaustivo. country_verified solo se completa con evidencia primaria suficiente. historical_evidence requiere revalidación.",
+  "sources": [
+    {
+      "domain": "lanacion.com.py",
+      "country_candidate": "PY",
+      "country_verified": "PY",
+      "verification_status": "verified",
+      "evidence_url": "https://www.lanacion.com.py/negocios_edicion_impresa/2022/05/25/desde-hace-27-anos-fortaleciendo-la-democracia-de-nuestra-nacion/",
+      "note": "Historia del editor: diario paraguayo en Fernando de la Mora; identifica al grupo Nación Media.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "PY"
+      ]
+    },
+    {
+      "domain": "ultimahora.com",
+      "country_candidate": "PY",
+      "country_verified": "PY",
+      "verification_status": "verified",
+      "evidence_url": "https://www.ultimahora.com/filtrado-ecologico-el-innovador-sistema-para-el-acceso-al-agua-segura-en-el-chaco",
+      "note": "Pie editorial: Benjamín Constant 658, Asunción.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "PY"
+      ]
+    },
+    {
+      "domain": "abc.com.py",
+      "country_candidate": "PY",
+      "country_verified": "PY",
+      "verification_status": "verified",
+      "evidence_url": "https://www.abc.com.py/nacionales/2025/01/02/indi-seguira-sobre-artigas-pero-tendra-oficinas-en-otras-tres-ciudades/",
+      "note": "Pie editorial: Editorial AZETA, Yegros 745, Asunción, Paraguay.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "PY"
+      ]
+    },
+    {
+      "domain": "d10.ultimahora.com",
+      "country_candidate": "PY",
+      "country_verified": "PY",
+      "verification_status": "verified",
+      "evidence_url": "https://d10.ultimahora.com/pretemporada-en-el-este",
+      "note": "Pie editorial identifica D10.ULTIMAHORA.COM, Asunción, Paraguay.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "PY"
+      ]
+    },
+    {
+      "domain": "foco.lanacion.com.py",
+      "country_candidate": "PY",
+      "country_verified": "PY",
+      "verification_status": "verified",
+      "evidence_url": "https://www.lanacion.com.py/negocios_edicion_impresa/2022/05/25/desde-hace-27-anos-fortaleciendo-la-democracia-de-nuestra-nacion/",
+      "note": "Historia del editor identifica a Foco dentro de Nación Media; contacto de Foco confirma mismo editor.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "PY"
+      ]
+    },
+    {
+      "domain": "listindiario.com",
+      "country_candidate": "DO",
+      "country_verified": "DO",
+      "verification_status": "verified",
+      "evidence_url": "https://listindiario.com/aviso-legal.html",
+      "note": "Aviso legal ubica al editor en Santo Domingo, República Dominicana; contradice GDELT US.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "nytimes.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.sec.gov/Archives/edgar/data/71691/000007169126000003/0000071691-26-000003-index.htm",
+      "note": "Declaración corporativa ante SEC: dirección del editor en Nueva York. No prueba sede de cada corresponsal.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "syracuse.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.advancemediany.com/wp-content/uploads/2019/10/Birth-form_2019.pdf",
+      "note": "Documento del editor para Syracuse.com/The Post-Standard: dirección Syracuse, Nueva York.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "alabamawx.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://alabamaweathernetwork.com/",
+      "note": "Raíz redirige a Alabama Weather Network, con dirección en Birmingham US. Falta validar continuidad del editor de enero 2025.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "univision.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://corporate.televisaunivision.com/press/2017/11/06/univision-news-appoints-john-b-perez-svp-production-technical-operations/amp/",
+      "note": "Comunicado propio ubica operaciones de Univision News en Doral, Florida (2017); comprobar continuidad en 2025.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "eturbonews.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://eturbonews.com/why-etn-corporation-joined-the-caribbean-tourism-organization-this-week/",
+      "note": "Editor declara sede central en Hawaii (2018), con oficinas internacionales; comprobar continuidad en 2025.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "wtop.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://wtop.com/privacy-policy/",
+      "note": "Pie propio: Chevy Chase, Maryland. No confundir sede de AP con editor WTOP.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "foodonline.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.foodonline.com/doc/hb-a-path-to-mitigating-drought-0001",
+      "note": "Identifica editor/controlador Life Science Connect, pero no se verificó sede; contacto no recuperado.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "thegardenisland.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.thegardenisland.com/2025/01/02/hawaii-news/hawaiian-electric-delivers-answers-to-puc-probe/",
+      "note": "Pie del medio: Lihue, Hawaii.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "diariolasamericas.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.diariolasamericas.com/contacto",
+      "note": "Contacto editorial en Miami, Florida, Estados Unidos.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "themarketsdaily.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.themarketsdaily.com/contact",
+      "note": "Página de contacto no recuperada; no inferir país desde temática bursátil.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "travelmarketreport.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.travelmarketreport.com/destinations/articles/costa-rica-changes-yellow-fever-vaccination-requirements",
+      "note": "Pie propio: Oyster Bay, Nueva York; American Marketing Group.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "mlsmultiplex.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://fansided.com/2017/03/13/hiring-jr-editor-launch-team/",
+      "note": "Sitio identifica pertenencia a FanSided; publicación de 2017 ubica sede editorial en Chicago. Revalidar en 2025.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "santacruzsentinel.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.santacruzsentinel.com/",
+      "note": "Acceso y búsqueda no aportaron evidencia editorial verificable en esta revisión; no negar por ello su posible origen US.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "surysur.net",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.surysur.net/una-inversion-china-modifica-la-geopolitica-de-sudamerica/",
+      "note": "Artículo accesible, pero sin sede editorial verificable; no asignar US por catálogo heredado.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "dominicanrepublicpost.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://dominicanrepublicpost.com/about-us/",
+      "note": "Acceso fallido; dominio alusivo a República Dominicana no basta para asignar país.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "volcanoes.usgs.gov",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.usgs.gov/",
+      "note": "US Geological Survey, organismo del Departamento del Interior estadounidense. Tipo fuente gubernamental, no prensa.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "listverse.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://listverse.com/about-listverse/",
+      "note": "Página propia describe equipo internacional sin sede clara; propiedad/autor no equivalen a país editorial.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "flcourier.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.flcourier.com/site/contact.html",
+      "note": "Contacto no recuperado; pendiente verificación documental del editor.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "insidermonkey.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.insidermonkey.com/contact-us/",
+      "note": "Contacto propio en Nueva York.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "telesurtv.net",
+      "country_candidate": "VE",
+      "country_verified": "VE",
+      "verification_status": "verified",
+      "evidence_url": "https://www.telesurtv.net/sobre-nosotros/",
+      "note": "Historia propia y noticia de aniversario de julio 2025 identifican sede central Caracas; medio multinacional, no US.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "yahoo.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://downloads.regulations.gov/COLC-2015-0013-86026/attachment_1.pdf",
+      "note": "Escrito del propio Yahoo ante autoridad US identifica sede en Sunnyvale; evidencia histórica, no edición territorial específica.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "coindesk.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://downloads.coindesk.com/research/state-of-blockchain/2018/q2/sob2018q2-2018.pdf",
+      "note": "Informe propio de 2018 identifica sede Nueva York; comprobar continuidad y distinguir filiales internacionales.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "ajot.com",
+      "country_candidate": "US",
+      "country_verified": "US",
+      "verification_status": "verified",
+      "evidence_url": "https://www.ajot.com/news/msc-announcement-fee-updates",
+      "note": "Pie del American Journal of Transportation en Plymouth, Massachusetts.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "latinamericanpost.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://latinamericanpost.com/contact-us/",
+      "note": "Contacto y About Us identifican Globsa.org, sin sede editorial. No asignar US ni Colombia por temas.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "vavel.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.vavel.com/en-us/staff.html",
+      "note": "Edición USA con equipo internacional; /en-us no acredita una sede estadounidense.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "No equivale a un censo longitudinal 2015–2026; verificar cambios de sede/editor antes del histórico.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "nacion.com",
+      "country_candidate": "CR",
+      "country_verified": "CR",
+      "verification_status": "verified",
+      "evidence_url": "https://www.nacion.com/gnfactory/especiales/gruponacion/informacion-accionistas.html",
+      "note": "Declaración del editor: domicilio Tibás, San José, Costa Rica.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "Evidencia editorial actual o histórica; no censo longitudinal.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "hoy.com.do",
+      "country_candidate": "DO",
+      "country_verified": "DO",
+      "verification_status": "verified",
+      "evidence_url": "https://hoy.com.do/joe-biden-se-reunira-hoy-con-edmundo-gonzalez-urrutia/",
+      "note": "Pie editorial: avenida San Martín 236, Santo Domingo, República Dominicana.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "Evidencia editorial actual o histórica; no censo longitudinal.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "acento.com.do",
+      "country_candidate": "DO",
+      "country_verified": "DO",
+      "verification_status": "verified",
+      "evidence_url": "https://acento.com.do/terminos-de-uso.html",
+      "note": "Términos del editor: Editora Acento SAS, Bohechio 4, Santo Domingo, República Dominicana.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "Evidencia editorial actual o histórica; no censo longitudinal.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "elcaribe.com.do",
+      "country_candidate": "DO",
+      "country_verified": "DO",
+      "verification_status": "verified",
+      "evidence_url": "https://www.elcaribe.com.do/periodico/",
+      "note": "Pie editorial: Editora del Caribe, Doctor Defilló 4, Santo Domingo, República Dominicana.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "temporal_note": "Evidencia editorial actual o histórica; no censo longitudinal.",
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "northcountrynow.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.northcountrynow.com/premium/theconversation/stories/how-the-earths-tilt-creates-short-cold-january-days,278443",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "thejerseytomatopress.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "http://thejerseytomatopress.com/premium/theconversation/stories/how-the-earths-tilt-creates-short-cold-january-days,117862",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "morningsun.net",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "http://www.morningsun.net/premium/theconversation/stories/how-the-earths-tilt-creates-short-cold-january-days,170079",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "almomento.net",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://almomento.net/el-gobierno-rd-dara-a-gonzalez-urrutia-un-recibimiento-especial/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "elpais.cr",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.elpais.cr/2025/01/04/la-argentina-de-milei-exitosa-en-finanzas-pero-con-economia-real-postrada/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "trivia.cracked.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://trivia.cracked.com/article_44963_15-trivia-tidbits-for-saturday-january-4-2025.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "lahaine.org",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.lahaine.org/mundo.php/la-ruptura-del-mas-un",
+      "note": "Contenido con vínculo político contextual PY-US; web actual no acredita sede editorial. No inferir país de sus secciones locales.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "aljazeera.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.aljazeera.com/features/2025/1/5/why-has-ivory-coasts-national-dish-attieke-become-a-global-icon",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "latintimes.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.latintimes.com/global-cocaine-trade-surges-2024-decentralized-networks-replace-cartels-571101",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "7dias.com.do",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://7dias.com.do/2025/01/05/comitiva-de-8-expresidentes-acompanara-opositor-venezolano-edmundo-gonzalez-urrutia-durante-reunion-con-el-presidente-luis-abinader/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "foreignaffairs.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.foreignaffairs.com/united-states/can-american-abandonment-help-europe",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "agriculture.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.agriculture.com/3-big-things-today-january-6-2025-8769571",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "nearshoreamericas.com",
+      "country_candidate": "US",
+      "country_verified": null,
+      "verification_status": "historical_evidence",
+      "evidence_url": "https://nearshoreamericas.com/wp-content/uploads/2019/10/Testimonials-Belatrix.pdf",
+      "note": "Material comercial histórico identifica Next Coast Media como editor US; página actual confirma propiedad pero no sede. Equipo repartido entre países. Falta continuidad temporal.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "laopinion.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://laopinion.com/2025/01/06/gonzalez-urrutia-mensaje-a-las-fuerzas-armadas-y-encuentro-con-biden/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "world-grain.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.world-grain.com/articles/20886-dryness-expected-in-brazil-argentina",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "elsalvador.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.elsalvador.com/noticias/internacional/joe-biden-recibe-opositor-edmundo-gonzalez-venezuela/1192027/2025/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "noticiassin.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://noticiassin.com/abinader-se-ha-prestado-a-un-montaje-perverso-contra-venezuela-1772110/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "washingtonhispanic.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://washingtonhispanic.com/nacional/biden-recibe-al-opositor-venezolano-gonzalez-urrutia-en-washington/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "eldia.com.do",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://eldia.com.do/edmundo-gonzalez-afirma-que-la-reunion-con-biden-fue-larga-fructifera-y-cordial/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "menafn.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://menafn.com/1109060208/Transcontinental-Electric-Train-Is-Designed-To-Link-Panama-With-Chile-Crossing-10-Other-Countries-On-The-Continent",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "lanaciondominicana.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://lanaciondominicana.com/noticia/edmundo-gonzalez-califica-encuentro-con-joe-biden-como-34-fructifero-y/115649/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "elnacional.com.do",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://elnacional.com.do/edmundo-gonzalez-afirma-que-la-reunion-con-biden-fue-larga-fructifera-y-cordial/",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "diariodigital.com.do",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.diariodigital.com.do/2025/01/06/venezuela-rompe-relaciones-con-paraguay-tras-declaraciones-de-pena.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "diariolibre.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.diariolibre.com/usa/actualidad/2025/01/06/edmundo-gonzalez-urrutia-se-reune-con-joe-biden/2959330",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "elpasoinc.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.elpasoinc.com/news/national/venezuela-on-tenterhooks-ahead-of-maduro-swearing-in/article_8888daab-578f-5d36-9754-928b59b5a2e8.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "kten.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.kten.com/news/venezuela-on-tenterhooks-ahead-of-maduro-swearing-in/article_a8e75f8d-8c9f-5f05-86ec-efcd1bc1d44b.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "bryantimes.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.bryantimes.com/news/venezuela-on-tenterhooks-ahead-of-maduro-swearing-in/article_8bf354c0-a379-53c2-9647-31e0f9195c40.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "bransontrilakesnews.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.bransontrilakesnews.com/news/national/article_50007039-b444-55c3-baab-1681a6276c56.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "suncommercial.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.suncommercial.com/gcdailyworld/news/national/article_8a2acf9a-d277-5960-b1ff-82eee5495a72.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    },
+    {
+      "domain": "lebanondemocrat.com",
+      "country_candidate": null,
+      "country_verified": null,
+      "verification_status": "unverified",
+      "evidence_url": "https://www.lebanondemocrat.com/news/national/venezuela-on-tenterhooks-ahead-of-maduro-swearing-in/article_a0e7d05a-2bc6-55c6-8d1d-2a1a478eccc6.html",
+      "note": "No se acreditó sede editorial con documentación suficiente en esta revisión. No inferir país de .com, /en-us ni etiqueta GDELT.",
+      "reviewed_on": "2026-08-27",
+      "valid_from": null,
+      "valid_to": null,
+      "source_country_gdelt": [
+        "US"
+      ]
+    }
+  ]
+}

@@ -13,7 +13,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent
-CATALOGUE = ROOT / 'output/pilot_2025_01_04_06/media_catalogue_v2.json'
+# El catalogo de dominios con pais verificado vive versionado junto al codigo
+# (39 KB) para que la extraccion corra en GitHub Actions, donde output/ no
+# existe. Si alguien conserva la copia vieja dentro de output/, se sigue
+# aceptando como respaldo.
+_CATALOGUE_VERSIONADO = ROOT / 'media_catalogue_v2.json'
+_CATALOGUE_LEGADO = ROOT / 'output/pilot_2025_01_04_06/media_catalogue_v2.json'
+CATALOGUE = _CATALOGUE_VERSIONADO if _CATALOGUE_VERSIONADO.exists() else _CATALOGUE_LEGADO
 
 
 def load(path):

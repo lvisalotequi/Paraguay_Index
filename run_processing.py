@@ -3,9 +3,14 @@ crudos que ingestion ya subio, los limpia/consolida y sube un CSV por
 dimension a 02_limpias) y registra la corrida en Google Sheets.
 
 Separado de run_pipeline.py a proposito: ingestion (01_crudas) y processing
-(02_limpias) son etapas distintas del pipeline (ver CLAUDE.md seccion 2) -
-processing se corre a mano cuando hace falta, no forma parte todavia del
-schedule automatico de GitHub Actions."""
+(02_limpias) son etapas distintas del pipeline (ver CLAUDE.md seccion 2). Se
+puede correr a mano o con el workflow "Run Pipeline" de GitHub Actions, que
+(rama Pruebas-de-ajuste) corre ingestion y despues este script en un solo
+disparo manual.
+
+Si un modulo falla en cualquier variable termina con codigo 1 (despues de
+subir las variables que si salieron bien): antes varios modulos solo
+imprimian "[!]" y la corrida quedaba en OK."""
 import importlib
 import pkgutil
 import sys

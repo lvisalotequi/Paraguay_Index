@@ -109,7 +109,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from src.drive import FOLDER_IDS, descargar_archivo, listar_archivos
+from src.drive import descargar_archivo, listar_archivos, resolve_ingestion_folder
 from src.processing._common import subir_variable
 
 DIMENSION_CRUDA = "1_Compromiso_financiero_oficial"
@@ -119,7 +119,7 @@ ANIO_MINIMO = 2015
 
 
 def _archivos(fuente):
-    return listar_archivos(FOLDER_IDS[(DIMENSION_CRUDA, fuente)])
+    return listar_archivos(resolve_ingestion_folder(DIMENSION_CRUDA, fuente))
 
 
 def _sumar_por_trimestre(fechas, montos):
@@ -431,54 +431,58 @@ def _archivo_mas_reciente_por_nombre(fuente):
 def run():
     print(f"[{DIMENSION_LIMPIA}]")
     fuentes = []
+    errores = []
 
-    try:
-        obligaciones_fa, desembolsos_fa = _extraer_fa_gov()
-        fuentes.append(("fa_gov_obligaciones", obligaciones_fa, "USD"))
-        fuentes.append(("fa_gov_desembolsos", desembolsos_fa, "USD"))
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] fa_gov_asistencia_oficial: {exc!r}")
-
-    try:
-        autorizado_exim, desembolsado_exim = _extraer_exim()
-        fuentes.append(("exim_autorizado", autorizado_exim, "USD"))
-        fuentes.append(("exim_desembolsado", desembolsado_exim, "USD"))
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] exim_autorizaciones: {exc!r}")
-
-    try:
-        comprometido_dfc, proyectos_vigentes_dfc = _extraer_dfc()
-        fuentes.append(("dfc_comprometido", comprometido_dfc, "USD"))
-        fuentes.append(("dfc_proyectos_vigentes", proyectos_vigentes_dfc, "cantidad"))
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] dfc_proyectos_activos: {exc!r}")
-
-    try:
-        aprobado_bid, atribuible_eeuu_bid = _extraer_bid()
-        fuentes.append(("bid_proyectos_aprobados", aprobado_bid, "USD"))
-        fuentes.append(("bid_proyectos_atribuible_eeuu", atribuible_eeuu_bid, "USD"))
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] bid_proyectos: {exc!r}")
-
-    try:
-        aprobado_bm, atribuible_eeuu_bm = _extraer_bancomundial()
-        fuentes.append(("bancomundial_proyectos_aprobados", aprobado_bm, "USD"))
-        fuentes.append(("bancomundial_proyectos_atribuible_eeuu", atribuible_eeuu_bm, "USD"))
-    except Exception as exc:  # noqa: BLE001
-        print(f"    [!] bancomundial_proyectos: {exc!r}")
-
-    for nombre_variable, extraer in (
-        ("usaspending_obligaciones", _extraer_usaspending),
-    ):
+    def intentar(etiqueta, extraer):
+        """Corre una extraccion; si falla la anota (no corta las demas) y
+        devuelve None. Los errores se reportan juntos al final de run()."""
         try:
-            fuentes.append((nombre_variable, extraer(), "USD"))
+            return extraer()
         except Exception as exc:  # noqa: BLE001
-            print(f"    [!] {nombre_variable}: {exc!r}")
+            errores.append((etiqueta, repr(exc)))
+            print(f"    [!] {etiqueta}: {exc!r}")
+            return None
+
+    resultado = intentar("fa_gov_asistencia_oficial", _extraer_fa_gov)
+    if resultado:
+        fuentes.append(("fa_gov_obligaciones", resultado[0], "USD"))
+        fuentes.append(("fa_gov_desembolsos", resultado[1], "USD"))
+
+    resultado = intentar("exim_autorizaciones", _extraer_exim)
+    if resultado:
+        fuentes.append(("exim_autorizado", resultado[0], "USD"))
+        fuentes.append(("exim_desembolsado", resultado[1], "USD"))
+
+    resultado = intentar("dfc_proyectos_activos", _extraer_dfc)
+    if resultado:
+        fuentes.append(("dfc_comprometido", resultado[0], "USD"))
+        fuentes.append(("dfc_proyectos_vigentes", resultado[1], "cantidad"))
+
+    resultado = intentar("bid_proyectos", _extraer_bid)
+    if resultado:
+        fuentes.append(("bid_proyectos_aprobados", resultado[0], "USD"))
+        fuentes.append(("bid_proyectos_atribuible_eeuu", resultado[1], "USD"))
+
+    resultado = intentar("bancomundial_proyectos", _extraer_bancomundial)
+    if resultado:
+        fuentes.append(("bancomundial_proyectos_aprobados", resultado[0], "USD"))
+        fuentes.append(("bancomundial_proyectos_atribuible_eeuu", resultado[1], "USD"))
+
+    resultado = intentar("usaspending_obligaciones", _extraer_usaspending)
+    if resultado is not None:
+        fuentes.append(("usaspending_obligaciones", resultado, "USD"))
 
     # todas las fuentes monetarias ya vienen nativamente en USD (no miles/
     # millones), a diferencia de la dimension 3 - no hace falta reescalar
     for nombre_variable, valores, unidad in fuentes:
-        subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, unidad)
+        try:
+            subir_variable(DIMENSION_LIMPIA, nombre_variable, valores, unidad)
+        except Exception as exc:  # noqa: BLE001
+            errores.append((nombre_variable, repr(exc)))
+            print(f"    [!] {nombre_variable}: {exc!r}")
+
+    if errores:
+        raise RuntimeError(f"Fallaron {len(errores)} variables de {DIMENSION_LIMPIA}: {errores}")
 
 
 if __name__ == "__main__":
