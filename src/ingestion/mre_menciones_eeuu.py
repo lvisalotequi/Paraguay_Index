@@ -47,6 +47,7 @@ from src.drive import (
     subir_archivo,
     subir_si_cambio,
 )
+from src.ingestion._bloqueo import omitido_por_bloqueo
 
 DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
 FUENTE = "mre_menciones_eeuu"
@@ -127,8 +128,9 @@ def _actualizar_incremental(carpeta_id, fecha):
         try:
             filas, resumen = incremental.actualizar(previas, cache)
         except incremental.SitioNoAccesible as exc:
-            print(f"[{FUENTE}] [!] {exc}")
-            return "omitido: el sitio del MRE no respondio (el ultimo archivo subido sigue vigente)"
+            # el MRE (Cloudflare) bloquea algunos runners de Actions: el ultimo
+            # archivo de Drive sigue vigente y run_pipeline.py reintenta en otro job
+            return omitido_por_bloqueo(FUENTE, "mre.gov.py", exc)
 
     cambios = resumen["agregadas"] + resumen["errores_resueltos"] + resumen["reevaluadas_por_periodo"]
     print(f"[{FUENTE}] base '{nombre_base}': {resumen}")

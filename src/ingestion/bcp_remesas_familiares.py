@@ -19,6 +19,7 @@ archivo nuevo en vez de sobreescribir el anterior.
 from urllib.parse import urljoin
 
 from src.drive import resolve_ingestion_folder, subir_si_cambio
+from src.ingestion._bloqueo import SitioBloqueado, omitido_por_bloqueo
 from src.ingestion._bcp_common import (
     URL_BASE,
     descargar_bytes,
@@ -53,12 +54,17 @@ def _obtener_archivo():
 
 def run():
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
-    nombre, url = _obtener_archivo()
+    try:
+        nombre, url = _obtener_archivo()
 
-    # se descarga siempre y se compara por contenido (md5): si el BCP republica
-    # el archivo CON EL MISMO NOMBRE, la version vieja ya no queda congelada
-    extension = nombre.rsplit(".", 1)[1]
-    contenido = descargar_bytes(url)
+        # se descarga siempre y se compara por contenido (md5): si el BCP republica
+        # el archivo CON EL MISMO NOMBRE, la version vieja ya no queda congelada
+        extension = nombre.rsplit(".", 1)[1]
+        contenido = descargar_bytes(url)
+    except SitioBloqueado as exc:
+        # bcp.gov.py bloquea algunos runners de Actions: no es un error de
+        # datos, el ultimo archivo de Drive sigue vigente (ver _bloqueo.py)
+        return omitido_por_bloqueo(FUENTE, "bcp.gov.py", exc)
     resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type=mime_de(extension))
     print(f"[{FUENTE}] '{nombre}': {resultado} (Drive: {DIMENSION}/{FUENTE}).")
 

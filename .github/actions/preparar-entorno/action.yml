@@ -1,0 +1,28 @@
+name: Preparar entorno
+description: Instala Python y las dependencias y escribe el JSON de la cuenta de servicio (el checkout va antes, en cada job)
+
+inputs:
+  credenciales:
+    description: JSON completo de la cuenta de servicio (secret GOOGLE_SHEETS_CREDENTIALS)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r requirements.txt
+
+    - name: Write Google service account credentials
+      shell: bash
+      env:
+        GOOGLE_SHEETS_CREDENTIALS: ${{ inputs.credenciales }}
+      run: |
+        set -euo pipefail
+        printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$GITHUB_WORKSPACE/service-account.json"
+        chmod 600 "$GITHUB_WORKSPACE/service-account.json"

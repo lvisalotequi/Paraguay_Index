@@ -81,6 +81,19 @@ class Record:
     estado: str
 
 
+def describir_respuesta(response) -> str:
+    """Estado, URL y encabezados que identifican un bloqueo de Cloudflare.
+    (Equivale a src/ingestion/_bloqueo.diagnostico: mre_scraping/ es autonomo
+    y no importa de src/, para poder correr suelto en cualquier maquina.)"""
+    headers = getattr(response, "headers", None) or {}
+    partes = [f"HTTP {response.status_code}", str(getattr(response, "url", "") or "")]
+    for campo in ("server", "cf-mitigated", "cf-ray"):
+        valor = headers.get(campo)
+        if valor:
+            partes.append(f"{campo}={valor}")
+    return " | ".join(p for p in partes if p)
+
+
 class Fetcher:
     def __init__(self, cache_dir: Path, delay: float, timeout: float, retries: int):
         self.cache_dir = cache_dir
@@ -125,7 +138,11 @@ class Fetcher:
             try:
                 self._wait_turn()
                 response = self._session().get(url, timeout=self.timeout)
-                response.raise_for_status()
+                if response.status_code >= 400:
+                    # con el estado, el servidor y cf-mitigated se distingue un
+                    # desafio de Cloudflare de un bloqueo por IP (visto desde
+                    # los runners de Actions, 2026-10-26)
+                    raise RuntimeError(describir_respuesta(response))
                 text = response.text
                 low = text[:8000].lower()
                 if any(marker in low for marker in BLOCK_MARKERS):

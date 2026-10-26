@@ -4,9 +4,14 @@ ForeignAssistance.gov (Departamento de Estado / USAID)
 
 Fuente: https://foreignassistance.gov (API que alimenta el dashboard "By Country")
 
+Ruta de la API (2026-10-26): el sitio paso su API a `/api/...`. La ruta vieja
+(`/country_dashboard/...`, sin `/api`) respondio 404 en una prueba local y 403 desde
+los runners de Actions; la nueva, `/api/country_dashboard/...`, devuelve el mismo
+JSON (`data` + `totalCount`). Verificado con 2024, 2025 y 2026, ambas medidas.
+
 Que hace: para cada anio desde ANIO_MINIMO hasta el actual, y para las dos
 medidas que expone la API (Obligations y Disbursements), pagina el endpoint
-country_dashboard/activities/PRY/0/{anio}/{medida} -ya filtrado a Paraguay
+api/country_dashboard/activities/PRY/0/{anio}/{medida} -ya filtrado a Paraguay
 por la propia API, no hace falta bajar el dataset global (3.75 GB, todos
 los paises)- y sube el JSON crudo consolidado a Drive. No lo transforma.
 
@@ -24,8 +29,9 @@ from datetime import datetime, timezone
 import requests
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_si_cambio
+from src.ingestion._bloqueo import comprobar
 
-URL_BASE = "https://foreignassistance.gov/country_dashboard/activities"
+URL_BASE = "https://foreignassistance.gov/api/country_dashboard/activities"
 PAIS = "PRY"
 MEDIDAS = ["Obligations", "Disbursements"]
 ANIO_MINIMO = 2015
@@ -48,7 +54,7 @@ def _pedir_medida(anio, medida):
             params={"page": pagina, "pageSize": PAGE_SIZE},
             timeout=30,
         )
-        r.raise_for_status()
+        comprobar(r)  # un 403 trae URL y cf-mitigated en el mensaje (ver _bloqueo.py)
         data = r.json()
         pagina_filas = data.get("data", [])
         filas.extend(pagina_filas)

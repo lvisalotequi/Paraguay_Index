@@ -2,10 +2,18 @@ name: Run Pipeline
 
 # solo manual, desde la pestana Actions. Un solo disparo corre la etapa 01
 # (ingestion) y despues la etapa 02 (processing), asi los datos limpios de
-# 02_limpias quedan al dia sin pasos locales. La ingestion de GDELT y de la
-# Cancillería (MRE) no puede correr aca (necesita BigQuery con login personal y
-# horas de scraping): esos modulos quedan "omitidos" y processing usa lo que ya
-# esta en Drive.
+# 02_limpias quedan al dia sin pasos locales.
+#
+# Tres jobs, cada uno en su propio runner (VM y, por lo tanto, IP distintas):
+#   1. ingestion   - etapa 01. Los modulos que fallan o que el sitio bloquea no
+#                    ponen el job en rojo: dejan su nombre en `modulos_fallidos`.
+#   2. reintento   - solo si hubo fallidos: vuelve a correr SOLO esos modulos en
+#                    otro runner. Los sitios del BCP y del MRE (Cloudflare)
+#                    bloquean a ratos las IP de GitHub y a veces pasan desde otra.
+#                    Si siguen bloqueados quedan como OMITIDO (el ultimo archivo
+#                    de Drive sigue vigente); un error real deja este job en rojo.
+#   3. processing  - etapa 02, siempre despues de los dos anteriores (corre aunque
+#                    alguno haya fallado: lo ya subido a Drive sigue siendo valido).
 on:
   workflow_dispatch:
     inputs:
@@ -19,31 +27,27 @@ on:
           - solo_processing
 
 jobs:
-  run-pipeline:
+  ingestion:
+    if: ${{ inputs.etapas != 'solo_processing' }}
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    outputs:
+      modulos_fallidos: ${{ steps.ingestion.outputs.modulos_fallidos }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Preparar entorno
+        uses: ./.github/actions/preparar-entorno
         with:
-          python-version: "3.11"
+          credenciales: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Write Google service account credentials
-        env:
-          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
-        run: |
-          set -euo pipefail
-          printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$GITHUB_WORKSPACE/service-account.json"
-          chmod 600 "$GITHUB_WORKSPACE/service-account.json"
-
+      # continue-on-error: un modulo fallido no pone este job en rojo, porque el
+      # job `reintento` lo vuelve a intentar desde otro runner y es ese el que
+      # decide el resultado final
       - name: Run ingestion (etapa 01)
-        if: ${{ inputs.etapas != 'solo_processing' }}
+        id: ingestion
+        continue-on-error: true
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
           SHEET_ID: ${{ secrets.SHEET_ID }}
@@ -51,10 +55,52 @@ jobs:
           CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
         run: python run_pipeline.py
 
-      # corre aunque la ingestion haya fallado en alguna fuente (lo ya subido a
-      # Drive sigue siendo valido); el job igual queda en rojo por el paso anterior
+      # si run_pipeline.py se cayo antes de informar que modulos fallaron (no es
+      # un error de modulo), el job tiene que quedar en rojo y no tapado
+      - name: Fallo de la ingestion sin lista de modulos
+        if: ${{ steps.ingestion.outcome == 'failure' && steps.ingestion.outputs.modulos_fallidos == '' }}
+        run: |
+          echo "run_pipeline.py termino con error sin informar modulos fallidos." >&2
+          exit 1
+
+  reintento:
+    needs: ingestion
+    if: ${{ !cancelled() && needs.ingestion.result == 'success' && needs.ingestion.outputs.modulos_fallidos != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preparar entorno
+        uses: ./.github/actions/preparar-entorno
+        with:
+          credenciales: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+
+      - name: Reintentar los modulos fallidos o bloqueados
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
+          CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
+          SOLO_MODULOS: ${{ needs.ingestion.outputs.modulos_fallidos }}
+        run: python run_pipeline.py
+
+  processing:
+    needs: [ingestion, reintento]
+    if: ${{ !cancelled() && inputs.etapas != 'solo_ingestion' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preparar entorno
+        uses: ./.github/actions/preparar-entorno
+        with:
+          credenciales: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+
       - name: Run processing (etapa 02)
-        if: ${{ !cancelled() && inputs.etapas != 'solo_ingestion' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
           SHEET_ID: ${{ secrets.SHEET_ID }}
