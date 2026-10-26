@@ -10,6 +10,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src import ingestion
+from src.entorno import instalar_filtro_en_consola, ocultar_claves
 from src.ingestion._bloqueo import PREFIJO_OMITIDO_REINTENTABLE
 from src.sheets import append_log_row, leer_pestana, write_dataframe
 
@@ -26,6 +27,10 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, ValueError):
         pass
+
+# nada de lo que se imprima (ni un traceback) lleva una clave en claro: la URL de
+# un HTTPError trae api_key / UserID (ver src/entorno.py)
+instalar_filtro_en_consola()
 
 
 def discover_ingestion_modules():
@@ -107,9 +112,9 @@ def run():
                 modules_run.append(f"{name}{sufijo}")
                 estado = "OK"
         except Exception as exc:
-            errors[f"{name}{sufijo}"] = repr(exc)
+            errors[f"{name}{sufijo}"] = ocultar_claves(repr(exc))
             fallidos.append(name)
-            print(f"[error] {name}: {exc}", file=sys.stderr)
+            print(f"[error] {name}: {ocultar_claves(exc)}", file=sys.stderr)
             estado = "ERROR"
 
         # Trazabilidad: de donde sale cada fuente, aunque esta corrida haya

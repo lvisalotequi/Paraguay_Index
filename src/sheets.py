@@ -4,7 +4,11 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 
-from src.entorno import leer_clave
+from src.entorno import leer_clave, ocultar_claves
+
+ESTADO_OK = "OK"
+ESTADO_OK_CON_OMITIDOS = "OK con omitidos"
+ESTADO_ERROR = "ERROR"
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -96,11 +100,19 @@ def append_log_row(started, finished, modules_run, errors, tab_name="pipeline_lo
         ws = sh.add_worksheet(title=tab_name, rows=1, cols=5)
         ws.append_row(["started_utc", "finished_utc", "modules_run", "errors", "status"])
 
-    status = "OK" if not errors else "ERROR"
+    # "OK" solo si nada quedo sin traer: un modulo omitido (sitio bloqueado, sin
+    # extraccion local...) no es un error pero tampoco es "todo al dia"
+    if errors:
+        status = ESTADO_ERROR
+    elif any("(omitido)" in m for m in modules_run):
+        status = ESTADO_OK_CON_OMITIDOS
+    else:
+        status = ESTADO_OK
+    # ultima barrera: ningun texto con una clave llega al Sheet, venga de donde venga
     ws.append_row([
         started.isoformat(),
         finished.isoformat(),
-        ", ".join(modules_run) or "(ninguno)",
-        str(errors) if errors else "",
+        ocultar_claves(", ".join(modules_run) or "(ninguno)"),
+        ocultar_claves(errors) if errors else "",
         status,
     ])

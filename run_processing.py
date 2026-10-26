@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 from src import processing
+from src.entorno import instalar_filtro_en_consola, ocultar_claves
 from src.sheets import append_log_row
 
 load_dotenv()
@@ -28,6 +29,9 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, ValueError):
         pass
+
+# nada de lo que se imprima (ni un traceback) lleva una clave en claro (ver src/entorno.py)
+instalar_filtro_en_consola()
 
 
 def discover_processing_modules():
@@ -55,8 +59,8 @@ def run():
             module.run()
             modules_run.append(name)
         except Exception as exc:
-            errors[name] = repr(exc)
-            print(f"[error] {name}: {exc}", file=sys.stderr)
+            errors[name] = ocultar_claves(repr(exc))
+            print(f"[error] {name}: {ocultar_claves(exc)}", file=sys.stderr)
 
     append_log_row(
         started=started,
