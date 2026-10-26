@@ -20,12 +20,12 @@ Requiere la variable de entorno BEA_API_KEY (gratuita, se genera en
 https://apps.bea.gov/API/signup/ - no se puede automatizar esa alta).
 """
 import json
-import os
 from datetime import datetime, timezone
 
 import requests
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.entorno import leer_clave
 
 URL_API = "https://apps.bea.gov/api/data"
 PAIS_PARAGUAY = "216"  # codigo numerico de pais que usa la API de BEA
@@ -37,7 +37,7 @@ URL_FUENTE = "https://www.bea.gov/data/intl-trade-investment/direct-investment-c
 
 
 def _pedir_datos():
-    api_key = os.environ["BEA_API_KEY"]
+    api_key = leer_clave("BEA_API_KEY")
     params = {
         "UserID": api_key,
         "method": "GETDATA",

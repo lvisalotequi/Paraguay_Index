@@ -59,6 +59,7 @@ Si un año del historico no se puede verificar en la corrida, NO se sube un
 archivo parcial (processing toma el ultimo y se perderia ese año).
 """
 import io
+import time
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -72,6 +73,9 @@ DESCRIPCION = "Turistas de EE.UU. que ingresaron a Paraguay por mes, según naci
 URL_FUENTE = "https://www.ine.gov.py/publicacion/16/anuario"
 
 IMPERSONATE = "chrome"
+TIMEOUT_DESCARGA = 300  # segundos por intento: el PDF de 2015 pesa ~11 MB y a veces baja lento
+INTENTOS = 3
+ESPERA_REINTENTO = 10  # segundos, se multiplica por el numero de intento
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"]
 
 # Historico fijo verificado a mano 2026-09-28 (ver docstring del modulo
@@ -89,6 +93,35 @@ AÑOS_HISTORICOS = {
     2023: "https://www.ine.gov.py/assets/documento/61/2.4.2_AE2023..xlsx",
     2024: "https://www.ine.gov.py/assets/documento/0/2.4.2_AE2024.xlsx",
 }
+
+
+def _descargar(url, intentos=INTENTOS, timeout=TIMEOUT_DESCARGA):
+    """Bytes de `url`, completos o con error: nunca devuelve un archivo cortado.
+
+    El Anuario 2015 (PDF de ~11 MB) llega lento desde los runners de Actions y
+    con 60 s se cortaba a los 3-6 MB (tres corridas seguidas, 2026-10-26). Se
+    reintenta ante error de red, 429 o 5xx; un 4xx es definitivo y no se
+    reintenta. Si el servidor informa Content-Length y llega menos, tambien
+    cuenta como fallo (un cuerpo cortado no debe llegar al parser)."""
+    ultimo = None
+    for intento in range(1, intentos + 1):
+        try:
+            resp = requests.get(url, impersonate=IMPERSONATE, timeout=timeout)
+            if resp.status_code == 429 or resp.status_code >= 500:
+                raise RuntimeError(f"HTTP {resp.status_code}")
+            resp.raise_for_status()
+            esperado = resp.headers.get("content-length")
+            if esperado and esperado.isdigit() and len(resp.content) < int(esperado):
+                raise RuntimeError(f"descarga incompleta: {len(resp.content)} de {esperado} bytes")
+            return resp.content
+        except Exception as exc:  # noqa: BLE001
+            ultimo = exc
+            if getattr(exc, "response", None) is not None and 400 <= exc.response.status_code < 500 and exc.response.status_code != 429:
+                raise
+            if intento < intentos:
+                print(f"    [!] intento {intento}/{intentos} de {url.rsplit('/', 1)[-1]}: {exc!r}; reintento en {ESPERA_REINTENTO * intento} s")
+                time.sleep(ESPERA_REINTENTO * intento)
+    raise ultimo
 
 
 def _fila_eeuu_desde_xlsx(contenido):
@@ -141,7 +174,7 @@ def _descubrir_anios_nuevos(anio_actual):
         for plantilla in PLANTILLAS_URL_NUEVOS:
             url = plantilla.format(anio=anio)
             try:
-                resp = requests.get(url, impersonate=IMPERSONATE, timeout=60)
+                resp = requests.get(url, impersonate=IMPERSONATE, timeout=120)
                 if resp.status_code != 200 or "html" in (resp.headers.get("content-type") or "").lower():
                     continue
                 total, meses = _fila_eeuu_desde_xlsx(resp.content)
@@ -165,12 +198,11 @@ def run():
     errores = []
     for anio, url in sorted(AÑOS_HISTORICOS.items()):
         try:
-            resp = requests.get(url, impersonate=IMPERSONATE, timeout=60)
-            resp.raise_for_status()
+            contenido = _descargar(url)
             if anio == 2015:
-                total, meses = _fila_eeuu_desde_pdf_2015(resp.content)
+                total, meses = _fila_eeuu_desde_pdf_2015(contenido)
             else:
-                total, meses = _fila_eeuu_desde_xlsx(resp.content)
+                total, meses = _fila_eeuu_desde_xlsx(contenido)
         except Exception as exc:  # noqa: BLE001
             print(f"    [!] {anio}: {exc!r}")
             errores.append(anio)

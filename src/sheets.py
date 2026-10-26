@@ -4,6 +4,8 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 
+from src.entorno import leer_clave
+
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.readonly",
@@ -21,7 +23,7 @@ def _spreadsheet(spreadsheet_id=None):
     catalogo_fuentes). spreadsheet_id permite apuntar a otro archivo - lo usa
     la etapa 04, que publica su resultado en un Sheet propio dentro de
     04_final (ver src/drive.py, resolver_hoja_de_calculo)."""
-    sheet_id = spreadsheet_id or os.environ["SHEET_ID"]
+    sheet_id = spreadsheet_id or leer_clave("SHEET_ID")
     return _client().open_by_key(sheet_id)
 
 

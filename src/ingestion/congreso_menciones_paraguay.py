@@ -71,7 +71,6 @@ https://api.congress.gov/sign-up/ - la misma key sirve para GovInfo, ambas
 APIs pertenecen al mismo sistema de api.data.gov).
 """
 import io
-import os
 import re
 import time
 from datetime import datetime, timezone
@@ -81,6 +80,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
+from src.entorno import leer_clave
 
 URL_GOVINFO_SEARCH = "https://api.govinfo.gov/search"
 URL_GOVINFO_TEXTO = "https://api.govinfo.gov/packages/{package_id}/htm"
@@ -123,7 +123,7 @@ URL_FUENTE = "https://www.congress.gov"
 
 
 def _api_key():
-    return os.environ["CONGRESS_API_KEY"]
+    return leer_clave("CONGRESS_API_KEY")
 
 
 def _buscar_proyectos_govinfo():
