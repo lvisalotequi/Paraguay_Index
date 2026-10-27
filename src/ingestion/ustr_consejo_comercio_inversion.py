@@ -1,60 +1,20 @@
-"""
-Extraccion de hitos del Consejo de Comercio e Inversion (TIFA/TIC) entre Paraguay y EE.UU.
-Office of the U.S. Trade Representative (USTR)
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 02/09/2026                                                #
+# NOMBRE: ustr_consejo_comercio_inversion                                      #
+# DETALLE: arma un Excel con los hitos del Consejo de Comercio e Inversion     #
+#   (TIFA/TIC) entre Paraguay y EE.UU.: un historico fijo de 5 hitos           #
+#   2015-2024, verificado en cada corrida, mas una revision del sitio de USTR  #
+#   desde 2025. NO cuenta ni agrupa por trimestre: eso es de src/processing/.  #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/actividad_gubernamental_y_diplomatica.py                    #
+# SALIDA: un Excel por dia (ustr_consejo_comercio_inversion_{fecha}.xlsx) en   #
+#   01_crudas/<dimension>_crudas/ustr_consejo_comercio_inversion/              #
+#-----------------------------------------------------------------------------.#
 
-Fuente: comunicados de prensa de ustr.gov. El buscador propio del sitio
-(ustr.gov/search) no funciona - devuelve cero resultados para cualquier
-termino, incluso "Paraguay" solo (confirmado 2026-09-02, sin llamada a
-ninguna API detras). No hay forma de filtrar por texto en el sitio.
-
-Que hace: combina dos partes.
-
-1. Un historico FIJO (EVENTOS_HISTORICOS) con los 5 hitos relevantes
-   encontrados entre 2015 y 2024, verificados a mano revisando TODO el
-   archivo de comunicados de USTR mes por mes (2026-09-02). Ese archivo usa
-   una estructura de URL distinta segun el rango de anios (varios
-   rediseños del sitio) - escanearlo completo de nuevo cada 3 meses seria
-   muy costoso para un periodo que ya esta cerrado y no va a cambiar.
-2. Una revision liviana del sitio VIVO (no archivado) desde ANIO_DESDE_VIVO
-   en adelante, que si se re-corre en cada ejecucion: recorre los listados
-   mensuales de ustr.gov/.../press-releases/{anio}/{mes} (estructura estable
-   del sitio actual), busca titulos que mencionen "Paraguay" junto con
-   "Trade and Investment" (cubre TIFA y "Trade and Investment Council"), y
-   para cada match entra a la pagina del comunicado para confirmar la fecha
-   exacta. Asi que futuras reuniones del Consejo se agregan solas.
-
-3. Una verificacion del historico fijo: en CADA corrida, se vuelve a pedir
-   la URL de cada uno de los 5 eventos de EVENTOS_HISTORICOS (5 pedidos
-   nada mas, no todo el archivo) y se confirma que la pagina siga
-   existiendo, siga mencionando a Paraguay, y que la fecha publicada
-   coincida con la guardada. Asi el historico fijo no queda como una foto
-   que nadie vuelve a chequear - si USTR reescribe o da de baja una pagina,
-   la columna `verificado` lo va a mostrar en la proxima corrida.
-
-Sube un Excel (una fila por evento, con columnas `verificado` y
-`nota_verificacion`) a Drive. Es idempotente por dia.
-
-Nota sobre el "tipo" de evento: de los 5 hitos del historico, solo 3 son
-literalmente "reuniones del Consejo" (2022, 2023, 2024 - primera, segunda y
-tercera reunion). Los otros 2 son hitos previos: el MOU de 2015 y la firma
-del TIFA en 2017 que crea el marco. La columna "tipo" permite filtrar segun
-que definicion de "reunion formal" se quiera usar.
-
-**Como se distingue de `state_gov_tif_vigentes.py` (agregada 2026-09-22):**
-esta fuente mide HITOS puntuales de comercio/inversion (eventos que ocurren
-una vez y no persisten). `state_gov_tif_vigentes.py` mide el STOCK de TODO
-tipo de acuerdo bilateral que sigue vigente hoy (cualquier tema, no solo
-comercio). Verificado que no son redundantes: la correlacion en niveles es
-alta (0,86) pero es un efecto de tendencia compartida (las dos series solo
-crecen en el tiempo) - en primeras diferencias, que es la prueba correcta
-para saber si realmente se mueven juntas, la correlacion cae a 0,07. Son
-estadisticamente independientes (ver DICCIONARIO_VARIABLES.md para el
-detalle del analisis). **Nota de definicion, no inconsistencia:** la TIFA
-es el mismo instrumento en las dos fuentes, pero esta lo fecha por *firma*
-(2017-01-13, el hito historico de abajo) y el TIF lo fecha por *entrada en
-vigor* (2021-03-17) - la diferencia de ~4 anios es el tramite de
-ratificacion entre ambos paises, no un error de ninguna de las dos.
-"""
+# Setup ------------------------------------------------------------------------
 import io
 import re
 from datetime import datetime, timezone
@@ -65,15 +25,64 @@ from bs4 import BeautifulSoup
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
+
+
+# Parametros -------------------------------------------------------------------
+
+# La fuente son los comunicados de prensa de ustr.gov. El buscador propio del
+# sitio (ustr.gov/search) no funciona: devuelve cero resultados para cualquier
+# termino, incluso "Paraguay" solo (confirmado 2026-09-02, sin llamada a ninguna
+# API detras). No hay forma de filtrar por texto en el sitio.
 URL_BASE = "https://ustr.gov"
 
-DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
-FUENTE = "ustr_consejo_comercio_inversion"
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente.
+DIMENSION   = "2_Actividad_gubernamental_y_diplomatica"
+FUENTE      = "ustr_consejo_comercio_inversion"
 DESCRIPCION = "Reuniones e hitos del Consejo de Comercio e Inversión (TIFA/TIC) entre Paraguay y EE.UU."
-URL_FUENTE = "https://ustr.gov/countries-regions/western-hemisphere/paraguay"
+URL_FUENTE  = "https://ustr.gov/countries-regions/western-hemisphere/paraguay"
 
-# Verificado a mano revisando el archivo completo de USTR (2015-2024), mes a
-# mes, el 2026-09-02. No volver a escanear este rango cerrado.
+# El modulo combina tres partes:
+#
+#   1. Un historico FIJO (EVENTOS_HISTORICOS) con los 5 hitos relevantes de 2015 a
+#      2024, verificados a mano revisando TODO el archivo de comunicados de USTR mes
+#      por mes (2026-09-02). Ese archivo usa una estructura de URL distinta segun el
+#      rango de anios (varios redisenos del sitio): escanearlo completo de nuevo en
+#      cada corrida seria muy costoso para un periodo ya cerrado que no va a cambiar.
+#      NO volver a escanear este rango.
+#   2. Una revision liviana del sitio VIVO desde ANIO_DESDE_VIVO en adelante, que SI
+#      se repite en cada corrida: recorre los listados mensuales de
+#      ustr.gov/.../press-releases/{anio}/{mes} (estructura estable del sitio
+#      actual), busca titulos que mencionen "Paraguay" junto con "Trade and
+#      Investment" (cubre TIFA y "Trade and Investment Council") y entra a la pagina
+#      de cada match para confirmar la fecha exacta. Asi las futuras reuniones del
+#      Consejo se agregan solas.
+#   3. Una verificacion del historico fijo: en CADA corrida se vuelve a pedir la URL
+#      de cada uno de los 5 eventos (5 pedidos, no todo el archivo) y se confirma que
+#      la pagina siga existiendo, siga mencionando a Paraguay y que la fecha
+#      publicada coincida con la guardada. Asi el historico no queda como una foto
+#      que nadie vuelve a chequear: si USTR reescribe o da de baja una pagina, la
+#      columna `verificado` lo muestra en la proxima corrida.
+#
+# El tipo de evento: de los 5 hitos, solo 3 son literalmente "reuniones del
+# Consejo" (2022, 2023 y 2024: primera, segunda y tercera reunion). Los otros 2 son
+# hitos previos: el MOU de 2015 y la firma del TIFA en 2017, que crea el marco. La
+# columna `tipo` permite filtrar segun la definicion de "reunion formal" que se
+# quiera usar.
+#
+# Como se distingue de state_gov_tif_vigentes.py (agregada 2026-09-22): esta fuente
+# mide HITOS puntuales de comercio e inversion (eventos que ocurren una vez y no
+# persisten); la otra mide el STOCK de TODO tipo de acuerdo bilateral vigente hoy.
+# Se verifico que no son redundantes: la correlacion en niveles es alta (0,86) pero
+# es un efecto de tendencia compartida (las dos series solo crecen); en primeras
+# diferencias, que es la prueba correcta, cae a 0,07 (detalle en
+# DICCIONARIO_VARIABLES.md). La TIFA es el mismo instrumento en las dos fuentes,
+# pero esta la fecha por FIRMA (2017-01-13) y el TIF por ENTRADA EN VIGOR
+# (2021-03-17): la diferencia de unos 4 anios es el tramite de ratificacion, no un
+# error de ninguna de las dos.
+#
+# Verificado a mano revisando el archivo completo de USTR (2015-2024), mes a mes,
+# el 2026-09-02.
 EVENTOS_HISTORICOS = [
     {
         "fecha": "2015-06-18",
@@ -121,6 +130,10 @@ PATRON_FECHA = re.compile(
 )
 
 
+
+# Funciones auxiliares ---------------------------------------------------------
+
+
 def _titulo_relevante(titulo):
     t = titulo.lower()
     return "paraguay" in t and ("trade and investment" in t or "tifa" in t)
@@ -130,6 +143,8 @@ def _buscar_en_mes(anio, mes):
     """Devuelve [(titulo, url)] de comunicados de ese mes con titulo relevante."""
     url = f"{URL_BASE}/about-us/policy-offices/press-office/press-releases/{anio}/{mes}"
     resp = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+
+    # un mes sin listado (todavia no llego) responde 404: no es un error
     if resp.status_code == 404:
         return []
     resp.raise_for_status()
@@ -161,6 +176,8 @@ def _fecha_del_comunicado(url):
     match = PATRON_FECHA.search(texto)
     if not match:
         return None
+
+    # "September 16, 2024" -> 2024-09-16
     fecha = datetime.strptime(match.group(0).replace(",", ""), "%B %d %Y")
     return fecha.strftime("%Y-%m-%d")
 
@@ -255,23 +272,38 @@ def _revisar_sitio_vivo():
     return eventos
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive y arma el nombre del archivo del dia
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     nombre = f"ustr_consejo_comercio_inversion_{fecha_hoy}.xlsx"
+
+    # 2. idempotente por dia: si ya se corrio hoy, no se vuelve a pedir
 
     if existe_archivo(nombre, carpeta_id):
         print(f"[{FUENTE}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
         return
 
+    # 3. historico verificado + sitio vivo, sin duplicar por URL
+
     eventos = _historico_verificado() + _revisar_sitio_vivo()
     df = pd.DataFrame(eventos).drop_duplicates(subset=["url"]).sort_values("fecha")
+
+    # 4. arma el Excel (una fila por evento) y lo sube
 
     buffer = io.BytesIO()
     df.to_excel(buffer, index=False, engine="openpyxl")
 
     mime_xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     subir_archivo(buffer.getvalue(), nombre, carpeta_id, mime_type=mime_xlsx)
+
+    # 5. validacion: cuantos eventos y cuantos quedaron sin verificar
 
     sin_verificar = (~df["verificado"]).sum()
     print(

@@ -1,75 +1,22 @@
-"""
-Extraccion de proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay
-GovInfo.gov (busqueda de texto completo) + Congress.gov (datos estructurados)
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 02/09/2026                                                #
+# NOMBRE: congreso_menciones_paraguay                                          #
+# DETALLE: arma un Excel con una fila por proyecto de ley o resolucion del     #
+#   Congreso de EE.UU. que menciona a Paraguay (introducido desde 2015),       #
+#   cruzando GovInfo (busqueda de texto completo) y Congress.gov (datos        #
+#   estructurados). Cuenta cuantas veces aparece Paraguay en cada texto. NO    #
+#   juzga el tono ni decide cuales son centrales: umbrales y variables son de  #
+#   src/processing/.                                                           #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/actividad_gubernamental_y_diplomatica.py                    #
+# SALIDA: un Excel por dia (congreso_menciones_paraguay_{fecha}.xlsx) en       #
+#   01_crudas/<dimension>_crudas/congreso_menciones_paraguay/                  #
+#-----------------------------------------------------------------------------.#
 
-Fuentes:
-    - https://api.govinfo.gov/search - busqueda de texto completo sobre la
-      coleccion BILLS (incluye HR, S, HRES, SRES, HJRES, SJRES, HCONRES,
-      SCONRES). GovInfo no permite filtrar por pais mencionado en el titulo
-      via API, asi que se trae todo lo que matchea "Paraguay" en el texto y
-      se filtra por fecha despues.
-    - https://api.congress.gov/v3/bill/{congreso}/{tipo}/{numero} - una vez
-      identificado cada proyecto (via GovInfo), se pide su info estructurada
-      (titulo, fecha de introduccion, ultima accion, camara, area de
-      politica, patrocinador) - mas completa y confiable que los metadatos
-      crudos de GovInfo.
-
-Que hace: arma un Excel con una fila por proyecto de ley/resolucion distinto
-que menciona a Paraguay, introducido entre ANIO_MINIMO y ANIO_MAXIMO, y lo
-sube a Drive. A diferencia de la mayoria de los modulos de ingestion, esta
-fuente no existe como archivo descargable en ningun lado - se construye acá
-a partir de dos APIs. El Excel resultante esta pensado para que lo lea otro
-script despues (columnas fijas, un proyecto por fila, sin texto libre en
-columnas que deberian ser numericas/fecha).
-
-GovInfo devuelve una fila por cada VERSION publicada de un mismo proyecto
-(introducido, reportado, aprobado, etc.) - se deduplica a nivel de proyecto
-(congreso + tipo + numero), no de version, porque lo que se quiere contar es
-"cuantos proyectos mencionan a Paraguay", no cuantas veces se republico cada
-uno.
-
-Cada fila incluye ademas `cantidad_menciones_paraguay` y
-`extractos_menciones_paraguay` (politica 2026-09-10, a pedido del usuario -
-antes solo se guardaba un extracto de la PRIMERA mencion, ver mas abajo):
-cuantas veces aparece "Paraguay" en el texto completo del proyecto, y un
-fragmento real (+-150 caracteres) alrededor de CADA una de esas menciones,
-unidos por " ||| " - para poder verificar cada mencion contada sin volver a
-abrir el documento entero. Se sacan del mismo documento que GovInfo ya
-encontro que contiene "Paraguay" (endpoint de contenido
-`/packages/{packageId}/htm`, no un snippet inventado).
-
-**Por que contar menciones, y no solo detectar si aparece (2026-09-10):** es
-un proxy de que tan central es Paraguay en el proyecto, no de si la mencion
-es positiva o negativa - la misma logica que la "saliency theory" del
-Comparative Manifestos Project en ciencia politica (mide la atencion a un
-tema por la proporcion de texto dedicada a mencionarlo, sin juzgar el
-contenido de cada mencion) y el "expressed agenda model" de Grimmer (2013,
-"Text as Data") para medir atencion legislativa a un tema por frecuencia.
-Probado con un piloto real (2026-09-10, 3 años: 2020, 2021, 2024): los
-proyectos con "Paraguay" en el titulo (inequivocamente sobre Paraguay)
-promediaron 12.0 menciones en el texto contra 1.14 de los que lo mencionan
-de paso - separacion clara. **Limite explicito, ya reconocido en la
-literatura**: la frecuencia no mide intensidad ("one strongly worded
-sentence potentially eclipsing a dozen milder mentions") - contar menciones
-dice cuanto se habla de Paraguay, no si el tono de esas menciones es
-favorable o critico. Ir mas alla de eso (clasificar el tono/contenido de
-cada mencion) requeriria NLP/LLM, lo cual rompe el principio del proyecto
-de que todo corra de forma determinística y sin depender de un servicio
-externo - se decidio explicitamente no hacerlo.
-
-Limite importante (el que ya existia, sigue aplicando igual): es busqueda
-de texto completo, no un filtro tematico. Un proyecto puede aparecer solo
-porque menciona a Paraguay de paso (ej. un listado de paises de la region
-en una resolucion sobre Venezuela) y no porque trate especificamente sobre
-la relacion bilateral - por eso el conteo de menciones, no solo la
-presencia/ausencia. No asumir que "aparece en este archivo" equivale a
-"proyecto sobre Paraguay" sin revisar `cantidad_menciones_paraguay`/
-`titulo`/`ultima_accion` de cada fila.
-
-Requiere la variable de entorno CONGRESS_API_KEY (gratuita, se genera en
-https://api.congress.gov/sign-up/ - la misma key sirve para GovInfo, ambas
-APIs pertenecen al mismo sistema de api.data.gov).
-"""
+# Setup ------------------------------------------------------------------------
 import io
 import re
 import time
@@ -82,24 +29,70 @@ from bs4 import BeautifulSoup
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 from src.entorno import leer_clave
 
-URL_GOVINFO_SEARCH = "https://api.govinfo.gov/search"
-URL_GOVINFO_TEXTO = "https://api.govinfo.gov/packages/{package_id}/htm"
-URL_CONGRESS_BILL = "https://api.congress.gov/v3/bill/{congreso}/{tipo}/{numero}"
 
-RADIO_EXTRACTO = 150  # caracteres a cada lado de "Paraguay" en cada extracto
+
+# Parametros -------------------------------------------------------------------
+
+# Esta fuente no existe como archivo descargable en ningun lado: se CONSTRUYE aca
+# combinando dos APIs.
+#   - GovInfo (api.govinfo.gov/search): busqueda de texto completo sobre la
+#     coleccion BILLS (HR, S, HRES, SRES, HJRES, SJRES, HCONRES, SCONRES). No
+#     permite filtrar por pais mencionado en el titulo, asi que se trae todo lo que
+#     matchea "Paraguay" en el texto y se filtra por fecha despues.
+#   - Congress.gov (api.congress.gov/v3/bill/{congreso}/{tipo}/{numero}): una vez
+#     identificado cada proyecto via GovInfo, se pide su info estructurada (titulo,
+#     fecha de introduccion, ultima accion, camara, area de politica, patrocinador),
+#     mas completa y confiable que los metadatos crudos de GovInfo.
+# El Excel resultante tiene una fila por proyecto, con columnas fijas y sin texto
+# libre en columnas que deberian ser numericas o de fecha, para que lo lea
+# src/processing/.
+URL_GOVINFO_SEARCH = "https://api.govinfo.gov/search"
+URL_GOVINFO_TEXTO  = "https://api.govinfo.gov/packages/{package_id}/htm"
+URL_CONGRESS_BILL  = "https://api.congress.gov/v3/bill/{congreso}/{tipo}/{numero}"
+
+# POR QUE CONTAR MENCIONES y no solo detectar si aparece (2026-09-10, a pedido del
+# usuario; antes se guardaba un extracto de la PRIMERA mencion): cada fila lleva
+# cantidad_menciones_paraguay (cuantas veces aparece "Paraguay" en el texto completo)
+# y extractos_menciones_paraguay (un fragmento real de +-RADIO_EXTRACTO caracteres
+# alrededor de CADA mencion, unidos por SEPARADOR_EXTRACTOS), para poder verificar
+# cada mencion contada sin abrir el documento entero. Salen del mismo documento
+# que GovInfo ya encontro que contiene "Paraguay" (endpoint /packages/{packageId}/htm),
+# no son snippets inventados.
+#
+# Es un proxy de que tan central es Paraguay en el proyecto, no de si la mencion es
+# positiva o negativa: la misma logica de la "saliency theory" del Comparative
+# Manifestos Project y del "expressed agenda model" de Grimmer (2013, "Text as
+# Data"), que miden atencion a un tema por frecuencia de mencion. Piloto real
+# (2026-09-10, 3 anios: 2020, 2021 y 2024): los proyectos con "Paraguay" en el
+# titulo promediaron 12.0 menciones contra 1.14 de los que lo mencionan de paso,
+# una separacion clara.
+#
+# LIMITE EXPLICITO, ya reconocido en la literatura: la frecuencia no mide
+# intensidad (una oracion muy fuerte puede eclipsar a una docena de menciones
+# tibias). Contar dice cuanto se habla de Paraguay, no si el tono es favorable o
+# critico. Clasificar el tono de cada mencion exigiria NLP o un LLM, lo cual rompe
+# el principio del proyecto de que todo corra de forma deterministica y sin depender
+# de un servicio externo: se decidio explicitamente no hacerlo.
+RADIO_EXTRACTO      = 150      # caracteres a cada lado de "Paraguay" en cada extracto
 SEPARADOR_EXTRACTOS = " ||| "  # entre extractos de distintas menciones
 
-# Coleccion BILLS de GovInfo = todo tipo de proyecto/resolucion del Congreso.
+# LIMITE IMPORTANTE: es busqueda de texto completo, no un filtro tematico. Un
+# proyecto puede aparecer solo porque menciona a Paraguay de paso (por ejemplo, un
+# listado de paises de la region en una resolucion sobre Venezuela) y no porque
+# trate de la relacion bilateral. Por eso el conteo de menciones: no asumir que
+# "aparece en este archivo" equivale a "proyecto sobre Paraguay" sin revisar
+# cantidad_menciones_paraguay, titulo y ultima_accion de cada fila.
+# La coleccion BILLS de GovInfo es todo tipo de proyecto o resolucion del Congreso.
 QUERY_GOVINFO = "Paraguay AND collection:BILLS"
 
-ANIO_MINIMO = 2015
-ANIO_MAXIMO = datetime.now(timezone.utc).year  # el año en curso: ya no hay que subirlo a mano cada edicion
+ANIO_MINIMO           = 2015
+ANIO_MAXIMO           = datetime.now(timezone.utc).year  # el anio en curso: no se sube a mano
 INTENTOS_POR_PROYECTO = 3
 
-# "BILLS-{congreso}{tipo}{numero}{version}", ej. "BILLS-119hres1056ih".
-# El orden importa: los codigos largos van primero para que la alternancia
-# no matchee "hr" adentro de "hres"/"hconres" (aunque re ya hace backtracking,
-# este orden es mas claro de leer).
+# "BILLS-{congreso}{tipo}{numero}{version}", por ejemplo "BILLS-119hres1056ih".
+# El orden importa: los codigos largos van primero para que la alternancia no
+# matchee "hr" adentro de "hres" o "hconres" (aunque re ya hace backtracking, este
+# orden es mas claro de leer).
 PATRON_PACKAGE_ID = re.compile(
     r"^BILLS-(\d+)(hconres|sconres|hjres|sjres|hres|sres|hr|s)(\d+)([a-z]+)$",
     re.IGNORECASE,
@@ -116,12 +109,25 @@ IDENTIFICADOR_POR_TIPO = {
     "SCONRES": "S.CON.RES.",
 }
 
-DIMENSION = "2_Actividad_gubernamental_y_diplomatica"
-FUENTE = "congreso_menciones_paraguay"
-DESCRIPCION = f"Proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay, {ANIO_MINIMO}-{ANIO_MAXIMO}"
-URL_FUENTE = "https://www.congress.gov"
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente. Van al final porque DESCRIPCION
+# usa ANIO_MINIMO y ANIO_MAXIMO.
+DIMENSION   = "2_Actividad_gubernamental_y_diplomatica"
+FUENTE      = "congreso_menciones_paraguay"
+DESCRIPCION = (
+    f"Proyectos de ley y resoluciones del Congreso de EE.UU. que mencionan a Paraguay, "
+    f"{ANIO_MINIMO}-{ANIO_MAXIMO}"
+)
+URL_FUENTE  = "https://www.congress.gov"
 
 
+
+# Funciones auxiliares ---------------------------------------------------------
+
+
+# Requiere CONGRESS_API_KEY (gratuita, se genera en https://api.congress.gov/sign-up/).
+# La misma clave sirve para GovInfo: ambas APIs pertenecen al mismo sistema de
+# api.data.gov. leer_clave quita el salto de linea que a veces trae el secret.
 def _api_key():
     return leer_clave("CONGRESS_API_KEY")
 
@@ -140,6 +146,7 @@ def _buscar_proyectos_govinfo():
         resultados = data.get("results", [])
         hits.extend(resultados)
 
+        # corta cuando no hay mas resultados o el cursor deja de avanzar
         nuevo_offset = data.get("offsetMark")
         if not resultados or not nuevo_offset or nuevo_offset == offset:
             break
@@ -148,6 +155,10 @@ def _buscar_proyectos_govinfo():
     return hits
 
 
+# GovInfo devuelve una fila por cada VERSION publicada de un mismo proyecto
+# (introducido, reportado, aprobado, etc.). Se deduplica a nivel de proyecto
+# (congreso + tipo + numero) y no de version, porque lo que se quiere contar es
+# "cuantos proyectos mencionan a Paraguay", no cuantas veces se republico cada uno.
 def _proyectos_unicos(hits):
     """Deduplica los hits de GovInfo a nivel de proyecto (congreso+tipo+numero).
     Se queda tambien con el packageId del primer hit de cada proyecto -
@@ -187,6 +198,7 @@ def _menciones_paraguay(package_id):
     if not matches:
         return 0, ""
 
+    # un fragmento por mencion, con "..." donde el texto sigue
     extractos = []
     for match in matches:
         inicio = max(match.start() - RADIO_EXTRACTO, 0)
@@ -244,20 +256,34 @@ def _con_reintentos(funcion, *args):
             time.sleep(2 * intento)
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive y arma el nombre del archivo del dia
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     nombre = f"congreso_menciones_paraguay_{fecha}.xlsx"
+
+    # 2. idempotente por dia: si ya se corrio hoy, no se vuelve a pedir
 
     if existe_archivo(nombre, carpeta_id):
         print(f"[{FUENTE}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
         return
 
+    # 3. busca en GovInfo y deduplica por proyecto
+
     hits = _buscar_proyectos_govinfo()
     proyectos = _proyectos_unicos(hits)
-    # Descarta congresos que no pueden superponerse con el rango de anios
-    # pedido, para no gastar pedidos a Congress.gov en proyectos viejos.
+
+    # descarta congresos que no pueden superponerse con el rango de anios pedido,
+    # para no gastar pedidos a Congress.gov en proyectos viejos (114 = 2015-2016)
     candidatos = {k: v for k, v in proyectos.items() if k[0] >= 114}
+
+    # 4. enriquece cada proyecto con Congress.gov y cuenta sus menciones
 
     filas = []
     errores = []
@@ -269,7 +295,16 @@ def run():
             errores.append((f"{congreso}-{tipo}-{numero}", repr(exc)))
             continue
 
-        fila = _fila_desde_proyecto(congreso, tipo, numero, info["versiones"], bill, cantidad_menciones, extractos)
+        # solo entran los proyectos introducidos entre ANIO_MINIMO y ANIO_MAXIMO
+        fila = _fila_desde_proyecto(
+            congreso,
+            tipo,
+            numero,
+            info["versiones"],
+            bill,
+            cantidad_menciones,
+            extractos,
+        )
         fecha_intro = fila["fecha_introduccion"] or ""
         if fecha_intro[:4].isdigit():
             anio_intro = int(fecha_intro[:4])
@@ -278,17 +313,23 @@ def run():
         filas.append(fila)
         time.sleep(0.2)  # pausa breve para no saturar la API
 
+    # 5. validacion de contrato: un archivo con proyectos faltantes (o con menciones
+    # contadas como 0) pasaria a ser "el mas reciente" que lee processing. Mejor no
+    # subir nada y dejar el ultimo archivo completo.
+
     if errores:
-        # un archivo con proyectos faltantes (o con menciones contadas como 0)
-        # pasaria a ser "el mas reciente" que lee processing: mejor no subir
-        # nada y dejar el ultimo archivo completo
         for identificador, err in errores:
             print(f"    [!] {identificador}: {err}")
-        raise RuntimeError(f"{len(errores)} proyectos fallaron tras {INTENTOS_POR_PROYECTO} intentos; no se sube un archivo parcial")
+        raise RuntimeError(
+            f"{len(errores)} proyectos fallaron tras {INTENTOS_POR_PROYECTO} intentos; "
+            "no se sube un archivo parcial"
+        )
 
     if not filas:
         print(f"[{FUENTE}] no se encontro ningun proyecto en el rango {ANIO_MINIMO}-{ANIO_MAXIMO}.")
         return
+
+    # 6. arma el Excel (una fila por proyecto) y lo sube
 
     df = pd.DataFrame(filas).sort_values(["fecha_introduccion", "congreso"], na_position="last")
 
@@ -297,6 +338,8 @@ def run():
 
     mime_xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     subir_archivo(buffer.getvalue(), nombre, carpeta_id, mime_type=mime_xlsx)
+
+    # 7. validacion: cuantos proyectos se subieron
 
     print(
         f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - "
