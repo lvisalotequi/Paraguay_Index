@@ -1,27 +1,20 @@
-"""
-Extraccion de Obligaciones y Desembolsos de fondos federales de EE.UU. vinculados a Paraguay
-USAspending.gov
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 26/08/2026                                                #
+# NOMBRE: usaspending_obligaciones                                             #
+# DETALLE: pide a USAspending.gov un export masivo por anio (prime awards y    #
+#   sub-awards, todos los tipos) filtrado a Paraguay, espera a que se genere y #
+#   sube el ZIP crudo a Drive. NO lo abre ni lo transforma: sumar las          #
+#   obligaciones por trimestre es trabajo de src/processing/.                  #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/compromiso_financiero_oficial.py                            #
+# SALIDA: un ZIP por anio (usaspending_paraguay_{anio}.zip) en                 #
+#   01_crudas/<dimension>_crudas/usaspending_obligaciones/                     #
+#-----------------------------------------------------------------------------.#
 
-Fuente: https://api.usaspending.gov/ (API publica, sin key), endpoint de
-descarga masiva /api/v2/bulk_download/awards/
-
-Que hace: para cada anio desde ANIO_MINIMO hasta el actual, pide un export
-masivo (prime awards + sub-awards, todos los tipos) filtrado a
-place_of_performance country=PRY -ya filtrado a Paraguay por la propia API-
-espera a que el archivo se genere (proceso asincrono: se pide, se consulta
-el estado, se descarga cuando esta listo) y sube el ZIP crudo a Drive. No
-lo transforma.
-
-Nota tecnica: el endpoint de descarga masiva de USAspending solo acepta
-rangos de fecha de hasta 1 anio por pedido, por eso se pide anio por anio
-en vez de todo el rango de una vez.
-
-Es idempotente por anio para los anios cerrados: una vez subidos, no se
-vuelven a pedir. Los ultimos ANIOS_A_REFRESCAR anios se piden siempre y se
-reemplazan en Drive (subir_si_cambio) - mismo criterio que
-fa_gov_asistencia_oficial.py. El nombre del archivo no cambia, asi que
-processing, que suma todos los ZIP de la carpeta, no cuenta un año dos veces.
-"""
+# Setup ------------------------------------------------------------------------
 import time
 from datetime import datetime, timezone
 
@@ -29,15 +22,27 @@ import requests
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_si_cambio
 
+
+
+# Parametros -------------------------------------------------------------------
+
+# Descarga masiva de USAspending (API publica, sin clave). El endpoint solo
+# acepta rangos de fecha de hasta 1 anio por pedido: por eso se pide anio por
+# anio y no todo el rango de una vez.
 URL_BULK_DOWNLOAD = "https://api.usaspending.gov/api/v2/bulk_download/awards/"
-URL_STATUS = "https://api.usaspending.gov/api/v2/download/status"
+URL_STATUS        = "https://api.usaspending.gov/api/v2/download/status"
 
-PAIS = "PRY"
+PAIS        = "PRY"  # filtra a Paraguay en la propia API (place_of_performance)
 ANIO_MINIMO = 2015
-ANIOS_A_REFRESCAR = 2  # el año en curso y el anterior se piden siempre (datos aun en revision)
 
-# Todos los tipos de prime award (BID solo permite un grupo por pedido en el
-# endpoint de busqueda paginada, pero bulk_download si acepta todos juntos).
+# Los anios cerrados se piden una sola vez. Los ultimos ANIOS_A_REFRESCAR se piden
+# SIEMPRE y se reemplazan en Drive si cambiaron (subir_si_cambio), mismo criterio
+# que fa_gov_asistencia_oficial.py. El nombre del archivo no cambia, asi que
+# processing, que suma todos los ZIP de la carpeta, no cuenta un anio dos veces.
+ANIOS_A_REFRESCAR = 2  # el anio en curso y el anterior (datos aun en revision)
+
+# Todos los tipos de prime award. El endpoint de busqueda paginada solo permite un
+# grupo por pedido, pero bulk_download acepta todos juntos.
 PRIME_AWARD_TYPES = [
     "A", "B", "C", "D",
     "IDV_A", "IDV_B", "IDV_B_A", "IDV_B_B", "IDV_B_C", "IDV_C", "IDV_D", "IDV_E",
@@ -45,13 +50,22 @@ PRIME_AWARD_TYPES = [
 ]
 SUB_AWARD_TYPES = ["grant", "procurement"]
 
+# El export es asincrono: se pide, se consulta el estado cada POLL_INTERVAL_SEG y
+# se descarga cuando esta listo. 20 minutos sobran: el tamano tipico por pais y
+# por anio es chico. Si se achica, un export lento falla con TimeoutError.
 POLL_INTERVAL_SEG = 15
-POLL_TIMEOUT_SEG = 20 * 60  # 20 minutos - el tamano tipico por pais/anio es chico
+POLL_TIMEOUT_SEG  = 20 * 60  # 20 minutos
 
-DIMENSION = "1_Compromiso_financiero_oficial"
-FUENTE = "usaspending_obligaciones"
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente.
+DIMENSION   = "1_Compromiso_financiero_oficial"
+FUENTE      = "usaspending_obligaciones"
 DESCRIPCION = "Obligaciones y desembolsos de fondos federales de EE.UU. vinculados a Paraguay, por año"
-URL_FUENTE = "https://www.usaspending.gov"
+URL_FUENTE  = "https://www.usaspending.gov"
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def _pedir_descarga(anio):
@@ -81,6 +95,7 @@ def _esperar_archivo(file_name):
         data = resp.json()
         estado = data.get("status")
 
+        # listo: devuelve la url; fallido o cancelado: corta con el mensaje de la API
         if estado == "finished":
             return data["file_url"]
         if estado in ("failed", "cancelled"):
@@ -91,18 +106,30 @@ def _esperar_archivo(file_name):
     raise TimeoutError(f"USAspending no genero {file_name} en {POLL_TIMEOUT_SEG}s")
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive de esta fuente y el anio en curso
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     anio_actual = datetime.now(timezone.utc).year
+
+    # 2. recorre cada anio y anota que paso con cada archivo
 
     nuevos, actualizados, existentes, errores = [], [], [], []
     for anio in range(ANIO_MINIMO, anio_actual + 1):
         nombre = f"usaspending_paraguay_{anio}.zip"
         refrescar = anio > anio_actual - ANIOS_A_REFRESCAR
+
+        # un anio cerrado que ya esta en Drive no se vuelve a pedir
         if not refrescar and existe_archivo(nombre, carpeta_id):
             existentes.append(nombre)
             continue
 
+        # pide el export, espera a que se genere y sube el ZIP crudo
         try:
             file_name, file_url = _pedir_descarga(anio)
             file_url = _esperar_archivo(file_name)
@@ -119,6 +146,8 @@ def run():
             actualizados.append(nombre)
         else:
             existentes.append(nombre)
+
+    # 3. validacion: resumen de la corrida; un anio fallido corta con error
 
     print(
         f"[{FUENTE}] {len(nuevos)} nuevos, {len(actualizados)} actualizados, {len(existentes)} sin cambios, "

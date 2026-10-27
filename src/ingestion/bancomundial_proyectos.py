@@ -1,21 +1,19 @@
-"""
-Extraccion de proyectos del Banco Mundial en Paraguay
-World Bank Projects API
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 26/08/2026                                                #
+# NOMBRE: bancomundial_proyectos                                               #
+# DETALLE: pide a la API de proyectos del Banco Mundial los de Paraguay        #
+#   (countrycode_exact = PY) y sube el JSON crudo a Drive. NO pondera por la   #
+#   cuota de capital de EE.UU.: eso es trabajo de src/processing/.             #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/compromiso_financiero_oficial.py                            #
+# SALIDA: un JSON por dia (bancomundial_proyectos_paraguay_{fecha}.json) en    #
+#   01_crudas/<dimension>_crudas/bancomundial_proyectos/                       #
+#-----------------------------------------------------------------------------.#
 
-Fuente: https://search.worldbank.org/api/v3/projects (API publica, sin key)
-Pagina de referencia: https://projects.bancomundial.org/es/projects-operations/projects-summary?countrycode_exact=PY
-
-Que hace: pide todos los proyectos del Banco Mundial con countrycode_exact=PY
-(filtrado a Paraguay por la propia API - no hace falta bajar el catalogo
-global de proyectos) y sube el JSON crudo a Drive. No lo transforma.
-
-Fuente complementaria a bid_proyectos.py: sirve de insumo para "Desembolsos
-multilaterales atribuibles a EE.UU." (BID + Banco Mundial, ponderados por
-cuota de capital de EE.UU.) - el ponderado por cuota de capital es trabajo
-de una etapa posterior, aca solo se extraen los proyectos crudos.
-
-Es idempotente por dia: si ya se corrio hoy, no se vuelve a pedir.
-"""
+# Setup ------------------------------------------------------------------------
 import json
 from datetime import datetime, timezone
 
@@ -23,14 +21,31 @@ import requests
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
-URL_API = "https://search.worldbank.org/api/v3/projects"
-PAIS = "PY"
+
+
+# Parametros -------------------------------------------------------------------
+
+# API publica de proyectos del Banco Mundial, sin clave. El filtro por pais lo
+# aplica la propia API (countrycode_exact): no hace falta bajar el catalogo global.
+# Pagina de referencia para verificar a mano:
+# https://projects.bancomundial.org/es/projects-operations/projects-summary?countrycode_exact=PY
+URL_API          = "https://search.worldbank.org/api/v3/projects"
+PAIS             = "PY"
 FILAS_POR_PEDIDO = 200  # el total de proyectos de Paraguay entra en un solo pedido
 
-DIMENSION = "1_Compromiso_financiero_oficial"
-FUENTE = "bancomundial_proyectos"
-DESCRIPCION = "Proyectos del Banco Mundial en Paraguay (insumo para desembolsos multilaterales atribuibles a EE.UU.)"
-URL_FUENTE = "https://projects.bancomundial.org/es/projects-operations/projects-summary?countrycode_exact=PY"
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente.
+DIMENSION   = "1_Compromiso_financiero_oficial"
+FUENTE      = "bancomundial_proyectos"
+DESCRIPCION = (
+    "Proyectos del Banco Mundial en Paraguay "
+    "(insumo para desembolsos multilaterales atribuibles a EE.UU.)"
+)
+URL_FUENTE  = "https://projects.bancomundial.org/es/projects-operations/projects-summary?countrycode_exact=PY"
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def _pedir_proyectos():
@@ -39,6 +54,8 @@ def _pedir_proyectos():
     resp.raise_for_status()
     data = resp.json()
 
+    # validacion de contrato: si Paraguay tiene mas proyectos que FILAS_POR_PEDIDO,
+    # la respuesta vendria cortada y no se sube un archivo incompleto
     total = int(data.get("total", 0))
     proyectos = data.get("projects", {})
     if len(proyectos) < total:
@@ -49,19 +66,33 @@ def _pedir_proyectos():
     return data
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive y arma el nombre del archivo del dia
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     nombre = f"bancomundial_proyectos_paraguay_{fecha}.json"
+
+    # 2. idempotente por dia: si ya se corrio hoy, no se vuelve a pedir
 
     if existe_archivo(nombre, carpeta_id):
         print(f"[{FUENTE}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
         return
 
+    # 3. pide los proyectos y sube el JSON crudo, sin transformarlo
+
     data = _pedir_proyectos()
     contenido = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
     subir_archivo(contenido, nombre, carpeta_id, mime_type="application/json")
+
+    # 4. validacion: dice que se subio
+
     print(f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}).")
 
 
