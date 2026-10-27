@@ -1,29 +1,51 @@
-"""Diagnostico y manejo de sitios que bloquean los runners de GitHub Actions.
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 26/10/2026                                                #
+# NOMBRE: _bloqueo                                                             #
+# DETALLE: ayudante para sitios que bloquean los runners de Actions (403, 429  #
+#   o un desafio de Cloudflare): arma un diagnostico con la URL y los          #
+#   encabezados, marca el bloqueo con SitioBloqueado y arma el valor omitido   #
+#   que run_pipeline.py reintenta en otro job. NO es un modulo de ingestion:   #
+#   run_pipeline.py lo ignora por el guion bajo.                               #
+#                                                                              #
+# CORRE DESPUES DE: nada; lo importan _bcp_common, fa_gov_asistencia_oficial,  #
+#   mre_menciones_eeuu y run_pipeline.py                                       #
+# SALIDA: funciones (diagnostico, comprobar, omitido_por_bloqueo) y            #
+#   SitioBloqueado; no escribe nada                                            #
+#-----------------------------------------------------------------------------.#
 
-bcp.gov.py, mre.gov.py y foreignassistance.gov (Cloudflare) responden 403 a
-las IP de los runners, a veces siempre y a veces solo en algunas corridas. Un
-"HTTP Error 403:" pelado no dice si la causa es la huella TLS, la IP o la
-frecuencia, ni en que URL paso. Este helper hace dos cosas:
-
-- `diagnostico(resp)` arma una linea con la URL, el estado y los encabezados que
-  distinguen un desafio de Cloudflare (`cf-mitigated`, `server`, `cf-ray`).
-- `SitioBloqueado` marca el caso "el sitio no nos deja pasar" (403, 429 o un
-  desafio de Cloudflare), distinto de un error de red o de formato. Los modulos
-  que no pueden traer nada nuevo por eso devuelven `omitido_por_bloqueo(...)`:
-  la corrida no queda en rojo, el ultimo archivo subido a Drive sigue vigente y
-  run_pipeline.py lo vuelve a intentar en otro job (otro runner, otra IP).
-
-Prefijo `_`: no es un modulo de ingestion, lo importan los que si lo son.
-No usar `comprobar()` donde la URL lleve una clave de API (Congreso, BEA): el
-diagnostico imprime la URL tal cual.
-"""
+# Setup ------------------------------------------------------------------------
 import re
 
+
+
+# Parametros -------------------------------------------------------------------
+
+# bcp.gov.py, mre.gov.py y foreignassistance.gov (Cloudflare) responden 403 a las IP
+# de los runners de GitHub Actions, a veces siempre y a veces solo en algunas
+# corridas. Un "HTTP Error 403:" pelado no dice si la causa es la huella TLS, la IP o
+# la frecuencia, ni en que URL paso. Este ayudante hace dos cosas:
+#
+#   - diagnostico(resp) arma una linea con la URL, el estado y los encabezados que
+#     distinguen un desafio de Cloudflare (cf-mitigated, server, cf-ray).
+#   - SitioBloqueado marca el caso "el sitio no nos deja pasar" (403, 429 o un
+#     desafio de Cloudflare), distinto de un error de red o de formato. Los modulos
+#     que no pueden traer nada nuevo por eso devuelven omitido_por_bloqueo(...): la
+#     corrida no queda en rojo, el ultimo archivo subido a Drive sigue vigente y
+#     run_pipeline.py lo vuelve a intentar en otro job (otro runner, otra IP).
+#
+# NO usar comprobar() donde la URL lleve una clave de API (Congreso, BEA): el
+# diagnostico imprime la URL tal cual.
 ESTADOS_BLOQUEO = (403, 429)
 
-# run_pipeline.py reintenta en otro job todo modulo que devuelva "omitido" con
-# este prefijo (ademas de los que terminan en error).
+# run_pipeline.py reintenta en otro job todo modulo que devuelva "omitido" con este
+# prefijo (ademas de los que terminan en error).
 PREFIJO_OMITIDO_REINTENTABLE = "omitido: sitio no accesible"
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 class SitioBloqueado(RuntimeError):
@@ -38,6 +60,9 @@ def diagnostico(resp):
         valor = headers.get(campo)
         if valor:
             partes.append(f"{campo}={valor}")
+
+    # si la respuesta es HTML, suma los primeros 100 caracteres del texto: un desafio
+    # de Cloudflare dice "Just a moment..." ahi
     if "html" in str(headers.get("content-type", "")).lower():
         try:
             texto = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", resp.text)).strip()
