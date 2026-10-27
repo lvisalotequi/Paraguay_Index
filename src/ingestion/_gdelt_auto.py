@@ -1,39 +1,19 @@
-"""Extraccion automatica de GDELT (regla proxy B) con la cuenta de servicio.
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 23/10/2026                                                #
+# NOMBRE: _gdelt_auto                                                          #
+# DETALLE: ayudante de gdelt_proxy_b: calcula los meses pendientes, consulta   #
+#   BigQuery con job_id deterministico, aplica los topes por consulta, por     #
+#   corrida y mensual, y exige que el proyecto siga sin facturacion. NO es un  #
+#   modulo de ingestion: run_pipeline.py lo ignora por el guion bajo.          #
+#                                                                              #
+# CORRE DESPUES DE: nada; lo importa gdelt_proxy_b                             #
+# SALIDA: filas en la pestana gdelt_registro del Sheet de auditoria; entrega   #
+#   los CSV mensuales a quien lo llama                                         #
+#-----------------------------------------------------------------------------.#
 
-Prefijo `_`: helper de `gdelt_proxy_b.py`, no un modulo de ingestion.
-
-Que resuelve: hasta ahora la extraccion contra BigQuery corria SOLO a mano, en
-una maquina con `gcloud auth application-default login` personal y con una
-carpeta `output/` local que guardaba los CSV, los recibos y el libro de consumo.
-Nada de eso existe en GitHub Actions. Este helper hace lo mismo con la cuenta
-de servicio y guardando todo en Drive y en el Sheet de auditoria:
-
-  - Que meses faltan: se deduce de los nombres `monthly_AAAA-MM_AAAA-MM.csv` que
-    ya estan en la carpeta de Drive (esos archivos son la fuente de verdad de
-    lo ya extraido). Faltan los meses entre feb-2015 y el ultimo mes completo
-    (con DIAS_DE_MARGEN de espera) que ningun archivo cubre.
-  - Consulta: el SQL sale de `gdelt_extraction/` (mismo codigo y misma
-    configuracion que la extraccion local, asi la serie es continua y el SQL de
-    un mes tiene el mismo hash que el de una corrida manual).
-  - Registro de consumo: cada consulta agrega una fila a la pestana
-    `gdelt_registro` del Sheet de auditoria (reemplaza al `*.complete.json` y al
-    `query_usage_ledger.json` locales). El tope mensual se calcula sobre esa
-    pestana.
-  - Sin recibos locales: el `job_id` es deterministico (mes + hash del SQL). Si
-    una corrida se corta despues de enviar la consulta, la siguiente encuentra
-    el job (Conflict) y recupera su resultado, sin volver a facturar.
-  - Seguridad heredada: tope por consulta (`maximum_bytes_billed`), tope por
-    corrida y tope mensual de `historical_workflow_config.json`, y verificacion
-    de que el proyecto NO tenga facturacion antes y despues de cada consulta
-    (falla cerrada: si no se puede confirmar, no se consulta nada).
-
-Requisito unico del lado de Google Cloud (una vez): la cuenta de servicio
-necesita poder LEER la facturacion del proyecto para esa verificacion. Hace
-falta habilitar la API "Cloud Billing" en el proyecto y darle a la cuenta un rol
-de lectura (por ejemplo "Browser"). No necesita ni debe tener permisos de
-administracion de facturacion. Sin eso, la extraccion se detiene con un mensaje
-que lo explica y el resto del pipeline sigue.
-"""
+# Setup ------------------------------------------------------------------------
 import calendar
 import hashlib
 import json
@@ -45,14 +25,48 @@ from pathlib import Path
 
 from src.sheets import agregar_filas, leer_pestana
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-CARPETA_EXTRACTOR = REPO_ROOT / "gdelt_extraction"
-CONFIG = CARPETA_EXTRACTOR / "historical_workflow_config.json"
 
-PERFIL = "proxy_b_metrics"
-GIB = 1024**3
-INICIO_GDELT = date(2015, 2, 1)  # GDELT 2.0 arranca el 2015-02-19; el primer mes extraible es feb-2015
-DIAS_DE_MARGEN = 3  # un mes se extrae recien cuando pasaron N dias de su cierre (rezago de carga de GDELT)
+
+# Parametros -------------------------------------------------------------------
+
+# Que resuelve: hasta ahora la extraccion contra BigQuery corria SOLO a mano, en una
+# maquina con "gcloud auth application-default login" personal y con una carpeta
+# output/ local que guardaba los CSV, los recibos y el libro de consumo. Nada de eso
+# existe en GitHub Actions. Este ayudante hace lo mismo con la cuenta de servicio y
+# guardando todo en Drive y en el Sheet de auditoria:
+#
+#   - Que meses faltan: se deduce de los nombres monthly_AAAA-MM_AAAA-MM.csv que ya
+#     estan en la carpeta de Drive (esos archivos son la fuente de verdad de lo ya
+#     extraido). Faltan los meses entre feb-2015 y el ultimo mes completo (con
+#     DIAS_DE_MARGEN de espera) que ningun archivo cubre.
+#   - Consulta: el SQL sale de gdelt_extraction/ (mismo codigo y misma configuracion
+#     que la extraccion local), asi la serie es continua y el SQL de un mes tiene el
+#     mismo hash que el de una corrida manual.
+#   - Registro de consumo: cada consulta agrega una fila a la pestana gdelt_registro
+#     del Sheet de auditoria (reemplaza al *.complete.json y al
+#     query_usage_ledger.json locales). El tope mensual se calcula sobre esa pestana.
+#   - Sin recibos locales: el job_id es deterministico (mes + hash del SQL). Si una
+#     corrida se corta despues de enviar la consulta, la siguiente encuentra el job
+#     (Conflict) y recupera su resultado, sin volver a facturar.
+#   - Seguridad heredada: tope por consulta (maximum_bytes_billed), tope por corrida y
+#     tope mensual de historical_workflow_config.json, y verificacion de que el
+#     proyecto NO tenga facturacion antes y despues de cada consulta (falla cerrada:
+#     si no se puede confirmar, no se consulta nada).
+#
+# REQUISITO UNICO del lado de Google Cloud (una vez): la cuenta de servicio necesita
+# poder LEER la facturacion del proyecto para esa verificacion. Hace falta habilitar
+# la API "Cloud Billing" en el proyecto y darle a la cuenta un rol de lectura (por
+# ejemplo "Browser"). No necesita ni debe tener permisos de administracion de
+# facturacion. Sin eso, la extraccion se detiene con un mensaje que lo explica y el
+# resto del pipeline sigue.
+REPO_ROOT         = Path(__file__).resolve().parents[2]
+CARPETA_EXTRACTOR = REPO_ROOT / "gdelt_extraction"
+CONFIG            = CARPETA_EXTRACTOR / "historical_workflow_config.json"
+
+PERFIL         = "proxy_b_metrics"
+GIB            = 1024**3
+INICIO_GDELT   = date(2015, 2, 1)  # primer mes extraible: GDELT 2.0 arranca el 2015-02-19
+DIAS_DE_MARGEN = 3                 # un mes se extrae tras N dias de su cierre (rezago de carga)
 
 PATRON_ARCHIVO_MENSUAL = re.compile(r"^monthly_(\d{4})-(\d{2})_(\d{4})-(\d{2})\.csv$")
 
@@ -61,6 +75,10 @@ ENCABEZADO_REGISTRO = [
     "timestamp_utc", "mes", "job_id", "bytes_procesados", "bytes_facturados",
     "gib_facturados", "mes_calendario", "sql_sha256", "origen", "estado",
 ]
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def _extractor():
@@ -76,7 +94,9 @@ def cargar_config():
     return json.loads(CONFIG.read_text(encoding="utf-8"))
 
 
-# ----------------------------------------------------------- que meses faltan
+
+# Que meses faltan -------------------------------------------------------------
+
 
 def meses_cubiertos(nombres):
     """Conjunto de 'AAAA-MM' cubiertos por los archivos monthly_*.csv (cada uno
@@ -116,7 +136,9 @@ def meses_faltantes(cubiertos, hoy):
     return faltantes
 
 
-# ---------------------------------------------------------- registro de consumo
+
+# Registro de consumo ----------------------------------------------------------
+
 
 def gib_usados_en_el_mes(registro, mes_calendario):
     total = 0.0
@@ -137,7 +159,9 @@ def fila_de_registro(mes, job_id, procesados, facturados, sql_sha, origen, estad
     ]
 
 
-# ------------------------------------------------------------------ BigQuery
+
+# BigQuery ---------------------------------------------------------------------
+
 
 def verificar_sin_facturacion(project):
     """Falla cerrada: si no se puede confirmar que el proyecto no tiene cuenta de
@@ -188,14 +212,22 @@ def extraer_mes(client, ventana, sql, tope, location):
     frame["query_bytes_processed"] = procesados
     frame["query_bytes_billed"] = facturados
     frame = frame.sort_values(["month", "source_country"])
-    return frame.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig"), procesados, facturados, job_id, recuperado
+    return (
+        frame.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig"),
+        procesados,
+        facturados,
+        job_id,
+        recuperado,
+    )
 
 
 def nombre_archivo_mensual(ventana):
     return f"monthly_{ventana.label}_{ventana.label}.csv"
 
 
-# ------------------------------------------------------------- orquestacion
+
+# Orquestacion -----------------------------------------------------------------
+
 
 def actualizar(subir, nombres_en_drive, hoy=None, client=None):
     """Extrae los meses que faltan y los entrega con `subir(nombre, bytes)`.
@@ -204,11 +236,16 @@ def actualizar(subir, nombres_en_drive, hoy=None, client=None):
     quedaron para otra corrida por alcanzar un tope (consumo mensual o por corrida).
     Lanza RuntimeError si no se puede verificar la facturacion o si una consulta falla.
     """
+
+    # 1. deduce que meses faltan; si no falta ninguno, no toca BigQuery
+
     hoy = hoy or datetime.now(timezone.utc).date()
     faltantes = meses_faltantes(meses_cubiertos(nombres_en_drive), hoy)
     if not faltantes:
         print(f"[gdelt_proxy_b] sin meses pendientes: Drive cubre hasta {ultimo_mes_extraible(hoy):%Y-%m}.")
         return [], []
+
+    # 2. carga los topes de consumo y cuanto se uso ya en el mes calendario
 
     config = cargar_config()
     tope_consulta = int(config["per_query_gib"] * GIB)
@@ -221,6 +258,8 @@ def actualizar(subir, nombres_en_drive, hoy=None, client=None):
     mes_calendario = datetime.now(timezone.utc).strftime("%Y-%m")
     usado_mes = int(gib_usados_en_el_mes(registro, mes_calendario) * GIB)
 
+    # 3. abre el cliente de BigQuery y verifica que el proyecto siga sin facturacion
+
     if client is None:
         from google.cloud import bigquery
 
@@ -230,6 +269,8 @@ def actualizar(subir, nombres_en_drive, hoy=None, client=None):
     verificar_sin_facturacion(project)
 
     from google.cloud import bigquery
+
+    # 4. extrae mes por mes, parando al llegar a un tope
 
     subidos, pendientes = [], []
     reservado_corrida = 0
@@ -243,20 +284,30 @@ def actualizar(subir, nombres_en_drive, hoy=None, client=None):
             sql, job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
         ).total_bytes_processed)
         if estimado > tope_consulta:
-            raise RuntimeError(f"{ventana.label}: la estimacion ({estimado / GIB:.2f} GiB) supera el tope por consulta")
+            raise RuntimeError(
+                f"{ventana.label}: la estimacion ({estimado / GIB:.2f} GiB) supera el tope por consulta"
+            )
         tope = tope_de_la_consulta(estimado, tope_consulta)
         if reservado_corrida + tope > tope_corrida:
-            print(f"[gdelt_proxy_b] tope por corrida ({config['per_run_gib']} GiB): el resto queda para la proxima corrida.")
+            print(
+                f"[gdelt_proxy_b] tope por corrida ({config['per_run_gib']} GiB): "
+                "el resto queda para la proxima corrida."
+            )
             pendientes = [m.strftime("%Y-%m") for m in faltantes[indice:]]
             break
         if usado_mes + reservado_corrida + tope > tope_mensual:
-            print(f"[gdelt_proxy_b] tope mensual ({config['monthly_ledger_gib']} GiB) alcanzado: el resto queda para el mes siguiente.")
+            print(
+                f"[gdelt_proxy_b] tope mensual ({config['monthly_ledger_gib']} GiB) alcanzado: "
+                "el resto queda para el mes siguiente."
+            )
             pendientes = [m.strftime("%Y-%m") for m in faltantes[indice:]]
             break
         reservado_corrida += tope
 
         verificar_sin_facturacion(project)
-        contenido, procesados, facturados, job_id, recuperado = extraer_mes(client, ventana, sql, tope, location)
+        contenido, procesados, facturados, job_id, recuperado = extraer_mes(
+            client, ventana, sql, tope, location
+        )
 
         # primero el registro (el consumo es real aunque la subida falle), despues el archivo
         agregar_filas(
@@ -277,7 +328,11 @@ def sembrar_registro_desde_ledger_local(ruta_ledger=None):
     `query_usage_ledger.json` local, para que el registro del Sheet arranque con
     todo lo ya consumido (en especial el consumo del mes en curso). Devuelve
     cuantas filas agrego. No duplica jobs que ya esten en la pestana."""
-    ruta = Path(ruta_ledger) if ruta_ledger else CARPETA_EXTRACTOR / "output" / "query_usage_ledger.json"
+    ruta = (
+        Path(ruta_ledger)
+        if ruta_ledger
+        else CARPETA_EXTRACTOR / "output" / "query_usage_ledger.json"
+    )
     ledger = json.loads(ruta.read_text(encoding="utf-8"))
     ya_registrados = {str(f.get("job_id")) for f in leer_pestana(TAB_REGISTRO)}
     filas = []
@@ -287,11 +342,18 @@ def sembrar_registro_desde_ledger_local(ruta_ledger=None):
         completado = datetime.fromisoformat(entrada["completed_at"])
         filas.append(fila_de_registro(
             entrada.get("window") or "", entrada["job_id"], entrada.get("bytes_processed") or 0,
-            entrada["bytes_billed"], entrada.get("sql_sha256") or "", "local_historico", "completado",
+            entrada["bytes_billed"],
+            entrada.get("sql_sha256") or "",
+            "local_historico",
+            "completado",
             ahora=completado.astimezone(timezone.utc),
         ))
     agregar_filas(TAB_REGISTRO, ENCABEZADO_REGISTRO, filas)
     return len(filas)
+
+
+
+# Ejecucion --------------------------------------------------------------------
 
 
 if __name__ == "__main__":
