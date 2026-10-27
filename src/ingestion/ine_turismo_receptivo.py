@@ -1,63 +1,21 @@
-"""
-Turismo receptivo a Paraguay por mes, segun nacionalidad - fila de Estados
-Unidos. Instituto Nacional de Estadistica (INE) de Paraguay.
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 29/09/2026                                                #
+# NOMBRE: ine_turismo_receptivo                                                #
+# DETALLE: descarga los Cuadros 2.4.2 del Anuario del INE (turismo receptivo   #
+#   por mes y nacionalidad) y sube un Excel con la fila de Estados Unidos de   #
+#   cada anio: historico fijo de 9 anios, re-verificado en cada corrida, mas   #
+#   los anios nuevos que halle. NO sube un archivo parcial ni estima 2016: eso #
+#   es de src/processing/.                                                     #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/compromiso_economico_privado.py                             #
+# SALIDA: un Excel por dia (ine_turismo_receptivo_{fecha}.xlsx) en             #
+#   01_crudas/<dimension>_crudas/ine_turismo_receptivo/                        #
+#-----------------------------------------------------------------------------.#
 
-Fuente: Cuadro 2.4.2 "Turismo receptivo por mes, segun nacionalidad" del
-Anuario Estadistico del INE (un cuadro por edicion anual - no es la misma
-publicacion que el "Compendio Estadistico", que solo tiene desglose por
-CONTINENTE, nunca por pais). Credito de la fuente original, tal como
-aparece en el propio cuadro: "Direccion General de Migraciones y
-Secretaria Nacional de Turismo" (SENATUR).
-
-**Por que un historico fijo en vez de descubrir los links en cada
-corrida**: el buscador del sitio del INE (ine.gov.py) es JavaScript puro -
-no devuelve resultados a un `requests`/`curl_cffi` normal (confirmado
-2026-09-28, mismo tipo de limite que ya tiene `state_gov_tias_paraguay.py`
-con el buscador de DuckDuckGo). Los 9 links de abajo se encontraron
-navegando el sitio a mano una sola vez; cada corrida los vuelve a pedir
-para confirmar que el archivo siga ahi y que la fila "Estados Unidos"
-siga presente (mismo patron que `ustr_consejo_comercio_inversion.py`/
-`state_gov_tias_paraguay.py`).
-
-**Falta 2016** (investigado a fondo 2026-09-28, no es un link que falte
-encontrar): se revisaron el Anuario Estadistico 2016 completo (311
-paginas - solo tiene el cuadro por continente, no por nacionalidad), el
-Compendio Estadistico 2017 completo (82 paginas - esa serie nunca tuvo
-desglose por pais en ninguna edicion), el sitio de Migraciones (sin datos
-historicos, solo un dashboard en vivo desde 2026), y el archivo historico
-del Observatorio de Turismo de SENATUR en Wayback Machine (que sí tiene
-una tabla equivalente para 2010-2015, pero se dejo de actualizar despues
-de 2015). El propio SENATUR firmo un convenio con la entonces DGEEC (hoy
-INE) recien el 2017-02-08 "para fortalecer su sistema de estadisticas
-turisticas" - encaja con que 2016 haya sido justo el año de transicion
-entre el sistema viejo de SENATUR (que si llego a cubrir 2015) y el nuevo,
-conjunto con el INE (que arranca en 2017). El hueco se resuelve en
-`src/processing/compromiso_economico_privado.py` con un promedio
-aritmetico simple mes a mes de 2015 y 2017 - ver ese modulo para el
-detalle y el piloto que valido el metodo.
-
-**Para agregar un año nuevo** (2025 en adelante, cuando el INE lo
-publique): buscar "turismo" en el buscador del propio sitio
-(ine.gov.py, la caja de busqueda arriba a la derecha - no funciona por
-`requests`, hay que hacerlo a mano con un navegador) y ubicar el link
-"Cuadro 2.4.2. Turismo receptivo por mes, segun nacionalidad. Año {año}" -
-agregar la URL a AÑOS_HISTORICOS.
-
-**Descubrimiento automatico de años nuevos (2026-10, rama de ajuste):** el
-buscador del INE sigue siendo inutil para `requests`, pero los archivos del
-Anuario 2017 en adelante siguen un patron de nombre estable
-(`assets/documento/{0|61}/2.4.2_AE{año}.xlsx`, verificado con 2022-2024; 2023
-lleva un punto de mas). En cada corrida, para cada año posterior al ultimo de
-AÑOS_HISTORICOS y anterior al año en curso, se prueban esas URL candidatas; la
-que responda con un Excel valido (con la fila "Estados Unidos") se suma a esa
-corrida. Si el INE cambia el patron, no se encuentra nada y el año queda sin
-dato (el aviso lo dice), igual que antes. Cuando se confirme una URL nueva
-conviene agregarla a AÑOS_HISTORICOS.
-
-Sube un unico Excel (una fila por año) a Drive. Es idempotente por dia.
-Si un año del historico no se puede verificar en la corrida, NO se sube un
-archivo parcial (processing toma el ultimo y se perderia ese año).
-"""
+# Setup ------------------------------------------------------------------------
 import io
 import time
 from datetime import datetime, timezone
@@ -67,21 +25,59 @@ from curl_cffi import requests
 
 from src.drive import existe_archivo, resolve_ingestion_folder, subir_archivo
 
-DIMENSION = "3_Compromiso_economico_privado"
-FUENTE = "ine_turismo_receptivo"
+
+
+# Parametros -------------------------------------------------------------------
+
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente.
+DIMENSION   = "3_Compromiso_economico_privado"
+FUENTE      = "ine_turismo_receptivo"
 DESCRIPCION = "Turistas de EE.UU. que ingresaron a Paraguay por mes, según nacionalidad (INE)"
-URL_FUENTE = "https://www.ine.gov.py/publicacion/16/anuario"
+URL_FUENTE  = "https://www.ine.gov.py/publicacion/16/anuario"
 
-IMPERSONATE = "chrome"
-TIMEOUT_DESCARGA = 300  # segundos por intento: el PDF de 2015 pesa ~11 MB y a veces baja lento
-INTENTOS = 3
-ESPERA_REINTENTO = 10  # segundos, se multiplica por el numero de intento
-MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"]
+# La fuente es el Cuadro 2.4.2 "Turismo receptivo por mes, segun nacionalidad" del
+# Anuario Estadistico del INE (un cuadro por edicion anual). No es la misma
+# publicacion que el "Compendio Estadistico", que solo tiene desglose por CONTINENTE,
+# nunca por pais. Credito de la fuente original, tal como aparece en el cuadro:
+# "Direccion General de Migraciones y Secretaria Nacional de Turismo" (SENATUR).
+# Se sube la fila de Estados Unidos, filtrada antes de subir (mismo criterio que
+# exim_autorizaciones.py: filtrar en el origen no es "tratamiento").
+IMPERSONATE      = "chrome"
+TIMEOUT_DESCARGA = 300  # segundos por intento: el PDF de 2015 pesa unos 11 MB y a veces baja lento
+INTENTOS         = 3
+ESPERA_REINTENTO = 10   # segundos, se multiplica por el numero de intento
+MESES            = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"]
 
-# Historico fijo verificado a mano 2026-09-28 (ver docstring del modulo
-# para por que no se puede descubrir por busqueda automatica, y por que
-# falta 2016). Cada corrida vuelve a pedir estos mismos 9 archivos para
-# confirmar que sigan existiendo y que la fila "Estados Unidos" siga ahi.
+# POR QUE UN HISTORICO FIJO en vez de descubrir los links en cada corrida: el
+# buscador del sitio del INE (ine.gov.py) es JavaScript puro y no devuelve resultados
+# a un requests o curl_cffi normal (confirmado 2026-09-28; el mismo tipo de limite
+# que state_gov_tias_paraguay.py con el buscador de DuckDuckGo). Los 9 links de abajo
+# se encontraron navegando el sitio a mano una sola vez. Cada corrida los vuelve a
+# pedir para confirmar que el archivo siga ahi y que la fila "Estados Unidos" siga
+# presente (mismo patron que ustr_consejo_comercio_inversion.py y
+# state_gov_tias_paraguay.py). Verificado a mano el 2026-09-28.
+#
+# FALTA 2016 (investigado a fondo el 2026-09-28; no es un link que falte encontrar):
+# se revisaron el Anuario Estadistico 2016 completo (311 paginas, solo tiene el
+# cuadro por continente, no por nacionalidad), el Compendio Estadistico 2017 completo
+# (82 paginas; esa serie nunca tuvo desglose por pais en ninguna edicion), el sitio de
+# Migraciones (sin datos historicos, solo un dashboard en vivo desde 2026) y el archivo
+# historico del Observatorio de Turismo de SENATUR en Wayback Machine (que si tiene
+# una tabla equivalente para 2010-2015 pero se dejo de actualizar despues de 2015).
+# SENATUR firmo un convenio con la entonces DGEEC (hoy INE) recien el 2017-02-08 "para
+# fortalecer su sistema de estadisticas turisticas": encaja con que 2016 haya sido
+# justo el anio de transicion entre el sistema viejo de SENATUR (que llego a cubrir
+# 2015) y el nuevo, conjunto con el INE (que arranca en 2017). El hueco se resuelve en
+# src/processing/compromiso_economico_privado.py con un promedio aritmetico simple
+# mes a mes de 2015 y 2017 (ver ese modulo para el detalle y el piloto que valido el
+# metodo).
+#
+# PARA AGREGAR UN ANIO NUEVO (2025 en adelante, cuando el INE lo publique): buscar
+# "turismo" en el buscador del propio sitio (ine.gov.py, la caja de busqueda arriba a
+# la derecha; no funciona por requests, hay que hacerlo a mano con un navegador),
+# ubicar el link del "Cuadro 2.4.2. Turismo receptivo por mes, segun nacionalidad"
+# del anio buscado y agregar la URL a AÑOS_HISTORICOS.
 AÑOS_HISTORICOS = {
     2015: "https://www.ine.gov.py/Publicaciones/Biblioteca/anuario2015/Anuario%20Estadistico%202015.pdf",
     2017: "https://www.ine.gov.py/assets/documento/0720bCuadro-2.4.2_2017.xlsx",
@@ -93,6 +89,10 @@ AÑOS_HISTORICOS = {
     2023: "https://www.ine.gov.py/assets/documento/61/2.4.2_AE2023..xlsx",
     2024: "https://www.ine.gov.py/assets/documento/0/2.4.2_AE2024.xlsx",
 }
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def _descargar(url, intentos=INTENTOS, timeout=TIMEOUT_DESCARGA):
@@ -116,10 +116,19 @@ def _descargar(url, intentos=INTENTOS, timeout=TIMEOUT_DESCARGA):
             return resp.content
         except Exception as exc:  # noqa: BLE001
             ultimo = exc
-            if getattr(exc, "response", None) is not None and 400 <= exc.response.status_code < 500 and exc.response.status_code != 429:
+
+            # un 4xx (salvo 429) es definitivo: no se reintenta
+            if (
+                getattr(exc, "response", None) is not None
+                and 400 <= exc.response.status_code < 500
+                and exc.response.status_code != 429
+            ):
                 raise
             if intento < intentos:
-                print(f"    [!] intento {intento}/{intentos} de {url.rsplit('/', 1)[-1]}: {exc!r}; reintento en {ESPERA_REINTENTO * intento} s")
+                print(
+                    f"    [!] intento {intento}/{intentos} de {url.rsplit('/', 1)[-1]}: {exc!r}; "
+                    f"reintento en {ESPERA_REINTENTO * intento} s"
+                )
                 time.sleep(ESPERA_REINTENTO * intento)
     raise ultimo
 
@@ -158,6 +167,15 @@ def _fila_eeuu_desde_pdf_2015(contenido):
     raise RuntimeError("no se encontro el Cuadro 2.4.2 con la fila de Estados Unidos en el PDF de 2015")
 
 
+# DESCUBRIMIENTO AUTOMATICO DE ANIOS NUEVOS (2026-10, rama de ajuste): el buscador del
+# INE sigue siendo inutil para requests, pero los archivos del Anuario 2017 en adelante
+# siguen un patron de nombre estable (assets/documento/{0|61}/2.4.2_AE{anio}.xlsx,
+# verificado con 2022-2024; 2023 lleva un punto de mas). En cada corrida, para cada
+# anio posterior al ultimo de AÑOS_HISTORICOS y anterior al anio en curso, se prueban
+# estas URL candidatas; la que responda con un Excel valido (con la fila "Estados
+# Unidos") se suma a esa corrida. Si el INE cambia el patron, no se encuentra nada y
+# el anio queda sin dato (el aviso lo dice). Cuando se confirme una URL nueva conviene
+# agregarla a AÑOS_HISTORICOS.
 PLANTILLAS_URL_NUEVOS = (
     "https://www.ine.gov.py/assets/documento/0/2.4.2_AE{anio}.xlsx",
     "https://www.ine.gov.py/assets/documento/61/2.4.2_AE{anio}.xlsx",
@@ -185,14 +203,25 @@ def _descubrir_anios_nuevos(anio_actual):
     return encontrados
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive y arma el nombre del archivo del dia
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
     fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     nombre = f"ine_turismo_receptivo_{fecha_hoy}.xlsx"
 
+    # 2. idempotente por dia: si ya se corrio hoy, no se vuelve a pedir
+
     if existe_archivo(nombre, carpeta_id):
         print(f"[{FUENTE}] '{nombre}' ya existia (ya se corrio hoy), no se subio de nuevo.")
         return
+
+    # 3. vuelve a pedir cada anio del historico y extrae su fila de EE.UU.
 
     filas = []
     errores = []
@@ -212,8 +241,13 @@ def run():
         fila.update(dict(zip(MESES, meses)))
         filas.append(fila)
 
+    # 4. validacion de contrato: si un anio no se pudo verificar, NO se sube un archivo
+    # parcial (processing toma el ultimo y se perderia ese anio)
+
     if errores:
         raise RuntimeError(f"no se pudo verificar {errores} del historico: no se sube un archivo parcial")
+
+    # 5. suma los anios nuevos que el INE ya haya publicado bajo el patron conocido
 
     nuevos = _descubrir_anios_nuevos(datetime.now(timezone.utc).year)
     for anio, (url, total, meses) in sorted(nuevos.items()):
@@ -221,6 +255,8 @@ def run():
         fila = {"anio": anio, "total": total}
         fila.update(dict(zip(MESES, meses)))
         filas.append(fila)
+
+    # 6. arma el Excel (una fila por anio) y lo sube
 
     df = pd.DataFrame(filas).sort_values("anio")
 
@@ -230,9 +266,12 @@ def run():
     mime_xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     subir_archivo(buffer.getvalue(), nombre, carpeta_id, mime_type=mime_xlsx)
 
+    # 7. validacion: cuantos anios del historico se verificaron y cuantos se descubrieron
+
     print(
         f"[{FUENTE}] '{nombre}' subido a Drive ({DIMENSION}/{FUENTE}) - "
-        f"{len(AÑOS_HISTORICOS)} años del historico verificados + {len(nuevos)} descubiertos, años: {sorted(df['anio'].tolist())}."
+        f"{len(AÑOS_HISTORICOS)} años del historico verificados + {len(nuevos)} descubiertos, "
+        f"años: {sorted(df['anio'].tolist())}."
     )
 
 

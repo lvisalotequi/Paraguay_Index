@@ -1,23 +1,20 @@
-"""
-Extraccion de datos de Inversion Extranjera Directa (ID)
-Banco Central del Paraguay (BCP)
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 26/08/2026                                                #
+# NOMBRE: bcp_inversion_directa                                                #
+# DETALLE: descarga en memoria el anexo estadistico de Inversion Directa del   #
+#   BCP (un Excel con flujos y saldos por pais del inversionista) y lo sube a  #
+#   Drive. NO lo lee ni aisla la fila de EE.UU.: eso es trabajo de             #
+#   src/processing/. Si el sitio bloquea, devuelve omitido.                    #
+#                                                                              #
+# CORRE DESPUES DE: nada (es la etapa 01); lo lee                              #
+#   src/processing/compromiso_economico_privado.py                             #
+# SALIDA: el anexo con su nombre saneado (Anexo_..._ID_1995_-_AAAA.xlsx) en    #
+#   01_crudas/<dimension>_crudas/bcp_inversion_directa/                        #
+#-----------------------------------------------------------------------------.#
 
-Fuente: https://www.bcp.gov.py/web/institucional/-inversion-directa-id-
-
-Que hace: descarga EN MEMORIA el anexo estadistico de Inversion Directa (un
-unico Excel con varios cuadros: flujos y saldos por componentes, por
-residencia del inversionista -incluye una fila "ESTADOS UNIDOS" con datos
-trimestrales- y por actividad economica) y lo sube a la carpeta de Drive de
-la dimension correspondiente. No lo lee, no lo transforma, no aisla la fila
-de EE.UU. - eso es trabajo de una etapa posterior (clean/integracion), que
-todavia no existe en este repo. Es idempotente: si ya existe un archivo con
-ese nombre en Drive, lo saltea.
-
-Nota: el BCP publica un unico archivo con toda la serie (no uno por anio).
-El nombre incluye el rango de anios (ej. "...1995 - 2024.xlsx") y cambia
-cuando el BCP actualiza el anexo, asi que cada actualizacion sube como
-archivo nuevo en vez de sobreescribir el anterior.
-"""
+# Setup ------------------------------------------------------------------------
 from urllib.parse import urljoin
 
 from src.drive import resolve_ingestion_folder, subir_si_cambio
@@ -31,18 +28,38 @@ from src.ingestion._bcp_common import (
     obtener_html,
 )
 
+
+
+# Parametros -------------------------------------------------------------------
+
+# La fuente es el anexo estadistico de Inversion Directa (ID): un unico Excel con
+# varios cuadros (flujos y saldos por componentes, por residencia del inversionista
+# y por actividad economica). El cuadro por residencia incluye una fila "ESTADOS
+# UNIDOS" con datos trimestrales.
+#
+# El BCP publica un unico archivo con toda la serie, no uno por anio. El nombre
+# incluye el rango de anios (por ejemplo "...1995 - 2024.xlsx") y cambia cuando el
+# BCP actualiza el anexo, asi que cada actualizacion sube como archivo nuevo en vez
+# de sobreescribir el anterior.
 URL_PAGINA = "https://www.bcp.gov.py/web/institucional/-inversion-directa-id-"
 
-DIMENSION = "3_Compromiso_economico_privado"
-FUENTE = "bcp_inversion_directa"
+# Trazabilidad: run_pipeline.py arma la pestana catalogo_fuentes con estas cuatro
+# constantes. No se cambian sin cambiar la fuente.
+DIMENSION   = "3_Compromiso_economico_privado"
+FUENTE      = "bcp_inversion_directa"
 DESCRIPCION = "Inversión Extranjera Directa en Paraguay por país de origen (incluye EE.UU.), trimestral"
-URL_FUENTE = URL_PAGINA
+URL_FUENTE  = URL_PAGINA
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def _obtener_archivo():
     """Devuelve (nombre_de_archivo, url) del anexo publicado en la pagina."""
     soup = obtener_html(URL_PAGINA)
 
+    # el anexo es el unico documento de la pagina
     link = soup.select_one('a[href*="/documents/"]')
     if not link:
         raise RuntimeError("No se encontro ningun link de documento en la pagina")
@@ -54,8 +71,18 @@ def _obtener_archivo():
     return nombre, url
 
 
+
+# Ejecucion --------------------------------------------------------------------
+
+
 def run():
+
+    # 1. resuelve la carpeta de Drive de esta fuente
+
     carpeta_id = resolve_ingestion_folder(DIMENSION, FUENTE)
+
+    # 2. encuentra y descarga el anexo vigente. No lo lee ni aisla la fila de EE.UU.:
+    # eso es trabajo de src/processing/.
     try:
         nombre, url = _obtener_archivo()
 
@@ -67,7 +94,13 @@ def run():
         # bcp.gov.py bloquea algunos runners de Actions: no es un error de
         # datos, el ultimo archivo de Drive sigue vigente (ver _bloqueo.py)
         return omitido_por_bloqueo(FUENTE, "bcp.gov.py", exc)
+
+    # 3. sube el archivo; se reemplaza solo si el contenido cambio
+
     resultado = subir_si_cambio(contenido, nombre, carpeta_id, mime_type=mime_de(extension))
+
+    # 4. validacion: dice que paso con el archivo
+
     print(f"[{FUENTE}] '{nombre}': {resultado} (Drive: {DIMENSION}/{FUENTE}).")
 
 

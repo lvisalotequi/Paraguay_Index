@@ -1,16 +1,20 @@
-"""Helpers compartidos por los modulos de ingestion que leen bcp.gov.py.
+#-----------------------------------------------------------------------------.#
+# PROYECTO: US-PY ENGAGEMENT INDEX                                             #
+#                                                                              #
+# FECHA DE CREACION: 26/08/2026                                                #
+# NOMBRE: _bcp_common                                                          #
+# DETALLE: ayudante compartido por los tres modulos que leen bcp.gov.py: pide  #
+#   paginas y archivos con curl_cffi (el sitio esta detras de Cloudflare),     #
+#   reintenta una vez ante un bloqueo y arma nombres de archivo seguros. NO es #
+#   un modulo de ingestion: run_pipeline.py lo ignora por el guion bajo.       #
+#                                                                              #
+# CORRE DESPUES DE: nada; lo importan bcp_comercio_exterior,                   #
+#   bcp_inversion_directa y bcp_remesas_familiares                             #
+# SALIDA: funciones (obtener_html, descargar_bytes, nombre_desde_url,          #
+#   mime_de); no escribe nada                                                  #
+#-----------------------------------------------------------------------------.#
 
-El sitio del BCP esta detras de Cloudflare: `requests` normal da 403 (bloquea
-por huella TLS, no por headers). Se usa `curl_cffi` con impersonate="chrome"
-para pasar el challenge. Aun asi, desde los runners de GitHub Actions el sitio
-responde 403 en algunas corridas (visto 2026-10-26): `obtener_html()` y
-`descargar_bytes()` reintentan, y si el bloqueo sigue lanzan `SitioBloqueado`
-con el diagnostico (URL, `cf-mitigated`, `server`) para que el modulo devuelva
-"omitido" y conserve el ultimo archivo de Drive (ver `_bloqueo.py`).
-
-Prefijo `_`: este archivo no es un modulo de ingestion en si (run_pipeline.py
-lo ignora), es un helper que importan los que sí lo son.
-"""
+# Setup ------------------------------------------------------------------------
 import re
 import time
 import unicodedata
@@ -21,10 +25,21 @@ from curl_cffi import requests
 
 from src.ingestion._bloqueo import SitioBloqueado, comprobar
 
-URL_BASE = "https://www.bcp.gov.py"
-IMPERSONATE = "chrome"
-INTENTOS_BLOQUEO = 2  # un segundo intento por si el bloqueo era momentaneo
-ESPERA_BLOQUEO = 20  # segundos entre intentos
+
+
+# Parametros -------------------------------------------------------------------
+
+# El sitio del BCP esta detras de Cloudflare: requests normal da 403 (bloquea por
+# huella TLS, no por headers). Se usa curl_cffi con impersonate="chrome" para pasar
+# el challenge. Aun asi, desde los runners de GitHub Actions el sitio responde 403 en
+# algunas corridas (visto 2026-10-26): obtener_html() y descargar_bytes() reintentan
+# y, si el bloqueo sigue, lanzan SitioBloqueado con el diagnostico (URL,
+# cf-mitigated, server) para que el modulo devuelva "omitido" y conserve el ultimo
+# archivo de Drive (ver _bloqueo.py).
+URL_BASE         = "https://www.bcp.gov.py"
+IMPERSONATE      = "chrome"
+INTENTOS_BLOQUEO = 2   # un segundo intento por si el bloqueo era momentaneo
+ESPERA_BLOQUEO   = 20  # segundos entre intentos
 
 MIME_POR_EXTENSION = {
     "xls": "application/vnd.ms-excel",
@@ -32,6 +47,10 @@ MIME_POR_EXTENSION = {
     "xlsb": "application/vnd.ms-excel.sheet.binary.macroenabled.12",
     "csv": "text/csv",
 }
+
+
+
+# Funciones auxiliares ---------------------------------------------------------
 
 
 def limpiar_nombre_archivo(texto):
@@ -59,9 +78,13 @@ def _pedir(url, timeout):
             comprobar(resp)
             return resp
         except SitioBloqueado:
+            # el ultimo intento deja subir el error; los anteriores esperan y repiten
             if intento == INTENTOS_BLOQUEO:
                 raise
-            print(f"    [!] bloqueo en el intento {intento}/{INTENTOS_BLOQUEO}; reintento en {ESPERA_BLOQUEO} s")
+            print(
+                f"    [!] bloqueo en el intento {intento}/{INTENTOS_BLOQUEO}; "
+                f"reintento en {ESPERA_BLOQUEO} s"
+            )
             time.sleep(ESPERA_BLOQUEO)
 
 
