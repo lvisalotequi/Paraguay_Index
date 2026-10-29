@@ -1,0 +1,49 @@
+name: Publicar dashboard interno
+
+# Sube a Drive (04_final/dashboard_interno/dashboard.html) la copia autosuficiente del dashboard que sirve el web app de
+# Apps Script (el enlace interno). Se arma con dashboard_interno/construir_dashboard.py a partir de los mismos archivos de
+# dashboard/ que publica publicar_dashboard.yml en GitHub Pages, asi los dos enlaces muestran siempre el mismo dashboard.
+# Los DATOS no pasan por aca: el web app los lee del Sheet us_py_engagement_index en cada visita. Solo hace falta volver a
+# correr esto cuando cambia el diseno (por eso solo se dispara al tocar dashboard/ y a mano desde Actions).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - "dashboard_interno/construir_dashboard.py"
+      - ".github/workflows/publicar_dashboard_interno.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-interno
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install google-api-python-client google-auth
+
+      - name: Armar y subir el dashboard
+        env:
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          # la credencial se escribe fuera del repo y se borra al terminar, falle o no el script
+          printf '%s' "$GOOGLE_SHEETS_CREDENTIALS" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+          trap 'rm -f "$RUNNER_TEMP/service-account.json"' EXIT
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json" python dashboard_interno/construir_dashboard.py

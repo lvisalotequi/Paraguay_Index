@@ -1,0 +1,8 @@
+# El .gitignore de la raiz ignora *.json y *.html. Aca se corrige solo lo que corresponde a esta carpeta
+# (sin tocar el de la raiz):
+
+# el manifiesto del Apps Script si se versiona
+!apps_script/appsscript.json
+
+# el HTML armado por construir_dashboard.py se regenera, no se versiona
+salida/
