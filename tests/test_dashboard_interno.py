@@ -138,5 +138,54 @@ class PruebasWebApp(unittest.TestCase):
             self.assertNotIn(escritura, gs, escritura)
 
 
+class PruebasAcceso(unittest.TestCase):
+    """Contraseña y código de acceso: lo que hace que la pantalla de acceso proteja de verdad y no solo lo parezca."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gs = CODIGO_GS.read_text(encoding="utf-8")
+
+    def funcion(self, nombre):
+        return re.search(r"^function " + nombre + r".*?^}", self.gs, flags=re.S | re.M).group(0)
+
+    def test_doget_solo_entrega_la_pantalla_de_acceso(self):
+        # si doGet sirviera el dashboard, la pantalla de acceso se podria saltar
+        cuerpo = self.funcion("doGet")
+        for prohibido in ("leerDatos_", "inyectarDatos_", "armarDashboard_", "SpreadsheetApp", "DriveApp", "getBlob"):
+            self.assertNotIn(prohibido, cuerpo, prohibido)
+        self.assertIn("paginaAcceso_", cuerpo)
+
+    def test_solo_doget_y_entrar_son_llamables_desde_el_navegador(self):
+        # google.script.run no puede llamar a las funciones que terminan en guion bajo
+        nombres = re.findall(r"^function ([A-Za-z0-9_]+)", self.gs, flags=re.M)
+        self.assertEqual(sorted(n for n in nombres if not n.endswith("_")), ["doGet", "entrar"])
+
+    def test_entrar_valida_antes_de_armar_el_dashboard_y_es_el_unico_que_lo_arma(self):
+        # entrar() es publica: no puede confiar en que doGet() ya comprobo algo
+        cuerpo = self.funcion("entrar")
+        orden = [cuerpo.index(x) for x in ("problemaConfiguracion_", "comprobarPersona_", "verificar_", "armarDashboard_")]
+        self.assertEqual(orden, sorted(orden))
+        self.assertEqual(self.gs.count("armarDashboard_("), 2)  # su definicion y la llamada de entrar()
+
+    def test_el_formulario_no_envia_la_contrasena_por_la_direccion(self):
+        self.assertIn('onsubmit="return false"', self.gs)
+        for campo in re.findall(r"<input [^>]*>", self.gs):
+            self.assertNotIn(" name=", campo)
+
+    def test_no_registra_la_contrasena(self):
+        self.assertNotIn("Logger.", self.gs)
+        self.assertNotIn("console.", self.gs)
+
+    def test_los_limites_son_razonables(self):
+        def numero(nombre):
+            return int(re.search(r"const " + nombre + r" = (\d+);", self.gs).group(1))
+
+        self.assertGreaterEqual(numero("MIN_CLAVE"), 8)
+        self.assertGreaterEqual(numero("MIN_CODIGO"), 4)
+        self.assertLessEqual(numero("MAX_INTENTOS"), 10)
+        # CacheService no acepta mas de 21600 s (6 h) de vencimiento
+        self.assertTrue(300 <= numero("BLOQUEO_SEGUNDOS") <= 21600)
+
+
 if __name__ == "__main__":
     unittest.main()
