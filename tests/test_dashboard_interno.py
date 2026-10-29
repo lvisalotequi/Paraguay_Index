@@ -111,12 +111,31 @@ class PruebasWebApp(unittest.TestCase):
         for pestana in lista_de(py, "PESTANAS"):
             self.assertIn(pestana, gs)
 
-    def test_el_manifiesto_es_valido_y_solo_lee(self):
+    def test_el_manifiesto_es_valido(self):
         m = json.loads(MANIFIESTO.read_text(encoding="utf-8"))
         self.assertEqual(m["webapp"], {"executeAs": "USER_DEPLOYING", "access": "DOMAIN"})
         self.assertEqual(m["runtimeVersion"], "V8")
-        for permiso in m["oauthScopes"]:
-            self.assertTrue(permiso.endswith(("readonly", "userinfo.email")), permiso)
+
+    def test_los_permisos_alcanzan_para_lo_que_usa_codigo_gs(self):
+        # SpreadsheetApp exige el permiso completo "spreadsheets": con "spreadsheets.readonly" falla
+        # («Los permisos especificados no son suficientes para llamar a SpreadsheetApp.openById»)
+        gs = CODIGO_GS.read_text(encoding="utf-8")
+        permisos = set(json.loads(MANIFIESTO.read_text(encoding="utf-8"))["oauthScopes"])
+        base = "https://www.googleapis.com/auth/"
+        self.assertIn("SpreadsheetApp.", gs)
+        self.assertIn(base + "spreadsheets", permisos)
+        self.assertNotIn(base + "spreadsheets.readonly", permisos)  # sobra: el completo ya lo incluye
+        self.assertIn("DriveApp.", gs)
+        self.assertIn(base + "drive.readonly", permisos)
+        self.assertIn("Session.getActiveUser", gs)
+        self.assertIn(base + "userinfo.email", permisos)
+
+    def test_codigo_gs_solo_lee_el_sheet(self):
+        # el permiso "spreadsheets" tambien permite escribir: Codigo.gs no debe hacerlo nunca
+        gs = CODIGO_GS.read_text(encoding="utf-8")
+        for escritura in (".setValue", ".setValues", ".appendRow", ".clear(", ".deleteRow", ".insertRow",
+                          ".setFormula", ".insertSheet", ".deleteSheet", ".setFrozen"):
+            self.assertNotIn(escritura, gs, escritura)
 
 
 if __name__ == "__main__":

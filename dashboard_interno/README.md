@@ -81,7 +81,7 @@ Verificado (local, con los datos reales del Sheet y el `Codigo.gs` ejecutado con
 - Que el botón de descarga de los CSV funcione: depende de que el marco de Apps Script permita descargas. Si no, el botón no hará nada visible.
 - Que el idioma se recuerde al recargar (usa `localStorage`; si el marco no lo permite, vuelve a español, y `?lang=en` lo fuerza).
 - Con `CORREOS_AUTORIZADOS` lleno: que entre una cuenta autorizada y que otra vea «Sin acceso».
-- Los permisos que muestra Google al autorizar: `drive.readonly`, `spreadsheets.readonly` y `userinfo.email` (los tres de solo lectura, ver `appsscript.json`).
+- Los permisos que muestra Google al autorizar: `drive.readonly`, `spreadsheets` y `userinfo.email` (ver `appsscript.json`). `SpreadsheetApp` exige el permiso completo `spreadsheets`, no existe una versión de solo lectura para esa clase; el código solo lee (una prueba comprueba que `Codigo.gs` no use ningún método de escritura). Con `spreadsheets.readonly` falla con «Los permisos especificados no son suficientes para llamar a SpreadsheetApp.openById»: ese error apareció en la primera prueba real y es el motivo del cambio.
 
 ## Archivos
 
@@ -89,7 +89,7 @@ Verificado (local, con los datos reales del Sheet y el `Codigo.gs` ejecutado con
 |---|---|
 | `construir_dashboard.py` | Arma `dashboard.html` autosuficiente desde `dashboard/` y lo sube a Drive. |
 | `apps_script/Codigo.gs` | Web app: junta el HTML de Drive con los datos del Sheet y lo sirve. |
-| `apps_script/appsscript.json` | Manifiesto: permisos de solo lectura, «ejecutar como yo», acceso por dominio. |
+| `apps_script/appsscript.json` | Manifiesto: permisos (Drive de solo lectura y `spreadsheets`, que `SpreadsheetApp` exige completo), «ejecutar como yo», acceso por dominio. |
 | `salida/` | HTML armado en local (no se versiona). |
 | `../.github/workflows/publicar_dashboard_interno.yml` | Sube el HTML a Drive cuando cambia `dashboard/`. |
 | `../tests/test_dashboard_interno.py` | Pruebas del HTML armado y de que `Codigo.gs` y el constructor se mantengan de acuerdo. |
