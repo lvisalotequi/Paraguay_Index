@@ -64,6 +64,10 @@ h1,h2,h3{font-family:var(--font-display);font-weight:800;letter-spacing:-.005em}
 .eq-ribbon b{font-family:var(--font-display);font-size:13px;letter-spacing:.1em}
 /* en el telefono la franja queda solo con su rotulo, para no tapar la pantalla */
 @media (max-width:640px){.eq-ribbon span{display:none}}
+/* logos de Global Americans y CAF junto al de Equilibrium; en la barra fija se ocultan en pantallas angostas */
+.eq-sep{width:1px;align-self:stretch;background:rgba(238,235,224,.35);flex:none}
+@media (max-width:980px){.eq-socios{display:none!important}}
+@media (max-width:640px){.eq-logos{gap:12px 18px!important}.eq-logos img{height:26px!important}.eq-logos img.eq-logo-eq{height:34px!important}.eq-logos .eq-sep{display:none}}
 [data-adv="on"] #cap2,[data-adv="on"] #cap3{background-image:linear-gradient(rgba(67,28,133,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(67,28,133,.07) 1px,transparent 1px)!important;background-size:28px 28px!important}
 [data-adv="on"] #cap1{background-image:linear-gradient(rgba(0,253,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,253,255,.05) 1px,transparent 1px)!important;background-size:28px 28px!important}
 [data-adv="on"] [data-anim="spark"],[data-adv="on"] [style*="text-align:right"],[data-adv="on"] [style*="text-align: right"]{font-variant-numeric:tabular-nums}
@@ -153,7 +157,13 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
   <x-import component-from-global-scope="EquilibriumDesignSystem_83a4c4.Isotipo" size="600" color="var(--eq-coral)" style="position:absolute;right:-330px;top:-300px" hint-size="600px,600px"></x-import>
   <div style="position:relative;width:100%;max-width:1200px;margin:0 auto;padding:36px 24px 0;box-sizing:border-box;flex:1;display:flex;flex-direction:column;gap:40px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-      <img src="assets/logos/logo-tagline-blanco.svg" alt="Equilibrium" style="height:52px;width:auto">
+      <div class="eq-logos" style="display:flex;align-items:center;gap:14px 24px;flex-wrap:wrap">
+        <img src="assets/logos/logo-global-americans-blanco.png" alt="Global Americans" style="height:38px;width:auto">
+        <span class="eq-sep"></span>
+        <img src="assets/logos/logo-caf-blanco.png" alt="CAF" style="height:34px;width:auto">
+        <span class="eq-sep"></span>
+        <img class="eq-logo-eq" src="assets/logos/logo-tagline-blanco.svg" alt="Equilibrium" style="height:46px;width:auto">
+      </div>
       <div role="group" aria-label="{{ t.langAria }}" style="display:flex;border-radius:999px;box-shadow:inset 0 0 0 1.5px rgba(238,235,224,.6);overflow:hidden;flex:none">
         <sc-for list="{{ langs }}" as="l" hint-placeholder-count="2"><button type="button" onClick="{{ l.go }}" aria-pressed="{{ l.on }}" style="border:0;cursor:pointer;padding:7px 14px;font-family:var(--font-sans);font-size:13px;font-weight:700;letter-spacing:.06em;background:{{ l.bgDark }};color:{{ l.fgDark }}">{{ l.label }}</button></sc-for>
       </div>
@@ -246,6 +256,11 @@ html.eq-motion a{transition:border-color .25s,color .25s,opacity .25s}
     <header style="background:var(--eq-navy)">
       <div style="max-width:1200px;margin:0 auto;height:72px;padding:0 24px;box-sizing:border-box;display:flex;align-items:center;gap:24px">
         <img src="assets/logos/logo-principal-blanco.svg" alt="Equilibrium" onClick="{{ goCover }}" style="height:28px;width:auto;cursor:pointer;flex:none">
+        <div class="eq-socios" style="display:flex;align-items:center;gap:16px;height:28px;flex:none">
+          <span class="eq-sep"></span>
+          <img src="assets/logos/logo-global-americans-blanco.png" alt="Global Americans" style="height:22px;width:auto">
+          <img src="assets/logos/logo-caf-blanco.png" alt="CAF" style="height:20px;width:auto">
+        </div>
         <nav style="margin-left:auto;display:flex;gap:28px;overflow-x:auto;white-space:nowrap">
           <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3">
             <a href="#" onClick="{{ n.go }}" style="color:var(--eq-paper);text-decoration:none;font-size:15px;font-weight:{{ n.fw }};padding-bottom:4px;border-bottom:2px solid {{ n.bd }}">{{ n.label }}</a>
