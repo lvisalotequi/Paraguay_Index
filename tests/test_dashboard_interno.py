@@ -101,6 +101,8 @@ class PruebasHtmlAutosuficiente(unittest.TestCase):
             pagina = raiz / "dashboard" / "US-PY Engagement Index.dc.html"
             texto = pagina.read_text(encoding="utf-8")
             self.assertEqual(texto.count("<x-dc>"), 1)
+            # PNG que el diseno ya trae por su cuenta (desde 2026-10-30 son los logos de los socios): se suman a los de prueba
+            propios = len(re.findall(r'src="assets/[^"]+[.]png"', texto))
             imagenes = '<img src="assets/logos/prueba.png" alt="a"><img src="assets/logos/prueba.png" alt="b">'
             pagina.write_text(texto.replace("<x-dc>", "<x-dc>" + imagenes, 1), encoding="utf-8")
 
@@ -110,7 +112,7 @@ class PruebasHtmlAutosuficiente(unittest.TestCase):
             )
             self.assertEqual(corrida.returncode, 0, corrida.stdout + corrida.stderr)
             html = (raiz / "dashboard_interno" / "salida" / "dashboard.html").read_text(encoding="utf-8")
-            self.assertEqual(html.count("data:image/png;base64,"), 2)
+            self.assertEqual(html.count("data:image/png;base64,"), propios + 2)
             self.assertNotIn("assets/logos/prueba.png", html)
 
 
