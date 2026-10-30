@@ -25,7 +25,16 @@ Enlace interno (termina en /exec)
 ```
 
 Consecuencia práctica: **cuando el pipeline actualiza el Sheet no hay que hacer nada**; la siguiente persona que abra el enlace
-ve los datos nuevos. El HTML solo se vuelve a subir cuando cambia el diseño de `dashboard/`.
+ve los datos nuevos. El diseño (logos, textos, gráficos) tampoco exige nada manual: `publicar_dashboard_interno.yml` corre solo cada vez que
+termina bien «Publicar dashboard» (el de GitHub Pages) y deja el HTML nuevo en Drive, y el Apps Script no se toca porque lee ese archivo en
+cada visita. **Para que ese disparo exista, el workflow tiene que estar subido a `main` en GitHub**: un workflow que solo está en un
+commit local no corre.
+
+| | Se actualiza | Cuándo se ve |
+|---|---|---|
+| Datos (Sheet `us_py_engagement_index`) | Al correr el pipeline | En la siguiente visita |
+| Diseño (`dashboard/`) | Al terminar bien «Publicar dashboard» | Cuando el flujo termina (1 a 2 minutos) y en la siguiente visita |
+| `Codigo.gs` (acceso, permisos) | A mano, pegando el código y creando una versión nueva | Al desplegar |
 
 ## Instalación (una sola vez)
 
@@ -81,7 +90,7 @@ compartido, así que si alguien deja el equipo conviene cambiar los dos valores.
 |---|---|
 | Datos (el pipeline actualizó el Sheet) | Nada. |
 | Contraseña o código de acceso | Editar las propiedades `CLAVE` y `CODIGO_ACCESO` del script. Rige al instante. |
-| Diseño (`dashboard/`) | Nada si se sube a `main`: lo dispara `publicar_dashboard_interno.yml`. A mano: `python dashboard_interno/construir_dashboard.py`. |
+| Diseño (`dashboard/`: logos, textos, gráficos) | Nada: `publicar_dashboard_interno.yml` corre solo tras cada «Publicar dashboard» que termina bien (un cambio subido a `main`, la corrida diaria o un disparo a mano) y deja el HTML nuevo en Drive. Sin esperar al flujo: `python dashboard_interno/construir_dashboard.py`. |
 | `apps_script/Codigo.gs` | Pegar el código nuevo en el proyecto y Implementar > Administrar implementaciones > editar > «Nueva versión». La URL no cambia. |
 
 Parámetro opcional del enlace: `?lang=en` lo abre en inglés (`?lang=es`, en español).
@@ -120,5 +129,5 @@ Verificado (local, con los datos reales del Sheet y el `Codigo.gs` ejecutado con
 | `apps_script/Codigo.gs` | Web app: pide contraseña y código y, si son correctos, junta el HTML de Drive con los datos del Sheet y lo sirve. |
 | `apps_script/appsscript.json` | Manifiesto: permisos (Drive de solo lectura y `spreadsheets`, que `SpreadsheetApp` exige completo), «ejecutar como yo», acceso por dominio. |
 | `salida/` | HTML armado en local (no se versiona). |
-| `../.github/workflows/publicar_dashboard_interno.yml` | Sube el HTML a Drive cuando cambia `dashboard/`. |
+| `../.github/workflows/publicar_dashboard_interno.yml` | Sube el HTML a Drive tras cada «Publicar dashboard» que termina bien (y a mano, o si cambia el constructor). Si el diseño trae algo que el constructor no sabe incrustar, se corta y el workflow sale en rojo en Actions. |
 | `../tests/test_dashboard_interno.py` | Pruebas del HTML armado y de que `Codigo.gs` y el constructor se mantengan de acuerdo. |

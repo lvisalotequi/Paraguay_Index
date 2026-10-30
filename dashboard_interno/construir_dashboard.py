@@ -150,11 +150,24 @@ def css_en_linea(ruta_relativa):
     return css
 
 
-def logo_en_linea(ruta_relativa):
+# tipos de imagen que se incrustan (el diseno ya uso SVG y, desde 2026-10-30, tambien PNG para los logos de los socios)
+TIPOS_IMAGEN = {
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 
-    contenido = (CARPETA_DASHBOARD / ruta_relativa).read_bytes()
 
-    return "data:image/svg+xml;base64," + base64.b64encode(contenido).decode("ascii")
+def imagen_en_linea(ruta_relativa):
+
+    ruta = CARPETA_DASHBOARD / ruta_relativa
+
+    contenido = ruta.read_bytes()
+
+    return f"data:{TIPOS_IMAGEN[ruta.suffix.lower()]};base64," + base64.b64encode(contenido).decode("ascii")
 
 
 # Script de descargas: los enlaces "indice_ancho.csv" / "diccionario.csv" de la nota tecnica apuntan a
@@ -215,13 +228,16 @@ pagina_limpiando = reemplazar(
 )
 
 
-# 4. Logos en linea
+# 4. Imagenes (logos) en linea, de cualquier tipo y en cualquier cantidad: el diseno puede sumar logos sin que este
+#    parche cambie. Lo que quede sin incrustar lo detecta la validacion de abajo ("quedan rutas relativas")
+extensiones = "|".join(re.escape(e[1:]) for e in TIPOS_IMAGEN)
+
 pagina_limpiando = reemplazar(
     pagina_limpiando,
-    r'src="(assets/[^"]+\.svg)"',
-    lambda m: f'src="{logo_en_linea(m.group(1))}"',
-    "logos",
-    veces=2,
+    r'src="(assets/[^"]+\.(?:' + extensiones + r'))"',
+    lambda m: f'src="{imagen_en_linea(m.group(1))}"',
+    "imagenes",
+    veces=None,
 )
 
 

@@ -8,8 +8,10 @@ Fijan los errores que aparecieron al armarlo:
 """
 import json
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -86,6 +88,30 @@ class PruebasHtmlAutosuficiente(unittest.TestCase):
         # el dashboard usa Barlow (Google Fonts); incrustar Geologica sumaria ~3 MB sin que se vea
         self.assertNotIn("@font-face{font-family:" + chr(34) + "Geologica", self.html)
         self.assertIn('--font-sans:"Barlow"', self.html)
+
+    def test_incrusta_imagenes_png_y_en_cualquier_cantidad(self):
+        # el 2026-10-30 el diseno sumo logos PNG; el constructor solo incrustaba SVG y se cortaba ("quedan rutas relativas").
+        # Se arma una copia minima con dos referencias a un PNG de prueba, para no depender de que el diseno traiga PNG hoy
+        with tempfile.TemporaryDirectory() as tmp:
+            raiz = Path(tmp)
+            shutil.copytree(REPO / "dashboard", raiz / "dashboard", ignore=shutil.ignore_patterns("fonts", "datos"))
+            (raiz / "dashboard_interno").mkdir()
+            shutil.copy(CONSTRUCTOR, raiz / "dashboard_interno" / "construir_dashboard.py")
+            (raiz / "dashboard" / "assets" / "logos" / "prueba.png").write_bytes(bytes.fromhex("89504e470d0a1a0a") + b"prueba")
+            pagina = raiz / "dashboard" / "US-PY Engagement Index.dc.html"
+            texto = pagina.read_text(encoding="utf-8")
+            self.assertEqual(texto.count("<x-dc>"), 1)
+            imagenes = '<img src="assets/logos/prueba.png" alt="a"><img src="assets/logos/prueba.png" alt="b">'
+            pagina.write_text(texto.replace("<x-dc>", "<x-dc>" + imagenes, 1), encoding="utf-8")
+
+            corrida = subprocess.run(
+                [sys.executable, str(raiz / "dashboard_interno" / "construir_dashboard.py"), "--sin-subir"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+            )
+            self.assertEqual(corrida.returncode, 0, corrida.stdout + corrida.stderr)
+            html = (raiz / "dashboard_interno" / "salida" / "dashboard.html").read_text(encoding="utf-8")
+            self.assertEqual(html.count("data:image/png;base64,"), 2)
+            self.assertNotIn("assets/logos/prueba.png", html)
 
 
 class PruebasWebApp(unittest.TestCase):
@@ -185,6 +211,29 @@ class PruebasAcceso(unittest.TestCase):
         self.assertLessEqual(numero("MAX_INTENTOS"), 10)
         # CacheService no acepta mas de 21600 s (6 h) de vencimiento
         self.assertTrue(300 <= numero("BLOQUEO_SEGUNDOS") <= 21600)
+
+
+class PruebasWorkflowInterno(unittest.TestCase):
+    """El enlace interno se actualiza solo cuando corre «Publicar dashboard»."""
+
+    @classmethod
+    def setUpClass(cls):
+        flujos = REPO / ".github" / "workflows"
+        cls.pages = (flujos / "publicar_dashboard.yml").read_text(encoding="utf-8")
+        cls.interno = (flujos / "publicar_dashboard_interno.yml").read_text(encoding="utf-8")
+
+    def test_se_dispara_tras_publicar_dashboard_con_el_nombre_real_de_ese_flujo(self):
+        # workflow_run apunta al flujo por su "name:": si alguien lo renombra, el enlace interno dejaria de
+        # actualizarse sin avisar
+        nombre = re.search(r"^name: (.+)$", self.pages, flags=re.M).group(1).strip()
+        self.assertIn("workflow_run:", self.interno)
+        self.assertIn('workflows: ["' + nombre + '"]', self.interno)
+        self.assertIn("types: [completed]", self.interno)
+
+    def test_solo_actualiza_tras_una_corrida_buena_de_main_y_arma_desde_ese_commit(self):
+        self.assertIn("workflow_run.conclusion == 'success'", self.interno)
+        self.assertIn("workflow_run.head_branch == 'main'", self.interno)
+        self.assertIn("workflow_run.head_sha", self.interno)
 
 
 if __name__ == "__main__":

@@ -3,15 +3,20 @@ name: Publicar dashboard interno
 # Sube a Drive (04_final/dashboard_interno/dashboard.html) la copia autosuficiente del dashboard que sirve el web app de
 # Apps Script (el enlace interno). Se arma con dashboard_interno/construir_dashboard.py a partir de los mismos archivos de
 # dashboard/ que publica publicar_dashboard.yml en GitHub Pages, asi los dos enlaces muestran siempre el mismo dashboard.
-# Los DATOS no pasan por aca: el web app los lee del Sheet us_py_engagement_index en cada visita. Solo hace falta volver a
-# correr esto cuando cambia el diseno (por eso solo se dispara al tocar dashboard/ y a mano desde Actions).
+# Los DATOS no pasan por aca: el web app los lee del Sheet us_py_engagement_index en cada visita. Lo que hay que
+# mantener al dia es el DISENO, y se hace solo: este flujo corre cada vez que termina bien "Publicar dashboard" (el de
+# GitHub Pages), sea cual sea el motivo: un cambio subido a main, la corrida diaria o un disparo a mano. El web app de
+# Apps Script no necesita nada: lee este archivo de Drive en cada visita.
+# Tambien se puede disparar a mano, y corre si cambia el propio constructor.
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Publicar dashboard"]
+    types: [completed]
   push:
     branches: [main]
     paths:
-      - "dashboard/**"
       - "dashboard_interno/construir_dashboard.py"
       - ".github/workflows/publicar_dashboard_interno.yml"
 
@@ -24,10 +29,16 @@ concurrency:
 
 jobs:
   publicar:
+    # tras "Publicar dashboard" solo si salio bien y fue sobre main: una corrida fallida o de otra rama no debe
+    # cambiar el enlace interno. Los demas disparos (a mano, cambios del constructor) corren siempre
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          # tras "Publicar dashboard" se arma desde el mismo commit que publico ese flujo, no desde lo ultimo de main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
